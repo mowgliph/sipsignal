@@ -7,7 +7,9 @@ import math
 from datetime import datetime, date
 from typing import Optional
 from core.config import YEAR_QUOTES_PATH, YEAR_SUBS_PATH
-from core.i18n import _
+# Función identidad para reemplazar i18n (textos ya están en español)
+def _(message, *args, **kwargs):
+    return message
 
 # --- GESTIÓN DE FRASES (QUOTES) ---
 

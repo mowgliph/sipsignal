@@ -31,13 +31,15 @@ from utils.telemetry import (
     get_daily_events,
     get_users_registration_stats
 )
-from core.config import ( 
-    VERSION, PID, PYTHON_VERSION, STATE, ADMIN_CHAT_IDS, 
+from core.config import (
+    VERSION, PID, PYTHON_VERSION, STATE, ADMIN_CHAT_IDS,
     USUARIOS_PATH, PRICE_ALERTS_PATH, HBD_HISTORY_PATH,
-    CUSTOM_ALERT_HISTORY_PATH, ADS_PATH, ELTOQUE_HISTORY_PATH,
+    CUSTOM_ALERT_HISTORY_PATH, ADS_PATH,
     LAST_PRICES_PATH, TEMPLATE_PATH, HBD_THRESHOLDS_PATH
     )
-from core.i18n import _
+# Función identidad para reemplazar i18n (textos ya están en español)
+def _(message, *args, **kwargs):
+    return message
 
 # Definimos los estados para nuestra conversación de mensaje masivo
 AWAITING_CONTENT, AWAITING_CONFIRMATION, AWAITING_ADDITIONAL_TEXT, AWAITING_ADDITIONAL_PHOTO = range(4)

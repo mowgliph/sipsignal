@@ -19,15 +19,10 @@ from core.loops import (
     get_logs_data, 
     set_enviar_mensaje_telegram_async,
 )
-from core.i18n import _ 
 from handlers.general import start, myid, ver, help_command
 from handlers.admin import users, logs_command, set_admin_util, set_logs_util, ms_conversation_handler, ad_command
 from handlers.year_handlers import year_command, year_sub_callback
 from core.year_loop import year_progress_loop
-
-from handlers.reminders import rec_command, reminders_conv_handler, reminders_callback_handler
-from core.reminders_loop import reminders_monitor_loop
-
 
 from handlers.user_settings import (
     mismonedas, parar, cmd_temp, set_monedas_command,
@@ -41,8 +36,6 @@ from handlers.alerts import (
 )
 from handlers.trading import graf_command, p_command, refresh_command_callback, mk_command, ta_quick_callback
 from handlers.ta import ta_command, ta_switch_callback, ai_analysis_callback
-from handlers.tasa import eltoque_command, eltoque_provincias_callback, eltoque_refresh_callback
-
 
 from handlers.valerts_handlers import valerts_handlers_list
 from core.valerts_loop import valerts_monitor_loop, set_valerts_sender 
@@ -63,10 +56,6 @@ async def post_init(app: Application):
     asyncio.create_task(year_progress_loop(app.bot))
     logger.info("✅ Bucle de Progreso Anual iniciado.")
 
-    # Iniciando recordatorios
-    asyncio.create_task(reminders_monitor_loop(app.bot))
-    logger.info("✅ Bucle de recordatorios iniciado.")
-
     # 1. Iniciar los bucles de fondo globales
     asyncio.create_task(alerta_loop(app.bot))
     asyncio.create_task(check_custom_price_alerts(app.bot))
@@ -85,14 +74,13 @@ async def post_init(app: Application):
     logger.info("✅ Todas las tareas de fondo han sido iniciadas.")
 
     try:
-        startup_message_template = _(
+        startup_message_template = (
             "🍞 *¡Llego el pan a la bodega!* 🍞\n————————————————————\n\n"
             "🤖 `BitBread Alert v{version}`\n"
             "🪪 `PID: {pid}`\n"
             "🐍 `Python: v{python_version}`\n\n————————————————————\n"
             "✅ Ácido y aplastado, pero comible. 👍.\n"
-            "🫣 ¡Vamos por mas!",
-            None
+            "🫣 ¡Vamos por mas!"
         )
         startup_message = startup_message_template.format(
             version=VERSION,
@@ -211,8 +199,6 @@ def main():
     # 1️⃣ ConversationHandler de Mensajes Admin
     app.add_handler(ms_conversation_handler)
 
-    app.add_handler(reminders_conv_handler)
-
     # ============================================
     # Comandos generales
     # ============================================
@@ -234,7 +220,6 @@ def main():
     app.add_handler(CommandHandler("mk", mk_command))
     app.add_handler(CommandHandler("graf", graf_command))
     app.add_handler(CommandHandler("p", p_command))
-    app.add_handler(CommandHandler("tasa", eltoque_command))
     app.add_handler(CommandHandler("ta", ta_command))
     
     # ============================================
@@ -253,8 +238,6 @@ def main():
     app.add_handler(CommandHandler("alerta", alerta_command))
     app.add_handler(CommandHandler("misalertas", misalertas))
     
-    app.add_handler(CommandHandler("rec", rec_command))
-    
     # ============================================
     # Handlers de BTC y VALERTS (listas)
     # ============================================
@@ -270,14 +253,11 @@ def main():
     app.add_handler(CommandHandler("y", year_command))
     
     # Callbacks de Trading
-    app.add_handler(CallbackQueryHandler(reminders_callback_handler, pattern="^rem_"))
     app.add_handler(CallbackQueryHandler(year_sub_callback, pattern="^year_sub_"))
     app.add_handler(CallbackQueryHandler(ta_switch_callback, pattern="^ta_switch\\|"))
     app.add_handler(CallbackQueryHandler(ai_analysis_callback, pattern="^ai_analyze\\|"))
     app.add_handler(CallbackQueryHandler(refresh_command_callback, pattern=r"^refresh_"))
     app.add_handler(CallbackQueryHandler(ta_quick_callback, pattern=r"^ta_quick\|"))
-    app.add_handler(CallbackQueryHandler(eltoque_refresh_callback, pattern="^eltoque_refresh$"))
-    app.add_handler(CallbackQueryHandler(eltoque_provincias_callback, pattern="^eltoque_provincias$"))
     
     # Callbacks de Alertas
     app.add_handler(CallbackQueryHandler(borrar_alerta_callback, pattern='^delete_alert_'))

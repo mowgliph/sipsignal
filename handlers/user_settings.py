@@ -21,7 +21,9 @@ from utils.file_manager import(cargar_usuarios, guardar_usuarios, registrar_usua
 from core.api_client import obtener_precios_control
 from core.loops import set_custom_alert_history_util # Nueva importación
 
-from core.i18n import _ # <-- AGREGAR LA FUNCIÓN DE TRADUCCIÓN
+# Función identidad para reemplazar i18n (textos ya están en español)
+def _(message, *args, **kwargs):
+    return message
 
 # Soporte de idiomas
 SUPPORTED_LANGUAGES = {
