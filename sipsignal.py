@@ -97,13 +97,13 @@ async def post_init(app: Application):
     try:
         startup_message_template = (
             "⚡ *SipSignal Trading Bot* ⚡\n"
-            "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "─────────────\n\n"
             "🤖 `Sistema de Señales BTC v{version}`\n"
             "🪪 `PID: {pid}`\n"
             "🐍 `Python: v{python_version}`\n\n"
             "📊 Análisis técnico automatizado 24/7\n"
             "🔔 Alertas inteligentes en tiempo real\n\n"
-            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            "─────────────\n"
             "✅ *Sistema activo y operativo*"
         )
         startup_message = startup_message_template.format(

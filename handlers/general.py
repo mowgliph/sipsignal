@@ -59,7 +59,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     nombre_usuario = update.effective_user.first_name
 
     mensaje = (
-    "*Hola👋 {nombre_usuario}!* Bienvenido a BitBreadAlert.\n————————————————————\n\n"
+    "*Hola👋 {nombre_usuario}!* Bienvenido a SipSignal.\n─────────────\n\n"
     "Para recibir alertas periódicas con los precios de tu lista de monedas, "
     "usa el comando `/monedas` seguido de los símbolos separados por comas. "
     "Puedes usar *cualquier* símbolo de criptomoneda listado en CoinMarketCap. Ejemplo:\n\n"
@@ -116,7 +116,7 @@ async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
     precios_anteriores_usuario = todos_precios_anteriores.get(str(chat_id), {})
 
     # 5. Construir el mensaje
-    mensaje = "📊 *Precios Actuales (Tu Lista):*\n—————————————————\n\n"
+    mensaje = "📊 *Precios Actuales (Tu Lista):*\n─────────────\n\n"
     
     TOLERANCIA = 0.0000001
     
@@ -141,7 +141,7 @@ async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Añadir fecha
     fecha_actual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    mensaje += f"\n—————————————————\n_📅 Consulta: {fecha_actual}_"
+    mensaje += f"\n─────────────\n_📅 Consulta: {fecha_actual}_"
 
     mensaje += get_random_ad_text()
 
@@ -161,7 +161,7 @@ async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
     mensaje_template = (
-        "Estos son tus datos de Telegram:\n—————————————————\n\n"
+        "Estos son tus datos de Telegram:\n─────────────\n\n"
         "Nombre: {nombre}\n"
         "Usuario: {usuario}\n"
         "ID: `{id_chat}`"
