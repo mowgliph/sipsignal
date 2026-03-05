@@ -37,6 +37,8 @@ class UserConfig:
     sl_period: int = 14
     tp_mult: float = 1.5
     sl_mult: float = 1.5
+    capital: float = 10000.0
+    risk_percent: float = 1.0
 
 
 class Database:
