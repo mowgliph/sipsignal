@@ -190,3 +190,13 @@ class DrawdownTrackerModel(Base):
     last_reset_at = Column(DateTime(timezone=True))
     is_paused = Column(Boolean, default=False)
     updated_at = Column(DateTime(timezone=True), server_default="NOW()")
+
+
+class UserModel(Base):
+    __tablename__ = "users"
+
+    user_id = Column(Integer, primary_key=True)
+    language = Column(String(5), default="es")
+    registered_at = Column(DateTime(timezone=True), nullable=False)
+    last_seen = Column(DateTime(timezone=True))
+    is_active = Column(Boolean, default=True)
