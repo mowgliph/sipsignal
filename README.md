@@ -67,7 +67,7 @@ Sistema inteligente de señales BTC con análisis técnico automatizado 24/7.
 
 1. **Clonar el repositorio:**
 ```bash
-git clone <repo-url>
+git clone https://github.com/mowgliph/sipsignal.git
 cd sipsignal
 ```
 
@@ -159,7 +159,7 @@ Este proyecto está licenciado bajo la Licencia MIT - ver archivo [LICENSE](LICE
 
 ## Política de Uso
 
-Al usar este bot, aceptas los términos descritos en [POLITICA_DE_USO.md](POLITICA_DE_USO.md).
+Al usar este bot, aceptas los términos descritos en [POLITICA_DE_USO.md](docs/POLITICA_DE_USO.md).
 
 ---
 
