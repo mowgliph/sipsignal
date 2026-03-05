@@ -23,6 +23,10 @@ class Settings:
     binance_api_secret: str = ""
     groq_api_key: str = ""
     screenshot_api_key: str = ""
+    cmc_api_key_alerta: str = ""
+    cmc_api_key_control: str = ""
+    cmc_api_key_alerta: str = ""
+    cmc_api_key_control: str = ""
 
     # --- Configuración de Base de Datos ---
     database_url: str = ""
@@ -81,6 +85,8 @@ class Settings:
             binance_api_secret=os.environ.get("BINANCE_API_SECRET", "").strip(),
             groq_api_key=os.environ.get("GROQ_API_KEY", "").strip(),
             screenshot_api_key=os.environ.get("SCREENSHOT_API_KEY", "").strip(),
+            cmc_api_key_alerta=os.environ.get("CMC_API_KEY_ALERTA", "").strip(),
+            cmc_api_key_control=os.environ.get("CMC_API_KEY_CONTROL", "").strip(),
             database_url=database_url,
             log_level=os.environ.get("LOG_LEVEL", "INFO").strip().upper(),
             environment=os.environ.get("ENVIRONMENT", "production").strip().lower(),
@@ -95,15 +101,20 @@ except ValueError as e:
     sys.exit(1)
 
 # --- Compatibilidad hacia atrás (exports) ---
+import platform
+
 TOKEN_TELEGRAM = settings.token_telegram
 ADMIN_CHAT_IDS = settings.admin_chat_ids
 GROQ_API_KEY = settings.groq_api_key
 SCREENSHOT_API_KEY = settings.screenshot_api_key
 BINANCE_API_KEY = settings.binance_api_key
 BINANCE_API_SECRET = settings.binance_api_secret
+CMC_API_KEY_ALERTA = settings.cmc_api_key_alerta
+CMC_API_KEY_CONTROL = settings.cmc_api_key_control
 DATABASE_URL = settings.database_url
 LOG_LEVEL = settings.log_level
 ENVIRONMENT = settings.environment
+PYTHON_VERSION = platform.python_version()
 
 # --- Rutas del proyecto ---
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

@@ -238,6 +238,7 @@ def main():
     # ============================================
     app.add_handler(CommandHandler("users", users))
     app.add_handler(CommandHandler("logs", logs_command))
+    app.add_handler(CommandHandler("status", logs_command))
     app.add_handler(CommandHandler("ad", ad_command))
     
     # ============================================
