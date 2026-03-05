@@ -1,11 +1,11 @@
-# bbalert.py - Punto de Entrada Principal del Bot de Telegram para BitBread.
+# sipsignal.py - Punto de Entrada Principal del Bot de Telegram para SipSignal.
 
 import asyncio
 import warnings
 from telegram.warnings import PTBUserWarning
 from telegram import Update
 from telegram.error import BadRequest
-from telegram.ext import Application, ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes, PreCheckoutQueryHandler
+from telegram.ext import Application, ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 from telegram.constants import ParseMode
 from utils.logger import logger
 from utils.file_manager import cargar_usuarios, guardar_usuarios, add_log_line
@@ -42,7 +42,7 @@ from handlers.alerts import (
 from handlers.trading import graf_command, p_command, refresh_command_callback, mk_command, ta_quick_callback
 from handlers.ta import ta_command, ta_switch_callback, ai_analysis_callback
 from handlers.tasa import eltoque_command, eltoque_provincias_callback, eltoque_refresh_callback
-from handlers.pay import shop_command, shop_callback, precheckout_callback, successful_payment_callback
+
 
 from handlers.valerts_handlers import valerts_handlers_list
 from core.valerts_loop import valerts_monitor_loop, set_valerts_sender 
@@ -253,14 +253,6 @@ def main():
     app.add_handler(CommandHandler("alerta", alerta_command))
     app.add_handler(CommandHandler("misalertas", misalertas))
     
-    # ============================================
-    # Comandos de PAGO
-    # ============================================
-    app.add_handler(CommandHandler("shop", shop_command))
-    app.add_handler(PreCheckoutQueryHandler(precheckout_callback))
-    app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_callback))
-
-    
     app.add_handler(CommandHandler("rec", rec_command))
     
     # ============================================
@@ -294,9 +286,6 @@ def main():
     # Callbacks de Configuración
     app.add_handler(CallbackQueryHandler(toggle_hbd_alerts_callback, pattern="^toggle_hbd_alerts$"))
     app.add_handler(CallbackQueryHandler(set_language_callback, pattern="^set_lang_"))
-    
-    # Callbacks de Pago
-    app.add_handler(CallbackQueryHandler(shop_callback, pattern="^buy_"))
     
     # 4. Asignar la función post_init
     app.post_init = post_init

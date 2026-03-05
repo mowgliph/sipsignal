@@ -149,10 +149,10 @@ async def cmd_temp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         # Si intenta poner un valor menor al permitido (ej: pone 1.0 pero su mínimo es 4.0)
         if interval_h < min_val:
             mensaje_rango = _(
-                f"🔒 *Función Premium*\n—————————————————\n\n"
-                f"Has intentado configurar *{interval_h} horas*, pero tu plan actual solo permite un mínimo de *{min_val} horas*.\n\n"
+                f"🔒 *Límite de Temporalidad*\n—————————————————\n\n"
+                f"Has intentado configurar *{interval_h} horas*, pero el mínimo permitido es *{min_val} horas*.\n\n"
                 f"—————————————————\n"
-                f"🚀 Adquiere el 'Pack Control Total' en /shop para desbloquear alertas rápidas (hasta 0.25h), estre otras funciones.",
+                f"Los administradores pueden configurar intervalos más cortos.",
                 user_id
             )
             await update.message.reply_text(mensaje_rango, parse_mode=ParseMode.MARKDOWN)
