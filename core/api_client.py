@@ -6,8 +6,12 @@ from telegram import Update
 from core.config import CMC_API_KEY_ALERTA, CMC_API_KEY_CONTROL, SCREENSHOT_API_KEY
 from datetime import datetime, timedelta
 from utils.file_manager import load_hbd_thresholds
-from core.i18n import _ 
+# from core.i18n import _  # TODO: Implementar i18n en el futuro
 # No se necesitan imports de file_manager aquí
+
+# Función identidad para reemplazar i18n (textos ya están en español)
+def _(message, *args, **kwargs):
+    return message
 
 
 # === FUNCIONES DE ALERTA DE HBD ===

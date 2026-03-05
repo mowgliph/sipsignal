@@ -7,7 +7,7 @@ from telegram.constants import ParseMode
 import json
 import os
 import pandas as pd
-from core.i18n import _
+# from core.i18n import _  # TODO: Implementar i18n en el futuro
 from utils.btc_manager import (
     is_btc_subscribed, 
     toggle_btc_subscription, 

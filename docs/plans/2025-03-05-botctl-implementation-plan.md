@@ -1,3 +1,33 @@
+# botctl.sh - Plan de Implementación
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** Crear un script bash profesional tipo "navaja suiza" para gestionar el bot SipSignal con menú interactivo, gestión de systemd, entorno virtual y herramientas de diagnóstico.
+
+**Architecture:** Script bash monolítico con funciones modulares organizadas por categorías (entorno, servicio, diagnóstico, mantenimiento). Incluye sistema de menús anidados, validaciones previas, manejo de errores y UI visual con colores y ASCII art.
+
+**Tech Stack:** Bash 4.0+, systemd, python3-venv, journalctl
+
+---
+
+## Requisitos Previos
+
+Antes de comenzar, asegúrate de:
+- Estar en el directorio del proyecto `/home/mowgli/sipsignal`
+- Tener permisos de escritura en el directorio
+- Contar con `python3` y `pip3` instalados
+
+---
+
+## Task 1: Crear Estructura Base del Script
+
+**Files:**
+- Create: `botctl.sh`
+
+**Step 1: Crear archivo con shebang y configuración inicial**
+
+```bash
+cat > botctl.sh << 'EOF'
 #!/usr/bin/env bash
 #
 # botctl.sh - Script de Gestión para SipSignal Trading Bot
@@ -95,6 +125,43 @@ print_banner() {
     print_closing_line "═" 74
     echo ""
 }
+
+#==============================================================================
+# MAIN (temporal para prueba)
+#==============================================================================
+print_banner
+echo -e "${COLOR_GREEN}✅ Script base creado correctamente${COLOR_RESET}"
+EOF
+chmod +x botctl.sh
+```
+
+**Step 2: Verificar creación y permisos**
+
+```bash
+ls -la botctl.sh
+./botctl.sh
+```
+
+**Expected:** Script ejecuta y muestra banner ASCII con mensaje de éxito.
+
+**Step 3: Commit**
+
+```bash
+git add botctl.sh
+git commit -m "feat: crear estructura base de botctl.sh con banner ASCII"
+```
+
+---
+
+## Task 2: Implementar Funciones de Validación
+
+**Files:**
+- Modify: `botctl.sh` (después de las funciones visuales)
+
+**Step 1: Agregar funciones de validación**
+
+```bash
+cat >> botctl.sh << 'EOF'
 
 #==============================================================================
 # FUNCIONES DE VALIDACIÓN
@@ -198,6 +265,37 @@ get_service_uptime() {
         echo "N/A"
     fi
 }
+EOF
+```
+
+**Step 2: Probar validaciones**
+
+```bash
+./botctl.sh
+check_dependencies && echo "✅ Dependencias OK" || echo "❌ Faltan dependencias"
+check_venv_exists && echo "✅ Venv existe" || echo "ℹ️ Venv no existe aún"
+```
+
+**Expected:** Verificaciones funcionan correctamente sin errores de sintaxis.
+
+**Step 3: Commit**
+
+```bash
+git add botctl.sh
+git commit -m "feat: agregar funciones de validación para dependencias y entorno"
+```
+
+---
+
+## Task 3: Implementar Funciones de Entorno
+
+**Files:**
+- Modify: `botctl.sh`
+
+**Step 1: Agregar funciones de gestión de entorno**
+
+```bash
+cat >> botctl.sh << 'EOF'
 
 #==============================================================================
 # FUNCIONES DE GESTIÓN DE ENTORNO
@@ -294,6 +392,44 @@ activate_venv() {
     echo -e "${COLOR_BLUE}🔄 Activando entorno virtual...${COLOR_RESET}"
     exec bash -c "source ${VENV_DIR}/bin/activate && exec bash"
 }
+EOF
+```
+
+**Step 2: Test funciones de entorno**
+
+```bash
+# Modificar temporalmente el final del script para probar:
+cat >> botctl.sh << 'EOF'
+
+# Test temporal
+print_banner
+check_dependencies
+echo "Probando funciones de entorno..."
+EOF
+
+./botctl.sh
+```
+
+**Expected:** Banner se muestra y no hay errores de sintaxis.
+
+**Step 3: Commit**
+
+```bash
+git add botctl.sh
+git commit -m "feat: implementar funciones de gestión de entorno virtual"
+```
+
+---
+
+## Task 4: Implementar Funciones de Servicio Systemd
+
+**Files:**
+- Modify: `botctl.sh`
+
+**Step 1: Agregar funciones de gestión de servicio**
+
+```bash
+cat >> botctl.sh << 'EOF'
 
 #==============================================================================
 # FUNCIONES DE GESTIÓN DE SERVICIO SYSTEMD
@@ -302,26 +438,19 @@ activate_venv() {
 # Crear archivo de servicio systemd
 create_service() {
     echo -e "${COLOR_BLUE}🔧 Configurando servicio systemd...${COLOR_RESET}"
-
+    
     if ! check_root; then
         echo -e "${COLOR_YELLOW}⚠️  Se requieren privilegios de root para crear el servicio${COLOR_RESET}"
         echo -e "${COLOR_CYAN}📝 Ejecutando con sudo...${COLOR_RESET}"
         exec sudo "$0" create-service
         return
     fi
-
+    
     if ! check_venv_exists; then
         echo -e "${COLOR_RED}❌ Debes crear el entorno virtual primero${COLOR_RESET}"
         return 1
     fi
-
-    # Verificar que los archivos existen
-    if [[ ! -f "${WORKING_DIR}/${BOT_SCRIPT}" ]]; then
-        echo -e "${COLOR_RED}❌ No se encontró el script: ${WORKING_DIR}/${BOT_SCRIPT}${COLOR_RESET}"
-        return 1
-    fi
-
-    # Crear el archivo de servicio
+    
     cat > "${SERVICE_FILE}" << EOL
 [Unit]
 Description=SipSignal Trading Bot
@@ -341,97 +470,44 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 EOL
-
-    # Verificar que se creó correctamente
-    if [[ ! -f "${SERVICE_FILE}" ]]; then
-        echo -e "${COLOR_RED}❌ Error: No se pudo crear el archivo de servicio${COLOR_RESET}"
-        return 1
-    fi
-
-    # Recargar systemd y habilitar servicio
-    if systemctl daemon-reload; then
-        echo -e "${COLOR_GREEN}✅ systemd recargado${COLOR_RESET}"
-    else
-        echo -e "${COLOR_RED}❌ Error al recargar systemd${COLOR_RESET}"
-        return 1
-    fi
-
-    if systemctl enable "${SERVICE_NAME}"; then
-        echo -e "${COLOR_GREEN}✅ Servicio habilitado para inicio automático${COLOR_RESET}"
-    else
-        echo -e "${COLOR_YELLOW}⚠️  No se pudo habilitar el servicio${COLOR_RESET}"
-    fi
-
-    echo -e "${COLOR_GREEN}✅ Servicio creado exitosamente${COLOR_RESET}"
+    
+    systemctl daemon-reload
+    systemctl enable "${SERVICE_NAME}"
+    
+    echo -e "${COLOR_GREEN}✅ Servicio creado y habilitado${COLOR_RESET}"
     echo -e "${COLOR_CYAN}📍 Ubicación: ${SERVICE_FILE}${COLOR_RESET}"
-    echo ""
-    echo -e "${COLOR_YELLOW}💡 Próximos pasos:${COLOR_RESET}"
-    echo -e "   1. Verifica que el archivo .env esté configurado"
-    echo -e "   2. Inicia el bot con la opción 5 o: sudo systemctl start ${SERVICE_NAME}"
 }
 
 # Iniciar servicio
 start_bot() {
     local status
     status=$(get_service_status)
-
+    
     if [[ "$status" == "unavailable" ]]; then
         echo -e "${COLOR_RED}❌ systemd no está disponible${COLOR_RESET}"
         echo -e "${COLOR_YELLOW}💡 Puedes iniciar el bot manualmente:${COLOR_RESET}"
         echo -e "   ${VENV_DIR}/bin/python ${BOT_SCRIPT}"
         return 1
     fi
-
+    
     if [[ "$status" == "active" ]]; then
         echo -e "${COLOR_YELLOW}⚠️  El bot ya está corriendo${COLOR_RESET}"
         return 0
     fi
-
-    # Verificar si el archivo de servicio existe
-    if [[ ! -f "${SERVICE_FILE}" ]]; then
-        echo -e "${COLOR_RED}❌ El servicio no está creado${COLOR_RESET}"
-        echo -e "${COLOR_YELLOW}💡 Debes crear el servicio primero (Opción 4)${COLOR_RESET}"
-        return 1
-    fi
-
-    # Verificar permisos de root
-    if ! check_root; then
-        echo -e "${COLOR_YELLOW}⚠️  Se requieren privilegios de root para iniciar el servicio${COLOR_RESET}"
-        echo -e "${COLOR_CYAN}📝 Ejecutando con sudo...${COLOR_RESET}"
-        if sudo systemctl start "${SERVICE_NAME}"; then
-            echo -e "${COLOR_GREEN}✅ Comando enviado correctamente${COLOR_RESET}"
+    
+    echo -e "${COLOR_BLUE}▶️  Iniciando SipSignal Bot...${COLOR_RESET}"
+    
+    if systemctl start "${SERVICE_NAME}"; then
+        sleep 2
+        if systemctl is-active --quiet "${SERVICE_NAME}"; then
+            echo -e "${COLOR_GREEN}✅ Bot iniciado correctamente${COLOR_RESET}"
         else
-            echo -e "${COLOR_RED}❌ Error al ejecutar con sudo${COLOR_RESET}"
+            echo -e "${COLOR_RED}❌ El servicio no se inició correctamente${COLOR_RESET}"
+            echo -e "${COLOR_CYAN}📋 Revisa los logs con: journalctl -u ${SERVICE_NAME}${COLOR_RESET}"
             return 1
         fi
     else
-        echo -e "${COLOR_BLUE}▶️  Iniciando SipSignal Bot...${COLOR_RESET}"
-        if systemctl start "${SERVICE_NAME}"; then
-            echo -e "${COLOR_GREEN}✅ Comando de inicio enviado${COLOR_RESET}"
-        else
-            echo -e "${COLOR_RED}❌ Error al iniciar el servicio${COLOR_RESET}"
-            return 1
-        fi
-    fi
-
-    # Verificar que realmente inició
-    sleep 2
-    status=$(get_service_status)
-    if [[ "$status" == "active" ]]; then
-        echo -e "${COLOR_GREEN}✅ Bot iniciado correctamente${COLOR_RESET}"
-    elif [[ "$status" == "failed" ]]; then
-        echo -e "${COLOR_RED}❌ El servicio falló al iniciar${COLOR_RESET}"
-        echo -e "${COLOR_CYAN}📋 Logs del error:${COLOR_RESET}"
-        journalctl -u "${SERVICE_NAME}" --no-pager -n 10
-        echo ""
-        echo -e "${COLOR_YELLOW}💡 Posibles causas:${COLOR_RESET}"
-        echo "   • Verifica que el archivo .env esté configurado"
-        echo "   • Revisa que el entorno virtual exista"
-        echo "   • Comprueba permisos del directorio de trabajo"
-        return 1
-    else
-        echo -e "${COLOR_YELLOW}⚠️  El servicio está en estado: ${status}${COLOR_RESET}"
-        echo -e "${COLOR_CYAN}📋 Revisa el estado con: sudo systemctl status ${SERVICE_NAME}${COLOR_RESET}"
+        echo -e "${COLOR_RED}❌ Error al iniciar el servicio${COLOR_RESET}"
         return 1
     fi
 }
@@ -440,33 +516,24 @@ start_bot() {
 stop_bot() {
     local status
     status=$(get_service_status)
-
+    
     if [[ "$status" == "unavailable" ]]; then
         echo -e "${COLOR_RED}❌ systemd no está disponible${COLOR_RESET}"
         return 1
     fi
-
+    
     if [[ "$status" == "inactive" ]]; then
         echo -e "${COLOR_YELLOW}⚠️  El bot ya está detenido${COLOR_RESET}"
         return 0
     fi
-
+    
     echo -e "${COLOR_BLUE}⏹️  Deteniendo SipSignal Bot...${COLOR_RESET}"
-
-    if ! check_root; then
-        if sudo systemctl stop "${SERVICE_NAME}"; then
-            echo -e "${COLOR_GREEN}✅ Bot detenido${COLOR_RESET}"
-        else
-            echo -e "${COLOR_RED}❌ Error al detener el servicio${COLOR_RESET}"
-            return 1
-        fi
+    
+    if systemctl stop "${SERVICE_NAME}"; then
+        echo -e "${COLOR_GREEN}✅ Bot detenido${COLOR_RESET}"
     else
-        if systemctl stop "${SERVICE_NAME}"; then
-            echo -e "${COLOR_GREEN}✅ Bot detenido${COLOR_RESET}"
-        else
-            echo -e "${COLOR_RED}❌ Error al detener el servicio${COLOR_RESET}"
-            return 1
-        fi
+        echo -e "${COLOR_RED}❌ Error al detener el servicio${COLOR_RESET}"
+        return 1
     fi
 }
 
@@ -474,27 +541,20 @@ stop_bot() {
 restart_bot() {
     local status
     status=$(get_service_status)
-
+    
     if [[ "$status" == "unavailable" ]]; then
         echo -e "${COLOR_RED}❌ systemd no está disponible${COLOR_RESET}"
         return 1
     fi
-
+    
     echo -e "${COLOR_BLUE}🔄 Reiniciando SipSignal Bot...${COLOR_RESET}"
-
-    local cmd_prefix=""
-    if ! check_root; then
-        cmd_prefix="sudo "
-    fi
-
-    if ${cmd_prefix}systemctl restart "${SERVICE_NAME}"; then
+    
+    if systemctl restart "${SERVICE_NAME}"; then
         sleep 2
-        status=$(get_service_status)
-        if [[ "$status" == "active" ]]; then
+        if systemctl is-active --quiet "${SERVICE_NAME}"; then
             echo -e "${COLOR_GREEN}✅ Bot reiniciado correctamente${COLOR_RESET}"
         else
             echo -e "${COLOR_RED}❌ El servicio no se reinició correctamente${COLOR_RESET}"
-            echo -e "${COLOR_CYAN}📋 Estado actual: ${status}${COLOR_RESET}"
             return 1
         fi
     else
@@ -502,6 +562,27 @@ restart_bot() {
         return 1
     fi
 }
+EOF
+```
+
+**Step 2: Commit**
+
+```bash
+git add botctl.sh
+git commit -m "feat: implementar funciones de gestión systemd"
+```
+
+---
+
+## Task 5: Implementar Funciones de Diagnóstico
+
+**Files:**
+- Modify: `botctl.sh`
+
+**Step 1: Agregar funciones de diagnóstico**
+
+```bash
+cat >> botctl.sh << 'EOF'
 
 #==============================================================================
 # FUNCIONES DE DIAGNÓSTICO
@@ -533,17 +614,17 @@ view_logs() {
 show_status() {
     local status
     status=$(get_service_status)
-
+    
     print_banner
-
+    
     echo -e "${COLOR_BOLD}📊 ESTADO DEL SERVICIO${COLOR_RESET}"
     echo ""
-
+    
     if [[ "$status" == "unavailable" ]]; then
         echo -e "${COLOR_YELLOW}⚠️  systemd no está disponible en este sistema${COLOR_RESET}"
         return 1
     fi
-
+    
     # Estado con color
     case "$status" in
         active)
@@ -559,34 +640,25 @@ show_status() {
             echo -e "  Estado: ${COLOR_YELLOW}⚠ Desconocido${COLOR_RESET}"
             ;;
     esac
-
+    
     local pid
     pid=$(get_service_pid)
     echo -e "  PID:    ${COLOR_CYAN}${pid}${COLOR_RESET}"
-
+    
     local uptime
     uptime=$(get_service_uptime)
     echo -e "  Uptime: ${COLOR_CYAN}${uptime}${COLOR_RESET}"
-
+    
     echo ""
-
+    
     # Información adicional
     if [[ "$status" == "active" ]]; then
         echo -e "${COLOR_DIM}  Información del proceso:${COLOR_RESET}"
         ps -p "$pid" -o pid,ppid,cmd,%mem,%cpu 2>/dev/null | tail -n 1
     fi
-
-    # Información del servicio
-    if [[ -f "${SERVICE_FILE}" ]]; then
-        echo ""
-        echo -e "${COLOR_DIM}  Archivo de servicio: ${SERVICE_FILE}${COLOR_RESET}"
-    else
-        echo ""
-        echo -e "${COLOR_YELLOW}  ⚠️  El archivo de servicio no existe${COLOR_RESET}"
-        echo -e "${COLOR_DIM}     Crea el servicio con la opción 4${COLOR_RESET}"
-    fi
-
+    
     echo ""
+    read -n 1 -s -r -p "Presiona cualquier tecla para continuar..."
 }
 
 # Health check completo
@@ -657,7 +729,7 @@ health_check() {
     
     echo ""
     echo -e "${COLOR_BOLD}Resultado: ${checks_passed}/${total_checks} checks pasados${COLOR_RESET}"
-
+    
     if [[ $checks_passed -eq $total_checks ]]; then
         echo -e "${COLOR_GREEN}✅ Todo está en orden!${COLOR_RESET}"
     elif [[ $checks_passed -ge 4 ]]; then
@@ -665,9 +737,31 @@ health_check() {
     else
         echo -e "${COLOR_RED}❌ Hay problemas que deben resolverse${COLOR_RESET}"
     fi
-
+    
     echo ""
+    read -n 1 -s -r -p "Presiona cualquier tecla para continuar..."
 }
+EOF
+```
+
+**Step 2: Commit**
+
+```bash
+git add botctl.sh
+git commit -m "feat: implementar funciones de diagnóstico (logs, status, health)"
+```
+
+---
+
+## Task 6: Implementar Funciones de Mantenimiento
+
+**Files:**
+- Modify: `botctl.sh`
+
+**Step 1: Agregar funciones de mantenimiento**
+
+```bash
+cat >> botctl.sh << 'EOF'
 
 #==============================================================================
 # FUNCIONES DE MANTENIMIENTO
@@ -795,9 +889,31 @@ reset_bot() {
     echo ""
     echo -e "${COLOR_GREEN}✅ Reset completo finalizado${COLOR_RESET}"
     echo -e "${COLOR_CYAN}📋 El bot debería estar iniciándose. Verifica el estado con la opción 9.${COLOR_RESET}"
-
+    
     echo ""
+    read -n 1 -s -r -p "Presiona cualquier tecla para continuar..."
 }
+EOF
+```
+
+**Step 2: Commit**
+
+```bash
+git add botctl.sh
+git commit -m "feat: implementar funciones de mantenimiento (clean, backup, reset)"
+```
+
+---
+
+## Task 7: Implementar Sistema de Menús Principal
+
+**Files:**
+- Modify: `botctl.sh`
+
+**Step 1: Agregar funciones de menú y control principal**
+
+```bash
+cat >> botctl.sh << 'EOF'
 
 #==============================================================================
 # SISTEMA DE MENÚS
@@ -868,7 +984,7 @@ show_main_menu() {
 # Mostrar ayuda
 show_help() {
     print_banner
-
+    
     echo -e "${COLOR_BOLD}📖 AYUDA DE BOTCTL${COLOR_RESET}"
     echo ""
     echo "Este script te permite gestionar fácilmente el bot SipSignal."
@@ -885,6 +1001,7 @@ show_help() {
     echo "  sudo journalctl -u sipsignal -f  - Ver logs en tiempo real"
     echo "  sudo systemctl enable sipsignal  - Habilitar inicio automático"
     echo ""
+    read -n 1 -s -r -p "Presiona cualquier tecla para continuar..."
 }
 
 # Mostrar versión
@@ -1007,3 +1124,111 @@ trap 'echo -e "\n${COLOR_YELLOW}⚠️  Interrumpido por usuario${COLOR_RESET}";
 
 # Ejecutar main
 main "$@"
+EOF
+```
+
+**Step 2: Verificar script completo**
+
+```bash
+bash -n botctl.sh && echo "✅ Sintaxis OK" || echo "❌ Error de sintaxis"
+```
+
+**Expected:** Mensaje de sintaxis OK.
+
+**Step 3: Commit**
+
+```bash
+git add botctl.sh
+git commit -m "feat: implementar sistema de menús principal y loop interactivo"
+```
+
+---
+
+## Task 8: Testing y Verificación Final
+
+**Files:**
+- Modify: `botctl.sh` (si es necesario)
+- Create: Test execution
+
+**Step 1: Verificar sintaxis y permisos**
+
+```bash
+# Verificar sintaxis de bash
+bash -n botctl.sh
+
+# Verificar que sea ejecutable
+chmod +x botctl.sh
+ls -la botctl.sh
+```
+
+**Step 2: Probar ejecución inicial**
+
+```bash
+./botctl.sh
+# Debe mostrar el banner y menú
+# Presionar '0' para salir
+```
+
+**Step 3: Probar modo comando directo**
+
+```bash
+./botctl.sh --version
+./botctl.sh health
+./botctl.sh status
+```
+
+**Expected:** Los comandos directos funcionan sin entrar al menú interactivo.
+
+**Step 4: Commit final**
+
+```bash
+git add botctl.sh
+git commit -m "feat: botctl.sh v1.0 - script de gestión completo para SipSignal"
+```
+
+---
+
+## Resumen de Archivos Creados
+
+| Archivo | Descripción | Líneas |
+|---------|-------------|--------|
+| `botctl.sh` | Script principal de gestión | ~550 líneas |
+
+## Uso del Script
+
+```bash
+# Modo interactivo (menú)
+./botctl.sh
+
+# Comandos directos
+./botctl.sh install      # Instalar dependencias
+./botctl.sh venv         # Crear entorno virtual
+./botctl.sh start        # Iniciar bot
+./botctl.sh stop         # Detener bot
+./botctl.sh restart      # Reiniciar bot
+./botctl.sh status       # Ver estado
+./botctl.sh logs         # Ver logs
+./botctl.sh health       # Health check
+./botctl.sh backup       # Backup de config
+./botctl.sh clean        # Limpiar logs
+./botctl.sh reset        # Reset completo
+./botctl.sh --help       # Mostrar ayuda
+```
+
+---
+
+## Notas de Implementación
+
+1. **Colores:** El script usa códigos ANSI para colores. En terminales sin soporte, se verán códigos literales (no afecta funcionalidad).
+
+2. **Permisos:** Algunas operaciones (crear servicio, limpiar journal) requieren sudo. El script detecta esto y solicita elevación cuando es necesario.
+
+3. **Systemd:** Si systemd no está disponible (contenedores, WSL sin systemd), las funciones de servicio mostrarán advertencias pero el script funcionará para gestión manual.
+
+4. **Dependencias:** Asegúrate de tener `python3`, `pip3` y opcionalmente `systemctl` instalados.
+
+---
+
+**Plan completo guardado en:** `docs/plans/2025-03-05-botctl-implementation-plan.md`
+
+**Ready for implementation!** 🚀

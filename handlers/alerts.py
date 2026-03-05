@@ -19,7 +19,12 @@ from utils.file_manager import(\
             add_log_line, load_price_alerts, update_alert_status,
             check_feature_access, get_user_alerts, registrar_uso_comando
 )
-from core.i18n import _
+# from core.i18n import _  # TODO: Implementar i18n en el futuro
+
+# Función identidad para reemplazar i18n (textos ya están en español)
+def _(message, *args, **kwargs):
+    return message
+
 # ------------------------------------------------------------------
 #  HISTORIAL EN MEMORIA DE PRECIOS (para comparar cruces)
 # ------------------------------------------------------------------

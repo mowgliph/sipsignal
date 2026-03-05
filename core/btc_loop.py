@@ -9,9 +9,9 @@ from telegram.constants import ParseMode
 from utils.file_manager import add_log_line
 from utils.btc_manager import get_btc_subscribers, load_btc_state, save_btc_state
 from utils.ads_manager import get_random_ad_text
-from core.i18n import _
+# from core.i18n import _  # TODO: Implementar i18n en el futuro
 from core.btc_advanced_analysis import BTCAdvancedAnalyzer
-from utils.year_manager import get_simple_year_string
+# from utils.year_manager import get_simple_year_string  # Eliminado - no se implementará
 
 # Variable para la función de envío (inyectada)
 _enviar_msg_func = None
@@ -207,7 +207,7 @@ async def btc_monitor_loop(bot: Bot):
 
                     current_state['alerted_levels'] = pre_filled_alerts
                     state_changed = True
-                    ytext = get_simple_year_string() 
+                    # ytext = get_simple_year_string()  # Eliminado - no se implementará
 
                     add_log_line(f"🦁 [{interval.upper()}] Nueva Vela. Estado: {status_msg}")
 
@@ -228,7 +228,6 @@ async def btc_monitor_loop(bot: Bot):
                             f"🛡️ S3: `${levels_fib['S3']:,.0f}`\n\n"
                             f"💰 *Precio Actual:* `${current_price:,.0f}`\n"
                             f"🌊 *Tendencia:* {mom_emoji} {momentum_signal}\n\n"
-                            f"{ytext}"
                         )
                         
                         msg_session += get_random_ad_text()

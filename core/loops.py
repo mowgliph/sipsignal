@@ -18,7 +18,11 @@ from utils.file_manager import (
     load_last_prices_status, save_last_prices_status, update_last_alert_timestamp
 )
 
-from core.i18n import _ # <-- Importar _
+# from core.i18n import _  # TODO: Implementar i18n en el futuro
+
+# Función identidad para reemplazar i18n (textos ya están en español)
+def _(message, *args, **kwargs):
+    return message
 
 # Variable global para guardar la función de envío de mensajes y la app
 _enviar_mensaje_telegram_async_ref = None

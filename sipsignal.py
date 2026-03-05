@@ -26,8 +26,8 @@ from core.loops import (
 )
 from handlers.general import start, myid, ver, help_command
 from handlers.admin import users, logs_command, set_admin_util, set_logs_util, ms_conversation_handler, ad_command
-from handlers.year_handlers import year_command, year_sub_callback
-from core.year_loop import year_progress_loop
+# from handlers.year_handlers import year_command, year_sub_callback  # Eliminado - no se implementará
+# from core.year_loop import year_progress_loop  # Eliminado - no se implementará
 
 from handlers.user_settings import (
     mismonedas, parar, cmd_temp, set_monedas_command,
@@ -74,10 +74,6 @@ async def post_init(app: Application):
     """
     
     logger.info("🤖 Bot inicializado: Iniciando tareas de fondo...")
-
-    # Progreso Anual 
-    asyncio.create_task(year_progress_loop(app.bot))
-    logger.info("✅ Bucle de Progreso Anual iniciado.")
 
     # 1. Iniciar los bucles de fondo globales
     asyncio.create_task(alerta_loop(app.bot))
@@ -277,10 +273,7 @@ def main():
     # CallbackQueryHandlers (DEBEN IR AL FINAL)
     # ============================================
     
-    app.add_handler(CommandHandler("y", year_command))
-    
     # Callbacks de Trading
-    app.add_handler(CallbackQueryHandler(year_sub_callback, pattern="^year_sub_"))
     app.add_handler(CallbackQueryHandler(ta_switch_callback, pattern="^ta_switch\\|"))
     app.add_handler(CallbackQueryHandler(ai_analysis_callback, pattern="^ai_analyze\\|"))
     app.add_handler(CallbackQueryHandler(refresh_command_callback, pattern=r"^refresh_"))
