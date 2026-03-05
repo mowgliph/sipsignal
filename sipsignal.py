@@ -11,7 +11,7 @@ from utils.logger import logger
 from utils.file_manager import cargar_usuarios, guardar_usuarios, add_log_line
 from core.btc_loop import btc_monitor_loop, set_btc_sender
 from handlers.btc_handlers import btc_handlers_list
-from core.config import TOKEN_TELEGRAM, ADMIN_CHAT_IDS, VERSION, PID, PYTHON_VERSION, STATE
+from core.config import settings, VERSION, PID
 from core.loops import (
     alerta_loop, 
     check_custom_price_alerts,
@@ -43,6 +43,24 @@ from core.btc_advanced_analysis import BTCAdvancedAnalyzer
 
 # Ignorar advertencias específicas de PTB sobre CallbackQueryHandler en ConversationHandler
 warnings.filterwarnings("ignore", category=PTBUserWarning, message=".*CallbackQueryHandler.*")
+
+# --- Importaciones adicionales para validación ---
+from datetime import datetime, timezone
+import platform
+
+# --- Metadata ---
+START_TIME = datetime.now(timezone.utc)
+
+
+async def check_admin(update: Update) -> bool:
+    """Verifica si el chat_id está en la lista de administradores."""
+    chat_id = update.effective_chat.id
+    if chat_id not in settings.admin_chat_ids:
+        await update.message.reply_text(
+            "⛔ Acceso denegado. No tienes permisos para usar este bot."
+        )
+        return False
+    return True
 
 async def post_init(app: Application):
     """
@@ -85,10 +103,10 @@ async def post_init(app: Application):
         startup_message = startup_message_template.format(
             version=VERSION,
             pid=PID,
-            python_version=PYTHON_VERSION
+            python_version=platform.python_version()
         )
 
-        for admin_id in ADMIN_CHAT_IDS:
+        for admin_id in settings.admin_chat_ids:
             await app.bot.send_message(chat_id=admin_id, text=startup_message, parse_mode=ParseMode.MARKDOWN)
 
         logger.info("📬 Notificación de inicio enviada a los administradores.")
@@ -103,7 +121,7 @@ async def post_init(app: Application):
 def main():
     """Inicia el bot y configura todos los handlers."""
     
-    builder = ApplicationBuilder().token(TOKEN_TELEGRAM)
+    builder = ApplicationBuilder().token(settings.token_telegram)
     app = builder.build()
     
     # 1. FUNCIÓN DE ENVÍO DE MENSAJES
