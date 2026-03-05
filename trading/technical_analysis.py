@@ -157,3 +157,84 @@ def calculate_ash(
     df['ash_bearish_signal'] = ash_bearish_signal
     
     return df
+
+
+def calculate_atr_levels(
+    df: pd.DataFrame,
+    tp_period: int = 14,
+    sl_period: int = 14,
+    tp_mult: float = 1.5,
+    sl_mult: float = 1.5
+) -> pd.DataFrame:
+    """
+    Calcula niveles de TP/SL basados en ATR con shift de vela anterior (como Pine Script).
+    
+    Columnas añadidas:
+    - ATRr_{tp_period}: ATR calculado por pandas-ta
+    - long_tp: close + ATR[1] * tp_mult
+    - long_sl: close - ATR[1] * sl_mult
+    - short_tp: close - ATR[1] * tp_mult
+    - short_sl: close + ATR[1] * sl_mult
+    - rr_ratio: (ATR[1] * tp_mult) / (ATR[1] * sl_mult)
+    
+    El shift(1) es CRÍTICO para coincidir con el Pine Script que usa ATR de la vela anterior.
+    """
+    df = df.copy()
+    
+    df.ta.atr(length=tp_period, append=True)
+    atr_col = f'ATRr_{tp_period}'
+    
+    atr_tp = df[atr_col].shift(1)
+    atr_sl = df[f'ATRr_{sl_period}'].shift(1) if sl_period != tp_period else atr_tp
+    
+    df['long_tp'] = df['close'] + atr_tp * tp_mult
+    df['long_sl'] = df['close'] - atr_sl * sl_mult
+    df['short_tp'] = df['close'] - atr_tp * tp_mult
+    df['short_sl'] = df['close'] + atr_sl * sl_mult
+    df['rr_ratio'] = (atr_tp * tp_mult) / (atr_sl * sl_mult)
+    
+    return df
+
+
+def calculate_all(df: pd.DataFrame, config: dict) -> pd.DataFrame:
+    """
+    Orquestador que calcula Supertrend, ASH y ATR Levels en orden.
+    
+    Args:
+        df: DataFrame con columnas 'open', 'high', 'low', 'close'
+        config: dict con keys:
+            - supertrend_period: int (default 14)
+            - supertrend_mult: float (default 1.8)
+            - ash_length: int (default 14)
+            - ash_smooth: int (default 4)
+            - tp_period: int (default 14)
+            - sl_period: int (default 14)
+            - tp_mult: float (default 1.5)
+            - sl_mult: float (default 1.5)
+    
+    Returns:
+        DataFrame con todas las columnas calculadas
+    """
+    df = df.copy()
+    
+    df = calculate_supertrend(
+        df,
+        period=config.get('supertrend_period', 14),
+        multiplier=config.get('supertrend_mult', 1.8)
+    )
+    
+    df = calculate_ash(
+        df,
+        length=config.get('ash_length', 14),
+        smooth=config.get('ash_smooth', 4)
+    )
+    
+    df = calculate_atr_levels(
+        df,
+        tp_period=config.get('tp_period', 14),
+        sl_period=config.get('sl_period', 14),
+        tp_mult=config.get('tp_mult', 1.5),
+        sl_mult=config.get('sl_mult', 1.5)
+    )
+    
+    return df
