@@ -1,4 +1,9 @@
+#!/usr/bin/env python3
 # sipsignal.py - Punto de Entrada Principal del Bot de Telegram para SipSignal.
+#
+# SipSignal Trading Bot - Sistema Inteligente de Señales BTC
+# VPS + Telegram · Análisis Técnico Automatizado
+# v1.0-dev · Marzo 2026
 
 import asyncio
 import warnings
@@ -93,12 +98,15 @@ async def post_init(app: Application):
 
     try:
         startup_message_template = (
-            "🍞 *¡Llego el pan a la bodega!* 🍞\n————————————————————\n\n"
-            "🤖 `BitBread Alert v{version}`\n"
+            "⚡ *SipSignal Trading Bot* ⚡\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "🤖 `Sistema de Señales BTC v{version}`\n"
             "🪪 `PID: {pid}`\n"
-            "🐍 `Python: v{python_version}`\n\n————————————————————\n"
-            "✅ Ácido y aplastado, pero comible. 👍.\n"
-            "🫣 ¡Vamos por mas!"
+            "🐍 `Python: v{python_version}`\n\n"
+            "📊 Análisis técnico automatizado 24/7\n"
+            "🔔 Alertas inteligentes en tiempo real\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            "✅ *Sistema activo y operativo*"
         )
         startup_message = startup_message_template.format(
             version=VERSION,
@@ -289,8 +297,8 @@ def main():
     app.post_init = post_init
     
     # 5. Iniciar el polling
-    print("✅ BitBread iniciado. Esperando mensajes...")
-    add_log_line("----------- 🤖 BitBread INICIADO -----------")
+    print("✅ SipSignal iniciado. Esperando mensajes...")
+    add_log_line("----------- ⚡ SipSignal INICIADO -----------")
     app.run_polling()
 
 if __name__ == "__main__":
