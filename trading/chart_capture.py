@@ -3,14 +3,20 @@ Captura de gráficos TradingView.
 """
 
 import asyncio
+import io
 import time
 from typing import Dict, Optional
 
 import aiohttp
+import matplotlib
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
 from loguru import logger
 
 from core.config import SCREENSHOT_API_KEY
 from trading.data_fetcher import BinanceDataFetcher
+
+matplotlib.use("Agg")
 
 TF_MAP = {
     "1d": "D",
@@ -22,6 +28,12 @@ TF_MAP = {
 CACHE_TTL = 300
 
 _cache: Dict[str, Dict] = {}
+
+COLOR_UP = "#26a69a"
+COLOR_DOWN = "#ef5350"
+COLOR_BG = "#000000"
+COLOR_GRID = "#333333"
+COLOR_TEXT = "#d1d4dc"
 
 
 class ChartCapture:
@@ -53,9 +65,70 @@ class ChartCapture:
         key = self._get_cache_key(symbol, timeframe)
         _cache[key] = {"data": data, "timestamp": time.time()}
 
-    async def _capture_with_lightweight(self, symbol: str, timeframe: str) -> Optional[bytes]:
-        logger.warning("lightweight-charts deshabilitado temporalmente - usar fallback externo")
-        return None
+    def _generate_candlestick_chart(self, df) -> bytes:
+        fig, (ax_price, ax_volume) = plt.subplots(
+            2, 1, figsize=(12, 8), height_ratios=[3, 1], 
+            facecolor=COLOR_BG, edgecolor=COLOR_BG
+        )
+        fig.subplots_adjust(hspace=0.1)
+
+        for ax in [ax_price, ax_volume]:
+            ax.set_facecolor(COLOR_BG)
+            ax.tick_params(colors=COLOR_TEXT)
+            ax.spines["bottom"].set_color(COLOR_GRID)
+            ax.spines["top"].set_color(COLOR_BG)
+            ax.spines["left"].set_color(COLOR_GRID)
+            ax.spines["right"].set_color(COLOR_BG)
+            ax.xaxis.label.set_color(COLOR_TEXT)
+            ax.yaxis.label.set_color(COLOR_TEXT)
+            ax.grid(True, color=COLOR_GRID, alpha=0.3)
+
+        dates = mdates.date2num(df.index.to_pydatetime())
+        opens = df["open"].values
+        highs = df["high"].values
+        lows = df["low"].values
+        closes = df["close"].values
+        volumes = df["volume"].values
+
+        for i, (date, o, h, l, c, v) in enumerate(zip(dates, opens, highs, lows, closes, volumes)):
+            color = COLOR_UP if c >= o else COLOR_DOWN
+            
+            ax_price.plot([date, date], [l, h], color=color, linewidth=0.8)
+            ax_price.plot([date - 0.3, date + 0.3], [o, o], color=color, linewidth=0.8)
+            ax_price.plot([date - 0.3, date + 0.3], [c, c], color=color, linewidth=0.8)
+            
+            ax_volume.bar(date, v, width=0.6, color=color, alpha=0.7)
+
+        ax_price.set_ylabel("Price", color=COLOR_TEXT)
+        ax_price.set_xlabel("")
+        ax_price.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))
+        ax_price.tick_params(axis="x", rotation=45)
+
+        ax_volume.set_ylabel("Volume", color=COLOR_TEXT)
+        ax_volume.set_xlabel("Date", color=COLOR_TEXT)
+        ax_volume.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))
+        ax_volume.tick_params(axis="x", rotation=45)
+
+        plt.tight_layout()
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", facecolor=COLOR_BG, dpi=100)
+        plt.close(fig)
+        buf.seek(0)
+        return buf.getvalue()
+
+    async def _capture_with_matplotlib(self, symbol: str, timeframe: str) -> Optional[bytes]:
+        try:
+            df = await self.data_fetcher.get_ohlcv(symbol, timeframe, limit=100)
+            if df is None or df.empty:
+                logger.warning(f"No se pudieron obtener datos OHLCV para {symbol}")
+                return None
+
+            return self._generate_candlestick_chart(df)
+
+        except Exception as e:
+            logger.warning(f"Error generando gráfico con matplotlib: {e}")
+            return None
 
     async def _capture_with_api(self, symbol: str, timeframe: str) -> Optional[bytes]:
         if not SCREENSHOT_API_KEY:
@@ -91,12 +164,9 @@ class ChartCapture:
                     result = await response.json()
                     data = result.get("data", {})
                     screenshot_url = data.get("screenshotUrl")
-                    status = data.get("status")
-                    logger.info(f"Screenshot API response: status={status}, url={screenshot_url}")
                     if result.get("success") and screenshot_url:
                         async with session.get(screenshot_url) as img_response:
                             img_bytes = await img_response.read()
-                            logger.info(f"Downloaded image: {len(img_bytes)} bytes, content-type: {img_response.headers.get('content-type')}")
                             if len(img_bytes) > 100:
                                 return img_bytes
                             else:
@@ -121,7 +191,7 @@ class ChartCapture:
         if cached:
             return cached
 
-        data = await self._capture_with_lightweight(symbol, timeframe)
+        data = await self._capture_with_matplotlib(symbol, timeframe)
         if not data:
             data = await self._capture_with_api(symbol, timeframe)
 

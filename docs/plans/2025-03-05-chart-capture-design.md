@@ -5,24 +5,32 @@ Captura de gráficos TradingView para señales de trading con generación local 
 
 ## Proveedores
 
-### Primario: Lightweight Charts (local)
-- Librería Python `lightweight-charts`
-- Genera gráficos localmente sin dependencias externas
-- PNG 1200x800px, tema oscuro
+### Primario: Matplotlib (local)
+- Librería Python `matplotlib`
+- Genera gráficos localmente sin dependencias GUI
+- Funciona en servidores sin display (VPS, containers)
+- PNG 1200x800px, tema oscuro, candlestick
 
-### Fallback: screenshotapi.net
+### Fallback: screenshot-api.org
 - API externa como respaldo
-- URL: `https://screenshotapi.net/api/v1/screenshot`
+- URL: `https://api.screenshot-api.org/api/v1/screenshot`
 - Timeout: 15s
+
+## Características del Gráfico
+
+- Candlestick OHLCV
+- Colores: verde #26a69a (up), rojo #ef5350 (down)
+- Volumen en panel inferior
+- Background oscuro #000000
 
 ## Mapeo Timeframes
 
-| Input | TradingView | Lightweight |
-|-------|-------------|--------------|
-| 1d    | D           | D            |
-| 4h    | 240         | 240          |
-| 1h    | 60          | 60           |
-| 15m   | 15          | 15           |
+| Input | TradingView |
+|-------|-------------|
+| 1d    | D           |
+| 4h    | 240         |
+| 1h    | 60          |
+| 15m   | 15          |
 
 ## Caché en Memoria
 
@@ -30,7 +38,7 @@ Captura de gráficos TradingView para señales de trading con generación local 
 _cache: Dict[str, Dict] = {
     "BTCUSDT_4h": {
         "data": bytes,
-        "timestamp": float  # time.time()
+        "timestamp": float
     }
 }
 ```
@@ -50,10 +58,11 @@ class ChartCapture:
 
 1. Check caché (key: `{symbol}_{timeframe}`)
 2. Si cache válido → return bytes
-3. Intentar lightweight-charts (local)
-4. Si falla → intentar screenshotapi.net
-5. Si todo falla → return None + log WARNING
-6. Guardar en caché si exitoso
+3. Obtener OHLCV de Binance
+4. Generar gráfico con matplotlib
+5. Si falla → intentar screenshot-api.org
+6. Si todo falla → return None + log WARNING
+7. Guardar en caché si exitoso
 
 ## Manejo de Errores
 
@@ -64,6 +73,6 @@ class ChartCapture:
 
 ## Dependencias
 
-- `lightweight-charts` (local)
+- `matplotlib` (local)
 - `aiohttp` (para fallback API)
 - `pandas` (para DataFrame OHLCV)
