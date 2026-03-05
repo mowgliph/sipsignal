@@ -746,7 +746,7 @@ async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # --- PLANTILLA ENVUELTA ---
         mensaje_template = _(
-            "🤖 *Estado de BitBread Alert*\n\n"
+            "🤖 *Estado de Sip Signal*\n\n"
             "—————————————————\n"
             "• Versión: {version} 🤖\n"
             "• Estado: {estado} 👌\n"
@@ -832,7 +832,7 @@ async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 3. Mensaje de respuesta completo para administradores
     # --- PLANTILLA ENVUELTA ---
     mensaje_template = _(
-        "🤖 *Estado de BitBread Alert*\n"
+        "🤖 *Estado de Sip Signal*\n"
         "—————————————————\n"
         "• Versión: {version} 🤖\n"
         "• PID: {pid} 🪪\n"

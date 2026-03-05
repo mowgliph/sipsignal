@@ -584,7 +584,7 @@ async def ai_analysis_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         # 5. Enviar respuesta con encabezado dinámico
         # Usamos un icono diferente según la fuente
         icon = "📡" if source == "TV" else "📊"
-        header = f"🤖 *BitBread IA* (_Experimental_)\n {icon} *{source}* | Moneda: *{full_symbol}* ({timeframe})\n—————————————————\n"
+        header = f"🤖 *Sip Signal IA* (_Experimental_)\n {icon} *{source}* | Moneda: *{full_symbol}* ({timeframe})\n—————————————————\n"
         
         await query.message.reply_text(
             header + ai_response, 
