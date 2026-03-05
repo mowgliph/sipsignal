@@ -12,9 +12,9 @@ from typing import Optional, Union
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(CURRENT_DIR)
 LOGS_DIR = os.path.join(BASE_DIR, "logs")
-LOG_FILE_NAME = "bbalert.log"  # Mantenemos tu nombre de archivo original
+LOG_FILE_NAME = "sipsignal.log"  # Nombre del archivo de log
 LOG_FILE_PATH = os.path.join(LOGS_DIR, LOG_FILE_NAME)
-ERROR_LOG_PATH = os.path.join(LOGS_DIR, "bbalert_errors.log")
+ERROR_LOG_PATH = os.path.join(LOGS_DIR, "sipsignal_errors.log")
 
 # Asegurar que la carpeta logs exista (Lógica original mejorada)
 if not os.path.exists(LOGS_DIR):
@@ -29,7 +29,7 @@ except ImportError:
     HAS_LOGURU = False
     # Fallback a logging estándar si loguru no está instalado
     # Esto asegura que el bot no crashee si faltan dependencias
-    _std_logger = logging.getLogger("bbalert_fallback")
+    _std_logger = logging.getLogger("sipsignal_fallback")
     _std_logger.setLevel(logging.INFO)
     if not _std_logger.handlers:
         _handler = logging.StreamHandler(sys.stdout)

@@ -1,5 +1,5 @@
 """
-Telemetry system for bbalert bot.
+Telemetry system for sipsignal bot.
 
 Provides event tracking, user analytics, and historical data storage
 for monitoring bot usage and user engagement.
