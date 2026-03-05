@@ -41,6 +41,8 @@ from handlers.alerts import (
 )
 from handlers.trading import graf_command, p_command, refresh_command_callback, mk_command, ta_quick_callback
 from handlers.ta import ta_command, ta_switch_callback, ai_analysis_callback
+from handlers.signal_handler import signal_handlers_list
+from handlers.chart_handler import chart_handlers_list
 
 from handlers.valerts_handlers import valerts_handlers_list
 from core.valerts_loop import valerts_monitor_loop, set_valerts_sender 
@@ -268,6 +270,12 @@ def main():
         app.add_handler(handler)
     
     app.add_handlers(valerts_handlers_list)
+    
+    # Handlers de Signal y Chart
+    for handler in signal_handlers_list:
+        app.add_handler(handler)
+    for handler in chart_handlers_list:
+        app.add_handler(handler)
     
     # ============================================
     # CallbackQueryHandlers (DEBEN IR AL FINAL)
