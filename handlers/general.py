@@ -6,7 +6,6 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 from utils.file_manager import (
-    registrar_usuario, 
     obtener_monedas_usuario, 
     load_last_prices_status,
     obtener_datos_usuario,
@@ -16,6 +15,7 @@ from utils.file_manager import (
 from core.api_client import obtener_precios_control
 from utils.ads_manager import get_random_ad_text
 from core.config import ADMIN_CHAT_IDS
+from db.users import register_or_update_user
 
 # Mensajes estáticos (sin internacionalización)
 HELP_MSG = {
@@ -52,9 +52,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user = update.effective_user
     user_id = user.id
-    user_lang = user.language_code
+    user_lang = user.language_code or "es"
     
-    registrar_usuario(user_id, user_lang)
+    await register_or_update_user(user_id, user_lang)
     
     nombre_usuario = update.effective_user.first_name
 
