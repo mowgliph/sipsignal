@@ -1,0 +1,3 @@
+"""
+Captura de gráficos TradingView.
+"""
