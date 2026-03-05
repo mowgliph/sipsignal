@@ -151,12 +151,6 @@ pytest tests/integration/ -v
 
 ---
 
-## Licencia
-
-Este proyecto está licenciado bajo la Licencia MIT - ver archivo [LICENSE](LICENSE) para detalles.
-
----
-
 ## Política de Uso
 
 Al usar este bot, aceptas los términos descritos en [POLITICA_DE_USO.md](docs/POLITICA_DE_USO.md).
@@ -169,5 +163,26 @@ Para soporte o consultas, contacta a los administradores del bot.
 
 ---
 
+## 📊 Métricas del Proyecto
+
+- **⭐ Estrellas en GitHub:** [![GitHub stars](https://img.shields.io/github/stars/mowgliph/sipsignal)](https://github.com/mowgliph/sipsignal)
+- **🍴 Forks:** [![GitHub forks](https://img.shields.io/github/forks/mowgliph/sipsignal)](https://github.com/mowgliph/sipsignal)
+- **📦 Versión:** [![Version](https://img.shields.io/badge/version-1.0--dev-blue)](https://github.com/mowgliph/sipsignal/releases)
+- **🐍 Python:** [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+- **📄 Licencia:** [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+---
+
+## 🚀 Estado del Proyecto
+
 **Versión:** 1.0-dev  
-**Última actualización:** Marzo 2026
+**Última actualización:** Marzo 2026  
+**Estado:** 🚧 En Desarrollo  
+**Mantenimiento:** Activo
+
+---
+
+**© 2026 SipSignal Trading Bot. Todos los derechos reservados.**  
+**Desarrollado con ❤️ por [mowgliph](https://github.com/mowgliph)**
+
+*Este proyecto es de código abierto y está disponible bajo la Licencia MIT.*
