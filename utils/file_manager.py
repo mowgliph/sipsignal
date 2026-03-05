@@ -487,8 +487,8 @@ def check_feature_access(chat_id, feature_type, current_count=None):
         if daily['ver'] >= limit:
             return False, (
                 f"🔒 *Límite Diario Alcanzado ({limit}/{limit})*\n—————————————————\n\n"
-                f"Has usado tus {limit} consultas gratuitas de /ver por hoy.\n\n—————————————————\n"
-                f"Adquiere el 'Pack Control Total' en /shop para aumentar a 48 consultas diarias, entre otras funciones"
+                f"Has usado tus {limit} consultas gratuitas de /ver por hoy.\n"
+                f"El límite se reinicia mañana."
                 )
         return True, "OK"
 
@@ -501,8 +501,8 @@ def check_feature_access(chat_id, feature_type, current_count=None):
         if daily['tasa'] >= limit:
             return False, (
                 f"🔒 *Límite Diario Alcanzado ({limit}/{limit})*\n—————————————————\n\n"
-                f"Has usado tus {limit} consultas de /tasa por hoy.\n\n—————————————————\n"
-                f"Adquiere 'Tasa VIP' en /shop para aumentar a 24 consultas diarias durante 30 días."
+                f"Has usado tus {limit} consultas de /tasa por hoy.\n"
+                f"El límite se reinicia mañana."
                 )
         return True, "OK"
 
@@ -515,8 +515,8 @@ def check_feature_access(chat_id, feature_type, current_count=None):
         if daily['ta'] >= limit:
             return False, (
                 f"🔒 *Límite Diario Alcanzado ({limit}/{limit})*\n—————————————————\n\n"
-                f"Has realizado {limit} análisis técnicos hoy.\n\n—————————————————\n"
-                f"Adquiere 'TA Pro' en /shop para uso ILIMITADO por 30 días."
+                f"Has realizado {limit} análisis técnicos hoy.\n"
+                f"El límite se reinicia mañana."
                 )
         return True, "OK"
     
@@ -557,8 +557,8 @@ def check_feature_access(chat_id, feature_type, current_count=None):
             return False, (
                 f"🔒 *Capacidad Excedida ({current_count}/{total_capacity})*\n—————————————————\n\n"
                 f"Tu límite actual es de {total_capacity} monedas.\n"
-                f"Has intentado guardar {current_count}.\n\n—————————————————\n"
-                f"🛒 Ve a /shop para comprar '+1 Espacio Moneda'."
+                f"Has intentado guardar {current_count}.\n\n"
+                f"Elimina alguna moneda antes de agregar nuevas."
             )
         return True, "OK"
 
@@ -581,7 +581,7 @@ def check_feature_access(chat_id, feature_type, current_count=None):
             return False, (
                 f"🔒 *Capacidad de Alertas Llena*\n—————————————————\n\n"
                 f"Tienes ocupados tus {total_pairs} espacios para alertas.\n"
-                f"Elimina alguna con /misalertas o compra '+1 Alerta Cruce' en /shop."
+                f"Elimina alguna con /misalertas antes de crear nuevas."
             )
         return True, "OK"
 

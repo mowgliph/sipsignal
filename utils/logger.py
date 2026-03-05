@@ -192,12 +192,7 @@ class Logger:
         if details: msg += f" - {details}"
         self.log_bot_event("INFO", msg, user_id)
 
-    def log_payment_event(self, event_type: str, amount: int, user_id: int, success: bool):
-        """Ej: logger.log_payment_event('stars_deposit', 500, 12345, True)"""
-        status = "✅" if success else "❌"
-        level = "INFO" if success else "ERROR"
-        msg = f"Payment {event_type} {status} - {amount} stars"
-        self.log_bot_event(level, msg, user_id)
+
 
     # --- UTILIDADES DE LECTURA ---
     def get_last_logs(self, lines: int = 15) -> str:
