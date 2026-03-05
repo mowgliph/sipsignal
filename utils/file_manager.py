@@ -413,14 +413,13 @@ def obtener_datos_usuario_seguro(chat_id):
             'ta': 0,
             'temp_changes': 0,
             'reminders': 0,
-            'weather': 0,
             'btc': 0,
         }
         guardar = True
     else:
         # IMPORTANTE: Si ya existe el registro de hoy, verificamos que tenga TODAS las claves nuevas.
         # Esto soluciona el bug de usuarios antiguos que tienen acceso ilimitado.
-        keys_necesarias = ['ver', 'tasa', 'ta', 'temp_changes', 'reminders', 'weather', 'btc']
+        keys_necesarias = ['ver', 'tasa', 'ta', 'temp_changes', 'reminders', 'btc']
         for key in keys_necesarias:
             if key not in usuario['daily_usage']:
                 usuario['daily_usage'][key] = 0

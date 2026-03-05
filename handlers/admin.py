@@ -19,7 +19,6 @@ from telegram.ext import (
     CallbackQueryHandler,
     filters
 )
-from utils.weather_manager import load_weather_subscriptions
 from utils.valerts_manager import get_active_symbols, get_valerts_subscribers
 from utils.btc_manager import load_btc_subs
 from collections import Counter
@@ -36,8 +35,7 @@ from core.config import (
     VERSION, PID, PYTHON_VERSION, STATE, ADMIN_CHAT_IDS, 
     USUARIOS_PATH, PRICE_ALERTS_PATH, HBD_HISTORY_PATH,
     CUSTOM_ALERT_HISTORY_PATH, ADS_PATH, ELTOQUE_HISTORY_PATH,
-    LAST_PRICES_PATH, TEMPLATE_PATH, HBD_THRESHOLDS_PATH,
-    WEATHER_SUBS_PATH, WEATHER_LAST_ALERTS_PATH
+    LAST_PRICES_PATH, TEMPLATE_PATH, HBD_THRESHOLDS_PATH
     )
 from core.i18n import _
 
@@ -369,8 +367,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     all_alerts = load_price_alerts()
     btc_subs = load_btc_subs()
     
-    # Carga de datos de Clima y Valerts
-    weather_subs = load_weather_subscriptions()
+    # Carga de datos de Valerts
     valerts_symbols = get_active_symbols()
     
     # 2. VISTA DE USUARIO NORMAL (Perfil Propio)
@@ -387,7 +384,6 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Estados de servicios
         btc_status = "✅ Activado" if btc_subs.get(chat_id_str, {}).get('active') else "❌ Desactivado"
         hbd_status = "✅ Activado" if user_data.get('hbd_alerts') else "❌ Desactivado"
-        weather_status = "✅ Activado" if str(chat_id) in weather_subs else "❌ Desactivado"
         
         # Suscripciones activas
         subs = user_data.get('subscriptions', {})
@@ -427,8 +423,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"• Alertas Cruce: `{alerts_count}` activas\n\n"
             f"📡 *Servicios Activos:*\n"
             f"• Monitor BTC: {btc_status}\n"
-            f"• Monitor HBD: {hbd_status}\n"
-            f"• Monitor Clima: {weather_status}\n\n"
+            f"• Monitor HBD: {hbd_status}\n\n"
             f"💎 *Suscripciones:*\n"
             f"{subs_txt}"
         )
@@ -564,10 +559,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 2. HBD
     hbd_subscribers = sum(1 for u in usuarios.values() if u.get('hbd_alerts'))
     
-    # 3. CLIMA (Weather)
-    weather_subscribers = len(weather_subs)
-    
-    # 4. VALERTS (Volatilidad)
+    # 3. VALERTS (Volatilidad)
     valerts_active_symbols_count = len(valerts_symbols)
     valerts_unique_users = set()
     
@@ -599,8 +591,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     archivos = [
         USUARIOS_PATH, PRICE_ALERTS_PATH, HBD_HISTORY_PATH,
         CUSTOM_ALERT_HISTORY_PATH, ADS_PATH, ELTOQUE_HISTORY_PATH,
-        LAST_PRICES_PATH, TEMPLATE_PATH, HBD_THRESHOLDS_PATH,
-        WEATHER_SUBS_PATH, WEATHER_LAST_ALERTS_PATH
+        LAST_PRICES_PATH, TEMPLATE_PATH, HBD_THRESHOLDS_PATH
     ]
     
     total_kb = 0
@@ -616,7 +607,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- E. TOP COMANDOS DEL DÍA ---
     top_cmds = usage_breakdown.most_common(5)
     top_cmds_lines = []
-    cmd_emojis = {'ver': '👁', 'tasa': '💱', 'ta': '📈', 'temp_changes': '⏱', 'reminders': '⏰', 'weather': '🌦', 'btc': '🦁'}
+    cmd_emojis = {'ver': '👁', 'tasa': '💱', 'ta': '📈', 'temp_changes': '⏱', 'reminders': '⏰', 'btc': '🦁'}
     for i, (cmd, cnt) in enumerate(top_cmds, 1):
         emoji = cmd_emojis.get(cmd, '⚙️')
         top_cmds_lines.append(f"  {i}. {emoji} /{cmd}: `{cnt}`")
@@ -668,7 +659,6 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     subs_expiring_esc = _clean_markdown(subs_expiring_soon)
     btc_subscribers_esc = _clean_markdown(btc_subscribers)
     hbd_subscribers_esc = _clean_markdown(hbd_subscribers)
-    weather_subscribers_esc = _clean_markdown(weather_subscribers)
     valerts_total_users_esc = _clean_markdown(valerts_total_users)
     valerts_symbols_esc = _clean_markdown(valerts_active_symbols_count)
     top_coins_str_esc = _clean_markdown(top_coins_str)
@@ -722,7 +712,6 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📢 *SERVICIOS DE NOTIFICACIÓN*\n"
         f"├ 🦁 Monitor BTC: `{btc_subscribers_esc}` usuarios\n"
         f"├ 🐝 Monitor HBD: `{hbd_subscribers_esc}` usuarios\n"
-        f"├ 🌦️ Monitor Clima: `{weather_subscribers_esc}` usuarios\n"
         f"└ 🚀 Valerts: `{valerts_total_users_esc}` usuarios en `{valerts_symbols_esc}` monedas\n\n"
 
         f"🏆 *TENDENCIAS DE MERCADO*\n"

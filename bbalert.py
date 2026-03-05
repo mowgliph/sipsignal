@@ -19,8 +19,6 @@ from core.loops import (
     get_logs_data, 
     set_enviar_mensaje_telegram_async,
 )
-from core.weather_loop_v2 import weather_alerts_loop, weather_daily_summary_loop
-from core.global_disasters_loop import global_disasters_loop
 from core.i18n import _ 
 from handlers.general import start, myid, ver, help_command
 from handlers.admin import users, logs_command, set_admin_util, set_logs_util, ms_conversation_handler, ad_command
@@ -50,14 +48,6 @@ from handlers.valerts_handlers import valerts_handlers_list
 from core.valerts_loop import valerts_monitor_loop, set_valerts_sender 
 from core.btc_advanced_analysis import BTCAdvancedAnalyzer
 
-from handlers.weather import (
-    weather_command, 
-    weather_subscribe_command, 
-   weather_settings_command, 
-   weather_conversation_handler, 
-    weather_callback_handlers
-)
-
 # Ignorar advertencias específicas de PTB sobre CallbackQueryHandler en ConversationHandler
 warnings.filterwarnings("ignore", category=PTBUserWarning, message=".*CallbackQueryHandler.*")
 
@@ -77,16 +67,6 @@ async def post_init(app: Application):
     asyncio.create_task(reminders_monitor_loop(app.bot))
     logger.info("✅ Bucle de recordatorios iniciado.")
 
-    # Iniciar bucles de clima separados
-    asyncio.create_task(weather_alerts_loop(app.bot))
-    logger.info("✅ Bucle de alertas de emergencia (clima) iniciado.")
-
-    asyncio.create_task(weather_daily_summary_loop(app.bot))
-    logger.info("✅ Bucle de resumen diario (clima) iniciado.")
-
-    asyncio.create_task(global_disasters_loop(app.bot))
-    logger.info("✅ Bucle de alertas de desastres globales iniciado.")
-   
     # 1. Iniciar los bucles de fondo globales
     asyncio.create_task(alerta_loop(app.bot))
     asyncio.create_task(check_custom_price_alerts(app.bot))
@@ -228,10 +208,7 @@ def main():
     # IMPORTANTE: Handlers de conversación PRIMERO
     # ============================================
     
-    # 1️⃣ ConversationHandler de CLIMA (DEBE IR PRIMERO)
-    app.add_handler(weather_conversation_handler)
-    
-    # 2️⃣ ConversationHandler de Mensajes Admin
+    # 1️⃣ ConversationHandler de Mensajes Admin
     app.add_handler(ms_conversation_handler)
 
     app.add_handler(reminders_conv_handler)
@@ -277,12 +254,6 @@ def main():
     app.add_handler(CommandHandler("misalertas", misalertas))
     
     # ============================================
-    # Comandos de CLIMA (comandos directos, NO conversación)
-    # ============================================
-    app.add_handler(CommandHandler("w", weather_command))
-    app.add_handler(CommandHandler("weather_settings", weather_settings_command))
-    
-    # ============================================
     # Comandos de PAGO
     # ============================================
     app.add_handler(CommandHandler("shop", shop_command))
@@ -304,14 +275,6 @@ def main():
     # CallbackQueryHandlers (DEBEN IR AL FINAL)
     # ============================================
     
-    # Callbacks de Clima
-    if weather_callback_handlers:
-        if isinstance(weather_callback_handlers, list):
-            for handler in weather_callback_handlers:
-                app.add_handler(handler)
-        else:
-            app.add_handler(weather_callback_handlers)
-
     app.add_handler(CommandHandler("y", year_command))
     
     # Callbacks de Trading
