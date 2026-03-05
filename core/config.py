@@ -17,7 +17,7 @@ ADMIN_CHAT_IDS = [int(id.strip()) for id in ADMIN_CHAT_IDS_STR.split(',')] if AD
 CMC_API_KEY_ALERTA = os.environ.get("CMC_API_KEY_ALERTA")
 CMC_API_KEY_CONTROL = os.environ.get("CMC_API_KEY_CONTROL")
 SCREENSHOT_API_KEY = os.environ.get("SCREENSHOT_API_KEY")
-ELTOQUE_API_KEY = os.environ.get("ELTOQUE_API_KEY")
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 # Construye las rutas a los archivos dentro de la carpeta /data
@@ -26,7 +26,7 @@ USUARIOS_PATH = os.path.join(DATA_DIR, "users.json")
 PRICE_ALERTS_PATH = os.path.join(DATA_DIR, "price_alerts.json")
 HBD_HISTORY_PATH = os.path.join(DATA_DIR, "hbd_price_history.json")
 CUSTOM_ALERT_HISTORY_PATH = os.path.join(DATA_DIR, "custom_alert_history.json")
-ELTOQUE_HISTORY_PATH = os.path.join(DATA_DIR, "eltoque_history.json")
+
 LAST_PRICES_PATH = os.path.join(DATA_DIR, "last_prices.json")
 TEMPLATE_PATH = os.path.join(DATA_DIR, "img.jpg")
 ADS_PATH = os.path.join(DATA_DIR, "ads.json")

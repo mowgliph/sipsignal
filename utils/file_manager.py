@@ -9,8 +9,8 @@ import uuid # Para generar IDs únicos si es necesario
 import openpyxl
 from utils.logger import logger
 from core.config import (
-    LOG_LINES, LOG_MAX, CUSTOM_ALERT_HISTORY_PATH, 
-    PRICE_ALERTS_PATH, HBD_HISTORY_PATH, ELTOQUE_HISTORY_PATH, 
+    LOG_LINES, LOG_MAX, CUSTOM_ALERT_HISTORY_PATH,
+    PRICE_ALERTS_PATH, HBD_HISTORY_PATH,
     LAST_PRICES_PATH, HBD_THRESHOLDS_PATH, ADMIN_CHAT_IDS, USUARIOS_PATH
 )
 
@@ -409,17 +409,15 @@ def obtener_datos_usuario_seguro(chat_id):
         usuario['daily_usage'] = {
             'date': today_str,
             'ver': 0,
-            'tasa': 0,
             'ta': 0,
             'temp_changes': 0,
-            'reminders': 0,
             'btc': 0,
         }
         guardar = True
     else:
         # IMPORTANTE: Si ya existe el registro de hoy, verificamos que tenga TODAS las claves nuevas.
         # Esto soluciona el bug de usuarios antiguos que tienen acceso ilimitado.
-        keys_necesarias = ['ver', 'tasa', 'ta', 'temp_changes', 'reminders', 'btc']
+        keys_necesarias = ['ver', 'ta', 'temp_changes', 'btc']
         for key in keys_necesarias:
             if key not in usuario['daily_usage']:
                 usuario['daily_usage'][key] = 0
@@ -431,7 +429,6 @@ def obtener_datos_usuario_seguro(chat_id):
             'alerts_extra': {'qty': 0, 'expires': None},
             'coins_extra': {'qty': 0, 'expires': None},
             'watchlist_bundle': {'active': False, 'expires': None},
-            'tasa_vip': {'active': False, 'expires': None},
             'ta_vip': {'active': False, 'expires': None}
         }
         guardar = True
@@ -492,21 +489,7 @@ def check_feature_access(chat_id, feature_type, current_count=None):
                 )
         return True, "OK"
 
-    # --- REGLA 2: Comando /tasa ---
-    if feature_type == 'tasa_limit':
-        limit = 8 # Gratis
-        if is_active('tasa_vip'):
-            limit = 24 # Pago (Tasa VIP)
-        
-        if daily['tasa'] >= limit:
-            return False, (
-                f"🔒 *Límite Diario Alcanzado ({limit}/{limit})*\n—————————————————\n\n"
-                f"Has usado tus {limit} consultas de /tasa por hoy.\n"
-                f"El límite se reinicia mañana."
-                )
-        return True, "OK"
-
-    # --- REGLA 3: Comando /ta ---
+    # --- REGLA 2: Comando /ta ---
     if feature_type == 'ta_limit':
         limit = 21 # Gratis
         if is_active('ta_vip'):
@@ -626,7 +609,7 @@ def add_subscription_days(chat_id, sub_type, days=30, quantity=0):
     subs = user['subscriptions']
     now = datetime.now()
     
-    if sub_type in ['watchlist_bundle', 'tasa_vip', 'ta_vip']:
+    if sub_type in ['watchlist_bundle', 'ta_vip']:
         current_exp_str = subs[sub_type]['expires']
         if current_exp_str:
             current_exp = datetime.strptime(current_exp_str, '%Y-%m-%d %H:%M:%S')

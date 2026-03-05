@@ -4,13 +4,11 @@ requests
 requests[socks]
 python-dotenv
 openpyxl
-Babel
 Pillow
 pytz
 pandas 
 pandas_ta
 tradingview-ta
-feedparser
 chardet
 aiohttp 
 beautifulsoup4 
