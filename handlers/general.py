@@ -59,15 +59,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     nombre_usuario = update.effective_user.first_name
 
     mensaje = (
-    "*Hola👋 {nombre_usuario}!* Bienvenido a SipSignal.\n─────────────\n\n"
-    "Para recibir alertas periódicas con los precios de tu lista de monedas, "
-    "usa el comando `/monedas` seguido de los símbolos separados por comas. "
-    "Puedes usar *cualquier* símbolo de criptomoneda listado en CoinMarketCap. Ejemplo:\n\n"
-    "`/monedas BTC, ETH, TRX, HIVE, ADA`\n\n"
-    "Puedes modificar la temporalidad de esta alerta en cualquier momento con el comando /temp seguido de las horas (entre 0.5 y 24.0).\n"
-    "Ejemplo: /temp 2.5 (para 2 horas y 30 minutos)\n\n"
-    "Usa /help para ver todos los comandos disponibles."
-    ).format(nombre_usuario=nombre_usuario) 
+        "*⚡ SIPSIGNAL - Sistema de Señales BTC*\n"
+        "─────────────\n\n"
+        "Hola {nombre}! 👋 Bienvenido a SipSignal, tu asistente de trading automatizado para Bitcoin.\n\n"
+        "*🎯 ¿Qué hace SipSignal?*\n\n"
+        "SipSignal analiza el mercado de BTC/USDT 24/7 y te envía alertas cuando detecta oportunidades de trading según tu estrategia configurada. "
+        "No ejecuta órdenes automáticamente - te notifica para que tú decidas.\n\n"
+        "*📱 Comandos disponibles:*\n\n"
+        "/signal - Análisis técnico instantáneo de BTC\n"
+        "/chart [tf] - Ver gráfico (5m, 15m, 1h, 4h, 1D)\n"
+        "/risk [entrada] [sl] [tp] - Calcular ratio riesgo/beneficio\n"
+        "/journal - Historial de señales emitidas\n"
+        "/scenario - Análisis de escenarios con IA\n"
+        "/status - Estado del sistema y último análisis\n\n"
+        "*🔍 Análisis incluye:*\n\n"
+        "• RSI, MACD, Bollinger Bands, EMA\n"
+        "• Soportes y resistencias\n"
+        "• Contexto de mercado con IA (Groq)\n"
+        "• Ratio riesgo:beneficio recomendado\n\n"
+        "Usa /help para más detalles o /status para ver el estado actual del sistema."
+    ).format(nombre=nombre_usuario) 
 
     await update.message.reply_text(mensaje, parse_mode=ParseMode.MARKDOWN)
 
