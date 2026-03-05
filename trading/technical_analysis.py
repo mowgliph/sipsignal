@@ -99,3 +99,61 @@ def calculate_supertrend(df: pd.DataFrame, period: int = 14, multiplier: float =
     df['sup_cross_bearish'] = ~df['sup_is_bullish'] & shifted
     
     return df
+
+
+def calculate_ash(
+    df: pd.DataFrame,
+    length: int = 14,
+    smooth: int = 4,
+    src_col: str = 'close',
+    mode: str = 'RSI',
+    ma_type: str = 'EMA',
+    **kw
+) -> pd.DataFrame:
+    """
+    Absolute Strength Histogram (ASH) — port del Pine Script MSATR Strategy.
+    
+    Columnas añadidas:
+    - ash_smth_bulls: Media suavizada de bulls
+    - ash_smth_bears: Media suavizada de bears
+    - ash_difference: Diferencia absoluta entre smth_bulls y smth_bears
+    - ash_bullish: True cuando difference > SmthBears pero no > SmthBulls
+    - ash_bearish: True cuando difference > SmthBulls pero no > SmthBears
+    - ash_neutral: True cuando no es ni bullish ni bearish
+    - ash_bullish_signal: True SOLO en el cruce de neutral a bullish
+    - ash_bearish_signal: True SOLO en el cruce de neutral a bearish
+    """
+    df = df.copy()
+    
+    price1 = df[src_col]
+    price2 = df[src_col].shift(1)
+    diff = price1 - price2
+    
+    bulls = 0.5 * (diff.abs() + diff)
+    bears = 0.5 * (diff.abs() - diff)
+    
+    avg_bulls = _ma(bulls, length, ma_type, **kw)
+    avg_bears = _ma(bears, length, ma_type, **kw)
+    
+    smth_bulls = _ma(avg_bulls, smooth, ma_type, **kw)
+    smth_bears = _ma(avg_bears, smooth, ma_type, **kw)
+    
+    difference = (smth_bulls - smth_bears).abs()
+    
+    ash_bullish = (difference > smth_bears) & ~(difference > smth_bulls)
+    ash_bearish = (difference > smth_bulls) & ~(difference > smth_bears)
+    ash_neutral = ~ash_bullish & ~ash_bearish
+    
+    ash_bullish_signal = ash_bullish & ash_neutral.shift(1).fillna(False)
+    ash_bearish_signal = ash_bearish & ash_neutral.shift(1).fillna(False)
+    
+    df['ash_smth_bulls'] = smth_bulls
+    df['ash_smth_bears'] = smth_bears
+    df['ash_difference'] = difference
+    df['ash_bullish'] = ash_bullish
+    df['ash_bearish'] = ash_bearish
+    df['ash_neutral'] = ash_neutral
+    df['ash_bullish_signal'] = ash_bullish_signal
+    df['ash_bearish_signal'] = ash_bearish_signal
+    
+    return df
