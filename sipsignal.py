@@ -47,6 +47,7 @@ from handlers.chart_handler import chart_handlers_list
 from handlers.valerts_handlers import valerts_handlers_list
 from core.valerts_loop import valerts_monitor_loop, set_valerts_sender 
 from core.btc_advanced_analysis import BTCAdvancedAnalyzer
+from scheduler import SignalScheduler
 
 # Ignorar advertencias específicas de PTB sobre CallbackQueryHandler en ConversationHandler
 warnings.filterwarnings("ignore", category=PTBUserWarning, message=".*CallbackQueryHandler.*")
@@ -122,6 +123,14 @@ async def post_init(app: Application):
     # Inicio de Loops de Monitoreo (BTC y VALERTS)
     asyncio.create_task(btc_monitor_loop(app.bot))
     asyncio.create_task(valerts_monitor_loop(app.bot))
+
+    # Iniciar SignalScheduler
+    try:
+        scheduler = SignalScheduler()
+        asyncio.create_task(scheduler.start(app.bot))
+        logger.info("✅ SignalScheduler iniciado")
+    except Exception as e:
+        logger.error(f"❌ Error al iniciar SignalScheduler: {e}")
 
 
 def main():
