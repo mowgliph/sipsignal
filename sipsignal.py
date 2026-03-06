@@ -42,6 +42,7 @@ from handlers.alerts import (
 from handlers.trading import graf_command, p_command, refresh_command_callback, mk_command, ta_quick_callback
 from handlers.ta import ta_command, ta_switch_callback, ai_analysis_callback
 from handlers.signal_handler import signal_handlers_list
+from handlers.signal_response_handler import signal_response_handler, process_signal_timeout
 from handlers.chart_handler import chart_handlers_list
 
 from handlers.valerts_handlers import valerts_handlers_list
@@ -245,6 +246,13 @@ async def post_init(app: Application):
     except Exception as e:
         logger.error(f"❌ Error al iniciar PriceMonitor: {e}")
 
+    # Iniciar proceso de timeout de señales (60 min)
+    try:
+        asyncio.create_task(process_signal_timeout())
+        logger.info("✅ Signal timeout process iniciado")
+    except Exception as e:
+        logger.error(f"❌ Error al iniciar signal timeout: {e}")
+
 
 def main():
     """Inicia el bot y configura todos los handlers."""
@@ -420,6 +428,9 @@ def main():
     
     # Callbacks de PriceMonitor (TP/SL)
     app.add_handler(CallbackQueryHandler(price_monitor_callback, pattern=r"^pm_"))
+    
+    # Callbacks de Respuesta de Señales (taken/skipped/detail)
+    app.add_handler(signal_response_handler)
     
     # 4. Asignar la función post_init
     app.post_init = post_init

@@ -12,6 +12,7 @@ from ai.groq_client import GroqClient
 from trading.signal_builder import build_signal_message
 from core.config import ADMIN_CHAT_IDS, settings
 from core.database import execute
+from handlers.signal_response_handler import process_signal_timeout
 
 
 CYCLE_INTERVALS = {
