@@ -44,6 +44,8 @@ from handlers.ta import ta_command, ta_switch_callback, ai_analysis_callback
 from handlers.signal_handler import signal_handlers_list
 from handlers.signal_response_handler import signal_response_handler, process_signal_timeout
 from handlers.chart_handler import chart_handlers_list
+from handlers.capital_handler import capital_handler, resume_handler, resetdd_handler, resetdd_callback_handler
+from trading.drawdown_manager import update_drawdown
 
 from handlers.valerts_handlers import valerts_handlers_list
 from handlers.setup_handler import setup_conversation_handler
@@ -99,27 +101,47 @@ async def price_monitor_callback(update: Update, context: ContextTypes.DEFAULT_T
             
         elif data.startswith("pm_sl_closed:"):
             trade_id = int(data.split(":")[1])
+            
+            # Obtener datos del trade para calcular pérdida
+            trade = await fetchrow(
+                "SELECT * FROM active_trades WHERE id = $1",
+                trade_id
+            )
+            
+            if trade:
+                entry_price = float(trade['entry_price'])
+                sl_level = float(trade['sl_level'])
+                direction = trade['direction']
+                
+                # Calcular pérdida
+                if direction == "LONG":
+                    loss = entry_price - sl_level
+                else:
+                    loss = sl_level - entry_price
+                
+                # Actualizar drawdown con la pérdida
+                user_id = update.effective_chat.id
+                await update_drawdown(user_id, -loss, context.bot)
+            
             # Marcar trade como cerrado
             await execute(
                 "UPDATE active_trades SET status = 'CERRADO', updated_at = NOW() WHERE id = $1",
                 trade_id
             )
+            
             # También actualizar la señal relacionada
-            trade = await fetchrow(
-                "SELECT signal_id FROM active_trades WHERE id = $1",
-                trade_id
-            )
             if trade and trade['signal_id']:
                 await execute(
                     "UPDATE signals SET status = 'CERRADA', updated_at = NOW() WHERE id = $1",
                     trade['signal_id']
                 )
+            
             await query.edit_message_text(
                 "✅ *Trade cerrado*\n\n"
                 "La posición ha sido cerrada. Usa /ver para ver el resumen.",
                 parse_mode=ParseMode.MARKDOWN
             )
-            logger.info(f"Trade {trade_id} marcado como cerrado")
+            logger.info(f"Trade {trade_id} marcado como cerrado - drawdown actualizado")
             
         elif data.startswith("pm_sl_summary:"):
             trade_id = int(data.split(":")[1])
@@ -431,6 +453,12 @@ def main():
     
     # Callbacks de Respuesta de Señales (taken/skipped/detail)
     app.add_handler(signal_response_handler)
+    
+    # Handlers de Capital y Drawdown
+    app.add_handler(capital_handler)
+    app.add_handler(resume_handler)
+    app.add_handler(resetdd_handler)
+    app.add_handler(resetdd_callback_handler)
     
     # 4. Asignar la función post_init
     app.post_init = post_init
