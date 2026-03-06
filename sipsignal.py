@@ -45,6 +45,7 @@ from handlers.signal_handler import signal_handlers_list
 from handlers.chart_handler import chart_handlers_list
 
 from handlers.valerts_handlers import valerts_handlers_list
+from handlers.setup_handler import setup_conversation_handler
 from core.valerts_loop import valerts_monitor_loop, set_valerts_sender 
 from core.btc_advanced_analysis import BTCAdvancedAnalyzer
 from scheduler import SignalScheduler
@@ -229,8 +230,9 @@ def main():
     # IMPORTANTE: Handlers de conversación PRIMERO
     # ============================================
     
-    # 1️⃣ ConversationHandler de Mensajes Admin
+    # 1️⃣ ConversationHandlers (PRIMERO)
     app.add_handler(ms_conversation_handler)
+    app.add_handler(setup_conversation_handler)
 
     # ============================================
     # Comandos generales
