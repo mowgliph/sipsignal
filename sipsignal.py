@@ -49,6 +49,111 @@ from handlers.setup_handler import setup_conversation_handler
 from core.valerts_loop import valerts_monitor_loop, set_valerts_sender 
 from core.btc_advanced_analysis import BTCAdvancedAnalyzer
 from scheduler import SignalScheduler
+from trading.price_monitor import start_price_monitor, get_price_monitor
+from core.database import execute, fetchrow
+
+
+async def price_monitor_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Maneja los callbacks de los botones de PriceMonitor (TP/SL)."""
+    query = update.callback_query
+    await query.answer()
+    
+    data = query.data
+    
+    try:
+        if data.startswith("pm_tp1_done:"):
+            trade_id = int(data.split(":")[1])
+            # Mover SL a breakeven y cerrar 50%
+            trade = await fetchrow(
+                "SELECT * FROM active_trades WHERE id = $1",
+                trade_id
+            )
+            if trade:
+                entry_price = float(trade['entry_price'])
+                # Actualizar SL a breakeven
+                await execute(
+                    "UPDATE active_trades SET sl_level = $1, updated_at = NOW() WHERE id = $2",
+                    entry_price, trade_id
+                )
+                await query.edit_message_text(
+                    f"✅ *Confirmado*\n\n"
+                    f"SL movido a ${entry_price:,.2f} (breakeven)\n"
+                    f"50% de posición cerrado teóricamente.",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                logger.info(f"TP1 confirmado para trade {trade_id} - SL movido a breakeven")
+                
+        elif data.startswith("pm_tp1_wait:"):
+            trade_id = int(data.split(":")[1])
+            # Re-habilitar notificación TP1 para que pueda volver a notificar
+            monitor = get_price_monitor()
+            if trade_id in monitor._notified_trades:
+                monitor._notified_trades[trade_id].discard('TP1')
+            await query.edit_message_text(
+                "⏳ *Esperando*\n\n"
+                "Seguiremos monitoreando. Te notificaremos si el precio vuelve a TP1.",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            logger.info(f"TP1 diferido para trade {trade_id} - notificación re-habilitada")
+            
+        elif data.startswith("pm_sl_closed:"):
+            trade_id = int(data.split(":")[1])
+            # Marcar trade como cerrado
+            await execute(
+                "UPDATE active_trades SET status = 'CERRADO', updated_at = NOW() WHERE id = $1",
+                trade_id
+            )
+            # También actualizar la señal relacionada
+            trade = await fetchrow(
+                "SELECT signal_id FROM active_trades WHERE id = $1",
+                trade_id
+            )
+            if trade and trade['signal_id']:
+                await execute(
+                    "UPDATE signals SET status = 'CERRADA', updated_at = NOW() WHERE id = $1",
+                    trade['signal_id']
+                )
+            await query.edit_message_text(
+                "✅ *Trade cerrado*\n\n"
+                "La posición ha sido cerrada. Usa /ver para ver el resumen.",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            logger.info(f"Trade {trade_id} marcado como cerrado")
+            
+        elif data.startswith("pm_sl_summary:"):
+            trade_id = int(data.split(":")[1])
+            trade = await fetchrow(
+                "SELECT * FROM active_trades WHERE id = $1",
+                trade_id
+            )
+            if trade:
+                entry_price = float(trade['entry_price'])
+                sl_level = float(trade['sl_level'])
+                direction = trade['direction']
+                
+                if direction == "LONG":
+                    loss = entry_price - sl_level
+                else:
+                    loss = sl_level - entry_price
+                loss_pct = (loss / entry_price) * 100
+                
+                summary = (
+                    f"📊 *Resumen del Trade* #{trade_id}\n\n"
+                    f"📍 *Dirección:* {direction}\n"
+                    f"💵 *Entrada:* ${entry_price:,.2f}\n"
+                    f"🛑 *SL:* ${sl_level:,.2f}\n"
+                    f"📉 *Pérdida:* -{loss:.2f} USDT ({loss_pct:.1f}%)\n\n"
+                    f"Usa /ver para ver el historial completo."
+                )
+                await query.edit_message_text(summary, parse_mode=ParseMode.MARKDOWN)
+                logger.info(f"Resumen enviado para trade {trade_id}")
+                
+    except Exception as e:
+        logger.error(f"Error en price_monitor_callback: {e}")
+        try:
+            await query.edit_message_text("⚠️ Error al procesar la acción. Intenta de nuevo.")
+        except Exception:
+            pass
 
 # Ignorar advertencias específicas de PTB sobre CallbackQueryHandler en ConversationHandler
 warnings.filterwarnings("ignore", category=PTBUserWarning, message=".*CallbackQueryHandler.*")
@@ -132,6 +237,13 @@ async def post_init(app: Application):
         logger.info("✅ SignalScheduler iniciado")
     except Exception as e:
         logger.error(f"❌ Error al iniciar SignalScheduler: {e}")
+
+    # Iniciar PriceMonitor (WebSocket TP/SL)
+    try:
+        await start_price_monitor(app.bot)
+        logger.info("✅ PriceMonitor iniciado")
+    except Exception as e:
+        logger.error(f"❌ Error al iniciar PriceMonitor: {e}")
 
 
 def main():
@@ -305,6 +417,9 @@ def main():
     # Callbacks de Configuración
     app.add_handler(CallbackQueryHandler(toggle_hbd_alerts_callback, pattern="^toggle_hbd_alerts$"))
     app.add_handler(CallbackQueryHandler(set_language_callback, pattern="^set_lang_"))
+    
+    # Callbacks de PriceMonitor (TP/SL)
+    app.add_handler(CallbackQueryHandler(price_monitor_callback, pattern=r"^pm_"))
     
     # 4. Asignar la función post_init
     app.post_init = post_init
