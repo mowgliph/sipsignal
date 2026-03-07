@@ -14,31 +14,12 @@ from telegram.ext import Application, ApplicationBuilder, CommandHandler, Messag
 from telegram.constants import ParseMode
 from utils.logger import logger
 from utils.file_manager import cargar_usuarios, guardar_usuarios, add_log_line
-from core.btc_loop import btc_monitor_loop, set_btc_sender
-from handlers.btc_handlers import btc_handlers_list
 from core.config import settings, VERSION, PID
-from core.loops import (
-    alerta_loop, 
-    check_custom_price_alerts,
-    programar_alerta_usuario,   
-    get_logs_data, 
-    set_enviar_mensaje_telegram_async,
-)
+from core.loops import get_logs_data
 from handlers.general import start, myid, ver, help_command
 from handlers.admin import users, logs_command, set_admin_util, set_logs_util, ms_conversation_handler, ad_command
-# from handlers.year_handlers import year_command, year_sub_callback  # Eliminado - no se implementará
-# from core.year_loop import year_progress_loop  # Eliminado - no se implementará
 
-from handlers.user_settings import (
-    mismonedas, parar, cmd_temp, set_monedas_command,
-    set_reprogramar_alerta_util, toggle_hbd_alerts_callback, hbd_alerts_command, lang_command, set_language_callback
-)
-from handlers.alerts import (
-    alerta_command,
-    misalertas, 
-    borrar_alerta_callback, 
-    borrar_todas_alertas_callback,
-)
+from handlers.user_settings import lang_command, set_language_callback
 from handlers.trading import graf_command, p_command, refresh_command_callback, mk_command, ta_quick_callback
 from handlers.ta import ta_command, ta_switch_callback, ai_analysis_callback
 from handlers.signal_handler import signal_handlers_list
@@ -47,9 +28,7 @@ from handlers.chart_handler import chart_handlers_list
 from handlers.capital_handler import capital_handler, resume_handler, resetdd_handler, resetdd_callback_handler
 from trading.drawdown_manager import update_drawdown
 
-from handlers.valerts_handlers import valerts_handlers_list
 from handlers.setup_handler import setup_conversation_handler
-from core.valerts_loop import valerts_monitor_loop, set_valerts_sender 
 from core.btc_advanced_analysis import BTCAdvancedAnalyzer
 from scheduler import SignalScheduler
 from trading.price_monitor import start_price_monitor, get_price_monitor
@@ -207,23 +186,7 @@ async def post_init(app: Application):
     
     logger.info("🤖 Bot inicializado: Iniciando tareas de fondo...")
 
-    # 1. Iniciar los bucles de fondo globales
-    asyncio.create_task(alerta_loop(app.bot))
-    asyncio.create_task(check_custom_price_alerts(app.bot))
-    logger.info("✅ Bucles de fondo (HBD y Alertas de Cruce) iniciados.")
-
-    # 2. Programar las alertas periódicas para cada usuario registrado
-    usuarios = cargar_usuarios()
-    if usuarios:
-        add_log_line(f"👥 Encontrados {len(usuarios)} usuarios. Programando sus alertas periódicas...")
-        for user_id, data in usuarios.items():
-            intervalo_h = data.get('intervalo_alerta_h', 2.5)
-            programar_alerta_usuario(int(user_id), intervalo_h)
-    else:
-        logger.info("👥 No hay usuarios registrados. Esperando a que se unan.")
-    
-    logger.info("✅ Todas las tareas de fondo han sido iniciadas.")
-
+    # 1. Signal scheduler started below
     try:
         startup_message_template = (
             "⚡ *SipSignal Trading Bot* ⚡\n"
@@ -232,7 +195,7 @@ async def post_init(app: Application):
             "🪪 `PID: {pid}`\n"
             "🐍 `Python: v{python_version}`\n\n"
             "📊 Análisis técnico automatizado 24/7\n"
-            "🔔 Alertas inteligentes en tiempo real\n\n"
+            "🎯 Señales de trading con TP/SL\n\n"
             "─────────────\n"
             "✅ *Sistema activo y operativo*"
         )
@@ -249,10 +212,6 @@ async def post_init(app: Application):
     except Exception as e:
         logger.error(f"⚠️ Fallo al enviar notificación de inicio a los admins: {e}")
         
-    # Inicio de Loops de Monitoreo (BTC y VALERTS)
-    asyncio.create_task(btc_monitor_loop(app.bot))
-    asyncio.create_task(valerts_monitor_loop(app.bot))
-
     # Iniciar SignalScheduler
     try:
         scheduler = SignalScheduler()
@@ -361,12 +320,8 @@ def main():
     # 2. INYECCIÓN DE DEPENDENCIAS
     set_admin_util(enviar_mensajes)
     set_logs_util(get_logs_data)
-    set_reprogramar_alerta_util(programar_alerta_usuario)
-    set_enviar_mensaje_telegram_async(enviar_mensajes, app)
-    set_btc_sender(enviar_mensajes)
-    set_valerts_sender(enviar_mensajes)
     
-        # 3. REGISTRO DE HANDLERS
+    # 3. REGISTRO DE HANDLERS
     
     # ============================================
     # IMPORTANTE: Handlers de conversación PRIMERO
@@ -403,26 +358,7 @@ def main():
     # ============================================
     # Comandos de Usuario
     # ============================================
-    app.add_handler(CommandHandler("mismonedas", mismonedas))
-    app.add_handler(CommandHandler("monedas", set_monedas_command))
-    app.add_handler(CommandHandler("parar", parar))
-    app.add_handler(CommandHandler("temp", cmd_temp))
-    app.add_handler(CommandHandler("hbdalerts", hbd_alerts_command))
     app.add_handler(CommandHandler("lang", lang_command))
-    
-    # ============================================
-    # Comandos de Alertas
-    # ============================================
-    app.add_handler(CommandHandler("alerta", alerta_command))
-    app.add_handler(CommandHandler("misalertas", misalertas))
-    
-    # ============================================
-    # Handlers de BTC y VALERTS (listas)
-    # ============================================
-    for handler in btc_handlers_list:
-        app.add_handler(handler)
-    
-    app.add_handlers(valerts_handlers_list)
     
     # Handlers de Signal y Chart
     for handler in signal_handlers_list:
@@ -440,12 +376,7 @@ def main():
     app.add_handler(CallbackQueryHandler(refresh_command_callback, pattern=r"^refresh_"))
     app.add_handler(CallbackQueryHandler(ta_quick_callback, pattern=r"^ta_quick\|"))
     
-    # Callbacks de Alertas
-    app.add_handler(CallbackQueryHandler(borrar_alerta_callback, pattern='^delete_alert_'))
-    app.add_handler(CallbackQueryHandler(borrar_todas_alertas_callback, pattern="^delete_all_alerts$"))
-    
     # Callbacks de Configuración
-    app.add_handler(CallbackQueryHandler(toggle_hbd_alerts_callback, pattern="^toggle_hbd_alerts$"))
     app.add_handler(CallbackQueryHandler(set_language_callback, pattern="^set_lang_"))
     
     # Callbacks de PriceMonitor (TP/SL)

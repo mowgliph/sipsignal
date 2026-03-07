@@ -26,21 +26,16 @@ HELP_MSG = {
 /help - Mostrar esta ayuda
 /status - Ver estado del bot
 /myid - Obtener tu ID
-
-*Comandos de Trading:*
 /ver - Ver precios de tus monedas
 /mk - Datos de mercado
 /p <símbolo> - Precio de cripto
 /graf <símbolo> - Gráfico de análisis
 /ta <símbolo> - Análisis técnico
-
-*Comandos de Alertas:*
-/monedas BTC,ETH - Configurar monedas
-/mismonedas - Ver monedas configuradas
-/alerta <moneda> <condición> - Crear alerta
-/misalertas - Ver alertas activas
-/parar - Detener alertas
-/temp <horas> - Cambiar frecuencia
+/signal - Análisis técnico instantáneo de BTC
+/chart [tf] - Ver gráfico (5m, 15m, 1h, 4h, 1D)
+/journal - Historial de señales emitidas
+/capital - Gestión de capital y drawdown
+/lang - Cambiar idioma
 
 *Para más información:* Contacta a un administrador.
 """
@@ -63,14 +58,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "─────────────\n\n"
         "Hola {nombre}! 👋 Bienvenido a SipSignal, tu asistente de trading automatizado para Bitcoin.\n\n"
         "*🎯 ¿Qué hace SipSignal?*\n\n"
-        "SipSignal analiza el mercado de BTC/USDT 24/7 y te envía alertas cuando detecta oportunidades de trading según tu estrategia configurada. "
-        "No ejecuta órdenes automáticamente - te notifica para que tú decidas.\n\n"
+        "SipSignal analiza el mercado de BTC/USDT 24/7 y te envía señales de trading cuando detecta oportunidades según tu estrategia. "
+        "Incluye monitoreo de TP/SL en tiempo real. No ejecuta órdenes automáticamente - te notifica para que tú decidas.\n\n"
         "*📱 Comandos disponibles:*\n\n"
         "/signal - Análisis técnico instantáneo de BTC\n"
         "/chart [tf] - Ver gráfico (5m, 15m, 1h, 4h, 1D)\n"
         "/risk [entrada] [sl] [tp] - Calcular ratio riesgo/beneficio\n"
         "/journal - Historial de señales emitidas\n"
-        "/scenario - Análisis de escenarios con IA\n"
+        "/capital - Gestión de capital y drawdown\n"
         "/status - Estado del sistema y último análisis\n\n"
         "*🔍 Análisis incluye:*\n\n"
         "• RSI, MACD, Bollinger Bands, EMA\n"

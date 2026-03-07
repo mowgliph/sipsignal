@@ -122,13 +122,9 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 
 # --- Rutas de archivos de datos ---
 USUARIOS_PATH = os.path.join(DATA_DIR, "users.json")
-PRICE_ALERTS_PATH = os.path.join(DATA_DIR, "price_alerts.json")
-HBD_HISTORY_PATH = os.path.join(DATA_DIR, "hbd_price_history.json")
-CUSTOM_ALERT_HISTORY_PATH = os.path.join(DATA_DIR, "custom_alert_history.json")
 LAST_PRICES_PATH = os.path.join(DATA_DIR, "last_prices.json")
 TEMPLATE_PATH = os.path.join(DATA_DIR, "img.jpg")
 ADS_PATH = os.path.join(DATA_DIR, "ads.json")
-HBD_THRESHOLDS_PATH = os.path.join(DATA_DIR, "hbd_thresholds.json")
 YEAR_QUOTES_PATH = os.path.join(DATA_DIR, "year_quotes.json")
 YEAR_SUBS_PATH = os.path.join(DATA_DIR, "year_subs.json")
 EVENTS_LOG_PATH = os.path.join(DATA_DIR, "events_log.json")
@@ -137,11 +133,9 @@ EVENTS_LOG_PATH = os.path.join(DATA_DIR, "events_log.json")
 PID = os.getpid()
 STATE = "RUNNING"
 
-# --- Configuración de Logs y Loops ---
+# --- Configuración de Logs ---
 LOG_MAX = 45
 LOG_LINES = []
-INTERVALO_ALERTA = 300
-INTERVALO_CONTROL = 480
 
 # --- Versión ---
 try:
