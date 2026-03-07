@@ -1,19 +1,20 @@
 # SipSignal Trading Bot
 
-🤖 **Bot de Telegram para Análisis Técnico y Alertas de Criptomonedas**
+🤖 **Bot de Telegram para Análisis Técnico y Señales de Trading**
 
-Sistema inteligente de señales BTC con análisis técnico automatizado 24/7.
+Sistema inteligente de señales BTC con análisis técnico automatizado 24/7 y monitoreo de TP/SL en tiempo real.
 
 ---
 
 ## Características
 
-- 📊 **Análisis Técnico Automatizado** - Indicadores y señales en tiempo real
-- 🔔 **Alertas Inteligentes** - Notificaciones de precios y cruces
-- 🦁 **Monitoreo BTC** - Seguimiento continuo de Bitcoin
-- 📈 **Gráficos** - Visualización de datos de mercado
+- 📊 **Análisis Técnico Automatizado** - RSI, MACD, Bollinger Bands, EMA y más
+- 🎯 **Señales de Trading** - Oportunidades de entrada con ratio riesgo:beneficio
+- 📡 **Monitoreo TP/SL** - WebSocket para seguimiento de take profit y stop loss en tiempo real
+- 📈 **Gráficos** - Visualización de datos de mercado con análisis técnico
+- 🧠 **IA Integrada** - Contexto de mercado con Groq AI
 - 🌐 **Multi-idioma** - Soporte para Español e Inglés
-- 💎 **Sistema VIP** - Suscripciones premium con beneficios exclusivos
+- 💰 **Gestión de Capital** - Control de drawdown y seguimiento de rendimiento
 
 ---
 
@@ -24,27 +25,23 @@ Sistema inteligente de señales BTC con análisis técnico automatizado 24/7.
 |---------|-------------|
 | `/start` | Iniciar el bot y registrarse |
 | `/help` | Mostrar menú de ayuda |
-| `/status` | Ver estado del bot |
+| `/status` | Ver estado del bot y último análisis |
 | `/myid` | Obtener tu ID de Telegram |
+| `/lang` | Cambiar idioma (Español/Inglés) |
 
-### Comandos de Trading
+### Comandos de Trading y Señales
 | Comando | Descripción |
 |---------|-------------|
-| `/ver` | Ver precios de tus monedas configuradas |
+| `/signal` | Análisis técnico instantáneo de BTC |
+| `/chart [tf]` | Ver gráfico (5m, 15m, 1h, 4h, 1D) |
+| `/ta <símbolo>` | Análisis técnico completo |
+| `/graf <símbolo>` | Generar gráfico de análisis técnico |
 | `/mk` | Ver datos de mercado |
 | `/p <símbolo>` | Precio de una criptomoneda específica |
-| `/graf <símbolo>` | Generar gráfico de análisis técnico |
-| `/ta <símbolo>` | Análisis técnico completo |
-
-### Comandos de Alertas
-| Comando | Descripción |
-|---------|-------------|
-| `/monedas BTC,ETH` | Configurar lista de monedas a monitorear |
-| `/mismonedas` | Ver tus monedas configuradas |
-| `/alerta <moneda> <condición>` | Crear alerta de precio |
-| `/misalertas` | Ver tus alertas activas |
-| `/parar` | Detener alertas temporales |
-| `/temp <horas>` | Cambiar frecuencia de alertas |
+| `/ver` | Ver precios de tus monedas configuradas |
+| `/journal` | Historial de señales emitidas |
+| `/capital` | Gestión de capital y control de drawdown |
+| `/risk [entrada] [sl] [tp]` | Calcular ratio riesgo:beneficio |
 
 ### Comandos de Administrador
 | Comando | Descripción |
@@ -101,21 +98,37 @@ python sipsignal.py
 sipsignal/
 ├── sipsignal.py          # Punto de entrada principal
 ├── requirements.txt      # Dependencias
-├── .env                  # Variables de entorno (no incluir en git)
+├── env.example           # Variables de entorno de ejemplo
 ├── venv/                 # Entorno virtual (ignorado en git)
 ├── core/                 # Lógica principal
 │   ├── config.py         # Configuración
-│   ├── loops.py          # Bucles de fondo
-│   └── ...
+│   ├── loops.py          # Utilidades de logs
+│   ├── api_client.py     # Cliente API (CoinMarketCap, etc.)
+│   ├── database.py       # Base de datos PostgreSQL
+│   ├── scheduler.py      # Programador de señales
+│   └── btc_advanced_analysis.py  # Análisis avanzado de BTC
 ├── handlers/             # Manejadores de comandos
-│   ├── general.py        # Comandos básicos
+│   ├── general.py        # Comandos básicos (/start, /help, etc.)
 │   ├── admin.py          # Comandos de admin
-│   └── ...
+│   ├── trading.py        # Comandos de trading (/graf, /p, /mk, /ta)
+│   ├── signal_handler.py # Manejador de señales
+│   ├── chart_handler.py  # Generación de gráficos
+│   ├── capital_handler.py# Gestión de capital y drawdown
+│   ├── journal_handler.py# Historial de señales
+│   └── user_settings.py  # Configuración de usuario (/lang)
+├── trading/              # Módulos de trading
+│   ├── signal_builder.py # Constructor de mensajes de señales
+│   ├── strategy_engine.py# Motor de estrategias
+│   ├── price_monitor.py  # Monitor WebSocket TP/SL
+│   ├── drawdown_manager.py# Control de drawdown
+│   └── technical_analysis.py # Análisis técnico
+├── ai/                   # Integración con IA (Groq)
 ├── utils/                # Utilidades
 │   ├── logger.py         # Logging
-│   └── file_manager.py   # Gestión de archivos
-├── trading/              # Módulos de trading
-├── ai/                   # Integración con IA
+│   ├── file_manager.py   # Gestión de archivos JSON
+│   └── ads_manager.py    # Gestión de anuncios
+├── scheduler.py          # Programador de señales autónomas
+├── db/                   # Migraciones y modelos de BD
 ├── tests/                # Tests
 │   ├── unit/
 │   ├── integration/
