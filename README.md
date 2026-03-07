@@ -35,7 +35,6 @@ Sistema inteligente de señales BTC con análisis técnico automatizado 24/7 y m
 | `/signal` | Análisis técnico instantáneo de BTC |
 | `/chart [tf]` | Ver gráfico (5m, 15m, 1h, 4h, 1D) |
 | `/ta <símbolo>` | Análisis técnico completo |
-| `/graf <símbolo>` | Generar gráfico de análisis técnico |
 | `/mk` | Ver datos de mercado |
 | `/p <símbolo>` | Precio de una criptomoneda específica |
 | `/ver` | Ver precios de tus monedas configuradas |
@@ -110,7 +109,7 @@ sipsignal/
 ├── handlers/             # Manejadores de comandos
 │   ├── general.py        # Comandos básicos (/start, /help, etc.)
 │   ├── admin.py          # Comandos de admin
-│   ├── trading.py        # Comandos de trading (/graf, /p, /mk, /ta)
+│   ├── trading.py        # Comandos de trading (/p, /mk, /ta)
 │   ├── signal_handler.py # Manejador de señales
 │   ├── chart_handler.py  # Generación de gráficos
 │   ├── capital_handler.py# Gestión de capital y drawdown

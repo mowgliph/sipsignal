@@ -20,7 +20,7 @@ from handlers.general import start, myid, ver, help_command
 from handlers.admin import users, logs_command, set_admin_util, set_logs_util, ms_conversation_handler, ad_command
 
 from handlers.user_settings import lang_command, set_language_callback
-from handlers.trading import graf_command, p_command, refresh_command_callback, mk_command, ta_quick_callback
+from handlers.trading import p_command, refresh_command_callback, mk_command, ta_quick_callback
 from handlers.ta import ta_command, ta_switch_callback, ai_analysis_callback
 from handlers.signal_handler import signal_handlers_list
 from handlers.signal_response_handler import signal_response_handler, process_signal_timeout
@@ -351,7 +351,6 @@ def main():
     # Comandos de Trading/Cripto
     # ============================================
     app.add_handler(CommandHandler("mk", mk_command))
-    app.add_handler(CommandHandler("graf", graf_command))
     app.add_handler(CommandHandler("p", p_command))
     app.add_handler(CommandHandler("ta", ta_command))
     

@@ -52,7 +52,7 @@
 | Monitor TP/SL WebSocket | `trading/price_monitor.py` | Notificaciones de TP/SL de trades activos |
 | Scheduler de Señales | `scheduler.py` | Análisis autónomo de señales |
 | Análisis Técnico Manual | `handlers/ta.py`, `core/btc_advanced_analysis.py` | Comando `/ta` (bajo demanda) |
-| Gráficos y Precios | `handlers/trading.py` (`/graf`, `/p`, `/mk`), `handlers/chart_handler.py` | Herramientas manuales de trading |
+| Gráficos y Precios | `handlers/trading.py` (`/p`, `/mk`), `handlers/chart_handler.py` | Herramientas manuales de trading |
 | Drawdown y Capital | `trading/drawdown_manager.py`, `handlers/capital_handler.py` | Gestión de riesgo |
 | Journal | `handlers/journal_handler.py` | Historial de señales |
 | Setup/Onboarding | `handlers/setup_handler.py` | Configuración inicial |
@@ -435,7 +435,7 @@ git commit -m "refactor: clean up shared modules after alert system removal"
 | Comandos eliminados | 8 (/alerta, /misalertas, /btcalerts, /valerts, /hbdalerts, /temp, /parar, /mismonedas) |
 | Loops de fondo eliminados | 4 (alerta_loop, check_custom_price_alerts, btc_monitor_loop, valerts_monitor_loop) |
 | Archivos intactos | 18+ |
-| Comandos conservados | /start, /help, /ver, /myid, /mk, /graf, /p, /ta, /signal, /chart, /journal, /capital, /setup, /users, /logs, /ad, /lang, /monedas |
+| Comandos conservados | /start, /help, /ver, /myid, /mk, /p, /ta, /signal, /chart, /journal, /capital, /setup, /users, /logs, /ad, /lang, /monedas |
 
 ---
 

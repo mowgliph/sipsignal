@@ -467,7 +467,7 @@ sirve, y migrar el almacenamiento de JSON a PostgreSQL.
 > ● core/api_client.py → cliente Binance y llamadas de precio
 > (refactorizar para async puro)
 >
-> ● handlers/trading.py → comandos /ta, /graf, /p --- base de los nuevos
+> ● handlers/trading.py → comandos /ta, /p --- base de los nuevos
 > handlers de señal
 >
 > ● utils/logger.py → sistema de logging (adaptarlo para rotación y

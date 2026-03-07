@@ -29,7 +29,6 @@ HELP_MSG = {
 /ver - Ver precios de tus monedas
 /mk - Datos de mercado
 /p <símbolo> - Precio de cripto
-/graf <símbolo> - Gráfico de análisis
 /ta <símbolo> - Análisis técnico
 /signal - Análisis técnico instantáneo de BTC
 /chart [tf] - Ver gráfico (5m, 15m, 1h, 4h, 1D)
