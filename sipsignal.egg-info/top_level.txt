@@ -1,0 +1,6 @@
+ai
+core
+db
+handlers
+trading
+utils

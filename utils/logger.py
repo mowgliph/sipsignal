@@ -1,11 +1,9 @@
 # utils/logger.py
 
-import sys
-import os
 import logging
+import os
+import sys
 import traceback
-from pathlib import Path
-from typing import Optional, Union
 
 # --- 1. CONFIGURACIÓN DE RUTAS (Original de logger.py) ---
 # Mantenemos esto idéntico para no romper la estructura de carpetas
@@ -24,6 +22,7 @@ if not os.path.exists(LOGS_DIR):
 # --- 2. MOTOR DE LOGGING (Loguru con Fallback) ---
 try:
     from loguru import logger as _loguru_logger
+
     HAS_LOGURU = True
 except ImportError:
     HAS_LOGURU = False
@@ -38,13 +37,26 @@ except ImportError:
 
     # Proxy simple para imitar loguru si no está presente
     class _StdLoggerProxy:
-        def debug(self, msg, *args, **kwargs): _std_logger.debug(msg)
-        def info(self, msg, *args, **kwargs): _std_logger.info(msg)
-        def warning(self, msg, *args, **kwargs): _std_logger.warning(msg)
-        def error(self, msg, *args, **kwargs): _std_logger.error(msg)
-        def critical(self, msg, *args, **kwargs): _std_logger.critical(msg)
-        def remove(self): pass
-        def add(self, *args, **kwargs): pass
+        def debug(self, msg, *args, **kwargs):
+            _std_logger.debug(msg)
+
+        def info(self, msg, *args, **kwargs):
+            _std_logger.info(msg)
+
+        def warning(self, msg, *args, **kwargs):
+            _std_logger.warning(msg)
+
+        def error(self, msg, *args, **kwargs):
+            _std_logger.error(msg)
+
+        def critical(self, msg, *args, **kwargs):
+            _std_logger.critical(msg)
+
+        def remove(self):
+            pass
+
+        def add(self, *args, **kwargs):
+            pass
 
     _loguru_logger = _StdLoggerProxy()
     print("⚠️ ADVERTENCIA: 'loguru' no está instalado. Usando logging estándar básico.")
@@ -59,7 +71,7 @@ class Logger:
     def __init__(self):
         self.monitoring_handler = None
         self.log_file_path = LOG_FILE_PATH
-        
+
         # Configuración inicial
         self._setup_logger()
         sys.excepthook = self._handle_unhandled_exception
@@ -67,16 +79,16 @@ class Logger:
     def _setup_logger(self):
         """Configura los handlers (Consola y Archivo)."""
         if not HAS_LOGURU:
-            return # Ya está configurado el fallback arriba
+            return  # Ya está configurado el fallback arriba
 
-        _loguru_logger.remove() # Limpiar handlers por defecto
+        _loguru_logger.remove()  # Limpiar handlers por defecto
 
         # 1. Handler de Consola (Colorizado y limpio)
         _loguru_logger.add(
             sys.stdout,
             format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{function}</cyan> - <level>{message}</level>",
             level="INFO",
-            colorize=True
+            colorize=True,
         )
 
         # 2. Handler de Archivo Principal (Rotativo como en tu original)
@@ -87,8 +99,8 @@ class Logger:
             level="INFO",
             rotation="5 MB",
             retention="10 days",
-            compression="zip", # Comprime logs viejos para ahorrar espacio
-            encoding="utf-8"
+            compression="zip",  # Comprime logs viejos para ahorrar espacio
+            encoding="utf-8",
         )
 
         # 3. Handler de Errores (Separado para facilitar depuración)
@@ -98,12 +110,12 @@ class Logger:
             level="ERROR",
             rotation="5 MB",
             retention="30 days",
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
     def _handle_unhandled_exception(self, exc_type, exc_value, exc_traceback):
         """
-        Intercepta errores no controlados (los que salen en consola) 
+        Intercepta errores no controlados (los que salen en consola)
         y los registra limpiamente en el log antes de que el bot muera.
         """
         # Ignorar interrupciones de teclado (Ctrl+C) para permitir salir limpiamente
@@ -114,7 +126,7 @@ class Logger:
         # 1. Extraer la información precisa de dónde ocurrió el error
         # traceback.extract_tb devuelve una lista de 'Frames'. El último es el del error.
         tb_summary = traceback.extract_tb(exc_traceback)
-        
+
         if tb_summary:
             last_frame = tb_summary[-1]
             file_name = os.path.basename(last_frame.filename)
@@ -161,7 +173,7 @@ class Logger:
     def warning(self, message: str, *args, **kwargs):
         _loguru_logger.warning(message, *args, **kwargs)
 
-    def error(self, message: Union[str, Exception], error: Optional[Exception] = None, *args, **kwargs):
+    def error(self, message: str | Exception, error: Exception | None = None, *args, **kwargs):
         """Log de error inteligente. Acepta (mensaje) o (mensaje, excepcion) o (excepcion)."""
         if isinstance(message, Exception) and error is None:
             error = message
@@ -175,24 +187,23 @@ class Logger:
 
     # --- MÉTODOS ESPECÍFICOS DEL BOT (Integrados del código nuevo) ---
 
-    def log_bot_event(self, level: str, message: str, user_id: Optional[int] = None, **kwargs):
+    def log_bot_event(self, level: str, message: str, user_id: int | None = None, **kwargs):
         """Registra un evento específico del bot."""
         log_method = getattr(_loguru_logger, level.lower(), _loguru_logger.info)
         extra_info = f"[User:{user_id}]" if user_id else ""
         full_msg = f"{extra_info} {message}".strip()
-        
+
         log_method(full_msg, **kwargs)
-        
+
         if self.monitoring_handler:
             self.monitoring_handler.add_log(level.upper(), full_msg, user_id)
 
-    def log_user_action(self, action: str, user_id: int, details: Optional[str] = None):
+    def log_user_action(self, action: str, user_id: int, details: str | None = None):
         """Ej: logger.log_user_action('start_bot', 123456)"""
         msg = f"User Action: {action}"
-        if details: msg += f" - {details}"
+        if details:
+            msg += f" - {details}"
         self.log_bot_event("INFO", msg, user_id)
-
-
 
     # --- UTILIDADES DE LECTURA ---
     def get_last_logs(self, lines: int = 15) -> str:
@@ -200,7 +211,7 @@ class Logger:
         if not os.path.exists(self.log_file_path):
             return "📂 El archivo de log aún no existe."
         try:
-            with open(self.log_file_path, "r", encoding="utf-8", errors='ignore') as f:
+            with open(self.log_file_path, encoding="utf-8", errors="ignore") as f:
                 all_lines = f.readlines()
                 return "".join(all_lines[-lines:])
         except Exception as e:
@@ -210,10 +221,11 @@ class Logger:
 # --- INSTANCIA GLOBAL ---
 logger = Logger()
 
+
 # --- COMPATIBILIDAD RETROACTIVA (CRUCIAL PARA TU PROYECTO ACTUAL) ---
 def save_log_to_disk(mensaje: str):
     """
-    Función wrapper para mantener compatibilidad con archivos antiguos 
+    Función wrapper para mantener compatibilidad con archivos antiguos
     que importan 'save_log_to_disk' directamente.
     """
     # Redirigimos la llamada a la nueva instancia de logger

@@ -1,12 +1,13 @@
 """
 Módulo de base de datos PostgreSQL con asyncpg.
 """
+
 import os
-from typing import Any, List, Optional
+from typing import Any
+
 import asyncpg
 
-
-_pool: Optional[asyncpg.Pool] = None
+_pool: asyncpg.Pool | None = None
 
 
 async def connect() -> asyncpg.Pool:
@@ -46,7 +47,7 @@ async def execute(
 async def fetch(
     query: str,
     *args: Any,
-) -> List[asyncpg.Record]:
+) -> list[asyncpg.Record]:
     """Ejecuta una consulta SELECT y retorna todos los resultados."""
     if _pool is None:
         await connect()
@@ -57,7 +58,7 @@ async def fetch(
 async def fetchrow(
     query: str,
     *args: Any,
-) -> Optional[asyncpg.Record]:
+) -> asyncpg.Record | None:
     """Ejecuta una consulta SELECT y retorna una sola fila o None."""
     if _pool is None:
         await connect()
@@ -76,6 +77,6 @@ async def fetchval(
         return await conn.fetchval(query, *args)
 
 
-def get_pool() -> Optional[asyncpg.Pool]:
+def get_pool() -> asyncpg.Pool | None:
     """Retorna el pool de conexiones actual."""
     return _pool

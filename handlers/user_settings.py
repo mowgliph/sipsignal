@@ -1,20 +1,20 @@
 # handlers/user_settings.py
 
-from telegram import Update
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
-from utils.file_manager import set_user_language, get_user_language
+from telegram.ext import ContextTypes
+
+from utils.file_manager import get_user_language, set_user_language
+
 
 # Función identidad para reemplazar i18n (textos ya están en español)
 def _(message, *args, **kwargs):
     return message
 
+
 # Soporte de idiomas
-SUPPORTED_LANGUAGES = {
-    'es': '🇪🇸 Español',
-    'en': '🇬🇧 English'
-}
+SUPPORTED_LANGUAGES = {"es": "🇪🇸 Español", "en": "🇬🇧 English"}
+
 
 # COMANDO /lang para cambiar el idioma
 async def lang_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -23,20 +23,22 @@ async def lang_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     current_lang = get_user_language(user_id)
 
     text = _(
-        "🌐 *Selecciona tu idioma:*\n\n"
-        "El idioma actual es: {current_lang_name}",
-        user_id
-    ).format(current_lang_name=SUPPORTED_LANGUAGES.get(current_lang, 'N/A'))
+        "🌐 *Selecciona tu idioma:*\n\nEl idioma actual es: {current_lang_name}", user_id
+    ).format(current_lang_name=SUPPORTED_LANGUAGES.get(current_lang, "N/A"))
 
     keyboard = []
     for code, name in SUPPORTED_LANGUAGES.items():
-        keyboard.append([InlineKeyboardButton(
-            name + (' ✅' if code == current_lang else ''), 
-            callback_data=f"set_lang_{code}"
-        )])
+        keyboard.append(
+            [
+                InlineKeyboardButton(
+                    name + (" ✅" if code == current_lang else ""), callback_data=f"set_lang_{code}"
+                )
+            ]
+        )
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
+
 
 # CALLBACK para cambiar el idioma
 async def set_language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -52,15 +54,11 @@ async def set_language_callback(update: Update, context: ContextTypes.DEFAULT_TY
         new_text = _(
             "✅ ¡Idioma cambiado a *{new_lang_name}*!\n"
             "Usa el comando /lang si deseas cambiarlo de nuevo.",
-            user_id
+            user_id,
         ).format(new_lang_name=SUPPORTED_LANGUAGES[lang_code])
 
         await query.edit_message_text(new_text, parse_mode=ParseMode.MARKDOWN)
     else:
         await query.edit_message_text(
-            _(
-                "⚠️ Idioma no soportado.", 
-                user_id
-            ), 
-            parse_mode=ParseMode.MARKDOWN
+            _("⚠️ Idioma no soportado.", user_id), parse_mode=ParseMode.MARKDOWN
         )

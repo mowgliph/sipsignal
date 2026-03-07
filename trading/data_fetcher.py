@@ -4,7 +4,6 @@ Cliente async Binance para OHLCV.
 
 import asyncio
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
 
 import aiohttp
 import pandas as pd
@@ -23,7 +22,7 @@ INTERVAL_DURATIONS = {
 class BinanceDataFetcher:
     def __init__(self, timeout: int = 10):
         self.timeout = timeout
-        self.session: Optional[aiohttp.ClientSession] = None
+        self.session: aiohttp.ClientSession | None = None
 
     async def _get_session(self) -> aiohttp.ClientSession:
         if self.session is None or self.session.closed:
@@ -34,9 +33,7 @@ class BinanceDataFetcher:
         if self.session and not self.session.closed:
             await self.session.close()
 
-    async def _request_with_retry(
-        self, url: str, params: dict, max_retries: int = 3
-    ) -> List:
+    async def _request_with_retry(self, url: str, params: dict, max_retries: int = 3) -> list:
         delays = [2, 4, 8]
         session = await self._get_session()
 
@@ -47,7 +44,9 @@ class BinanceDataFetcher:
                     url, params=params, timeout=aiohttp.ClientTimeout(total=self.timeout)
                 ) as response:
                     latency_ms = (asyncio.get_event_loop().time() - start_time) * 1000
-                    logger.info(f"GET {url} params={params} - {response.status} - {latency_ms:.2f}ms")
+                    logger.info(
+                        f"GET {url} params={params} - {response.status} - {latency_ms:.2f}ms"
+                    )
 
                     if response.status == 200:
                         return await response.json()
@@ -62,7 +61,7 @@ class BinanceDataFetcher:
                             response.history,
                             status=response.status,
                         )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning(f"Timeout on attempt {attempt + 1}/{max_retries}")
             except Exception as e:
                 logger.warning(f"Error on attempt {attempt + 1}/{max_retries}: {e}")
@@ -74,9 +73,7 @@ class BinanceDataFetcher:
 
         raise Exception(f"Failed after {max_retries} attempts")
 
-    def _exclude_open_candle(
-        self, df: pd.DataFrame, interval: str
-    ) -> pd.DataFrame:
+    def _exclude_open_candle(self, df: pd.DataFrame, interval: str) -> pd.DataFrame:
         if df.empty:
             return df
 
@@ -91,11 +88,11 @@ class BinanceDataFetcher:
 
         return df
 
-    async def get_ohlcv(
-        self, symbol: str, interval: str, limit: int = 200
-    ) -> pd.DataFrame:
+    async def get_ohlcv(self, symbol: str, interval: str, limit: int = 200) -> pd.DataFrame:
         if interval not in INTERVAL_DURATIONS:
-            raise ValueError(f"Unsupported interval: {interval}. Use: {list(INTERVAL_DURATIONS.keys())}")
+            raise ValueError(
+                f"Unsupported interval: {interval}. Use: {list(INTERVAL_DURATIONS.keys())}"
+            )
 
         url = f"{BINANCE_BASE_URL}/klines"
         params = {"symbol": symbol.upper(), "interval": interval, "limit": limit}
@@ -148,8 +145,8 @@ class BinanceDataFetcher:
         return (bid + ask) / 2
 
     async def fetch_multiple_timeframes(
-        self, symbol: str, intervals: Optional[List[str]] = None
-    ) -> Dict[str, pd.DataFrame]:
+        self, symbol: str, intervals: list[str] | None = None
+    ) -> dict[str, pd.DataFrame]:
         if intervals is None:
             intervals = ["15m", "1h", "4h"]
 

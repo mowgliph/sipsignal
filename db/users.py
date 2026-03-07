@@ -1,10 +1,10 @@
 """
 Funciones para gestionar usuarios en la base de datos.
 """
-from datetime import datetime
-from typing import Optional
 
-from core.database import execute, fetchrow, fetch
+from datetime import datetime
+
+from core.database import execute, fetch, fetchrow
 
 
 async def create_user(user_id: int, language: str = "es") -> dict:
@@ -23,7 +23,7 @@ async def create_user(user_id: int, language: str = "es") -> dict:
     return await get_user(user_id)
 
 
-async def get_user(user_id: int) -> Optional[dict]:
+async def get_user(user_id: int) -> dict | None:
     """Obtiene un usuario por su ID."""
     return await fetchrow("SELECT * FROM users WHERE user_id = $1", user_id)
 

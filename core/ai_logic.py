@@ -1,7 +1,9 @@
-import requests
-import json
 import math
+
+import requests
+
 from core.config import GROQ_API_KEY
+
 
 def clean_data(data):
     """
@@ -30,7 +32,10 @@ def escape_markdown(text):
         return ""
     # Eliminamos caracteres que suelen causar errores si la IA los usa como listas
     # o si olvida cerrarlos (como * o _)
-    return text.replace("*", "").replace("_", "").replace("`", "").replace("[", "(").replace("]", ")")
+    return (
+        text.replace("*", "").replace("_", "").replace("`", "").replace("[", "(").replace("]", ")")
+    )
+
 
 def get_groq_crypto_analysis(symbol, timeframe, technical_report_text):
     """
@@ -43,37 +48,27 @@ def get_groq_crypto_analysis(symbol, timeframe, technical_report_text):
     prompt = (
         f"Eres un Analista Experto en Inversiones Institucionales, Trading y criptomonedas."
         f"Analiza este reporte técnico de {symbol} ({timeframe}) y escribe un Informe Completo en base a los datos del reporte.\n\n"
-        
         f"--- REPORTE TÉCNICO ---\n"
         f"{technical_report_text}\n"
         f"--- FIN REPORTE ---\n\n"
-
         "OBJETIVO: Interpretar los datos y usar una narrativa fluida y facil de entender pero sin dejar de ser profecional\n"
         "Proporciona contexto y explicacion a las siguientes secciones sin repetir los datos del reporte a no ser que sea necesario.\n"
         "No repitas explicaciones en diferentes secciones usa para cada seccion el contexto que lleva.\n"
-
         "ESTRUCTURA EXACTA:\n"
         "📚 *Analisis y Tendencia*"
         "[pequeño reusmen del reporte y una analisis de la tendencia segun los datos]\n\n"
-        
         "📚 *Fuerza de la Tendencia*\n"
         "[].\n\n"
-        
         "📚 *Osciladores y Momentum*\n"
         "[].\n\n"
-        
         "📚 *Niveles de Soporte y Resistencia*\n"
         "[].\n\n"
-
         "📚*Riesgo y Oportunidad*Riesgo y Oportunidad*\n"
         "[]\n\n"
-        
         "📚 *Recomendación*\n"
         "[]\n\n"
-
         "📚 *Conclusión*\n"
         "[]\n\n"
-
         "REGLAS:\n"
         "- Idioma: Español Profesional.\n"
         "- Basa tu análisis SOLO en el texto proporcionado.\n"
@@ -81,17 +76,14 @@ def get_groq_crypto_analysis(symbol, timeframe, technical_report_text):
     )
 
     url = "https://api.groq.com/openai/v1/chat/completions"
-    
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    
+
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+
     payload = {
         "model": "openai/gpt-oss-20b",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.6,
-        "max_tokens": 1600
+        "max_tokens": 1600,
     }
 
     try:
@@ -105,7 +97,6 @@ def get_groq_crypto_analysis(symbol, timeframe, technical_report_text):
     except Exception as e:
         print(f"❌ Error interno IA: {e}")
         return "⚠️ Ocurrió un error al procesar el análisis."
-    
 
 
 def get_groq_weather_advice(weather_report_text):
@@ -119,9 +110,7 @@ def get_groq_weather_advice(weather_report_text):
     prompt = (
         "Eres un Asistente Meteorológico personal, amable y práctico. "
         "Tu tarea es leer el siguiente reporte del clima y dar consejos breves, informativos y útiles.\n\n"
-        
         f"REPORTE:\n{weather_report_text}\n\n"
-        
         "Instrucciones:\n"
         "Responde usando listas o parafo, lo que consideres que es major, pero se atento y basa tu respuesta en los datos del mensaje"
         "analiza la hora local no tienes que repetirala es solo para que bases tu respuesta segun el momento para evitar que digas sal a tomar el sol si es de noche"
@@ -129,7 +118,6 @@ def get_groq_weather_advice(weather_report_text):
         "Hogar/Coche Consejos prácticos (ej. cerrar ventanas, lavar coche, regar plantas, cosas asi se creativo)."
         "Salud/Aire Libre: analiza si es buen momento para salir, a realizar acividades, explica la respuesta."
         "no es una lista estricata o categorias fijas, es sol para que tengas una idea, puedes dar recomendaciones segun el reporte que consideres utiles."
-        
         "Reglas:\n"
         "- Usa emojis.\n"
         "- NO repitas los datos numéricos (temperatura, humedad) a menos que sea para explicar el consejo.\n"
@@ -138,24 +126,21 @@ def get_groq_weather_advice(weather_report_text):
     )
 
     url = "https://api.groq.com/openai/v1/chat/completions"
-    
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    
+
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+
     payload = {
-        "model": "openai/gpt-oss-20b", # O el modelo que prefieras usar
+        "model": "openai/gpt-oss-20b",  # O el modelo que prefieras usar
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.5, # Un poco más creativo que en trading, pero no mucho
-        "max_tokens": 1000
+        "temperature": 0.5,  # Un poco más creativo que en trading, pero no mucho
+        "max_tokens": 1000,
     }
 
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=15)
         response.raise_for_status()
         data = response.json()
-        raw_content = data['choices'][0]['message']['content'].strip()
+        raw_content = data["choices"][0]["message"]["content"].strip()
         return escape_markdown(raw_content)
     except Exception as e:
         print(f"❌ Error Groq Weather: {e}")
