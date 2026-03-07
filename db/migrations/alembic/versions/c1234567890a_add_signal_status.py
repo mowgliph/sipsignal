@@ -16,26 +16,26 @@ depends_on = None
 def upgrade() -> None:
     # Primero eliminar el constraint existente
     op.execute("""
-        ALTER TABLE signals 
+        ALTER TABLE signals
         DROP CONSTRAINT IF EXISTS signals_status_check
     """)
 
     # Agregar el constraint actualizado con los nuevos status
     op.execute("""
-        ALTER TABLE signals 
-        ADD CONSTRAINT signals_status_check 
+        ALTER TABLE signals
+        ADD CONSTRAINT signals_status_check
         CHECK (status IN ('EMITIDA', 'TOMADA', 'NO_TOMADA', 'SIN_RESPUESTA', 'CERRADA', 'CANCELADA'))
     """)
 
 
 def downgrade() -> None:
     op.execute("""
-        ALTER TABLE signals 
+        ALTER TABLE signals
         DROP CONSTRAINT IF EXISTS signals_status_check
     """)
 
     op.execute("""
-        ALTER TABLE signals 
-        ADD CONSTRAINT signals_status_check 
+        ALTER TABLE signals
+        ADD CONSTRAINT signals_status_check
         CHECK (status IN ('EMITIDA', 'TOMADA', 'CERRADA', 'CANCELADA'))
     """)

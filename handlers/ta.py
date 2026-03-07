@@ -1,6 +1,7 @@
 # handlers/ta.py
 
 import asyncio
+import contextlib
 
 import pandas as pd
 import requests
@@ -163,125 +164,6 @@ def get_tradingview_analysis_enhanced(symbol_pair, interval_str):
         "MACD_hist": ind.get("MACD.hist", 0),
         "SMA_50": ind.get("SMA50", 0),
         "EMA_200": ind.get("EMA200", 0),
-    }
-
-
-def get_binance_klines(symbol, interval, limit=500):
-    """Obtiene velas de Binance (Global o US)."""
-    endpoints = ["https://api.binance.com/api/v3/klines", "https://api.binance.us/api/v3/klines"]
-    for url in endpoints:
-        params = {"symbol": symbol, "interval": interval, "limit": limit}
-        try:
-            response = requests.get(url, params=params, timeout=3)  # Timeout rápido para UX
-            if response.status_code != 200:
-                continue
-            data = response.json()
-            if not data or not isinstance(data, list):
-                continue
-
-            df = pd.DataFrame(
-                data,
-                columns=[
-                    "open_time",
-                    "open",
-                    "high",
-                    "low",
-                    "close",
-                    "volume",
-                    "close_time",
-                    "quote_asset_volume",
-                    "trades",
-                    "taker_base",
-                    "taker_quote",
-                    "ignore",
-                ],
-            )
-            cols = ["open", "high", "low", "close", "volume"]
-            df[cols] = df[cols].apply(pd.to_numeric, errors="coerce")
-            df["time"] = pd.to_datetime(df["open_time"], unit="ms")
-            df.set_index("time", inplace=True)
-            return df
-        except Exception:
-            continue
-    return None
-
-
-def calculate_table_indicators(df):
-    """Calcula indicadores visuales para la tabla."""
-
-    def safe_ind(name, series):
-        try:
-            df[name] = series if series is not None else 0.0
-        except (KeyError, TypeError):
-            df[name] = 0.0
-
-    safe_ind("RSI", df.ta.rsi(length=14))
-    safe_ind("MFI", df.ta.mfi(length=14))
-    safe_ind("CCI", df.ta.cci(length=20))
-    try:
-        safe_ind("ADX", df.ta.adx(length=14)["ADX_14"])
-    except (KeyError, TypeError):
-        df["ADX"] = 0.0
-    safe_ind("WILLR", df.ta.willr(length=14))
-    safe_ind("OBV", df.ta.obv())
-    return df.iloc[-3:]
-
-
-def get_tradingview_analysis_enhanced(symbol_pair, interval_str):
-    """Fallback a TradingView para obtener Score y Señales."""
-    interval_map = {
-        "1m": Interval.INTERVAL_1_MINUTE,
-        "5m": Interval.INTERVAL_5_MINUTES,
-        "15m": Interval.INTERVAL_15_MINUTES,
-        "1h": Interval.INTERVAL_1_HOUR,
-        "4h": Interval.INTERVAL_4_HOURS,
-        "1d": Interval.INTERVAL_1_DAY,
-        "1w": Interval.INTERVAL_1_WEEK,
-        "1M": Interval.INTERVAL_1_MONTH,
-    }
-    tv_interval = interval_map.get(interval_str, Interval.INTERVAL_1_HOUR)
-
-    try:
-        handler = TA_Handler(
-            symbol=symbol_pair, screener="crypto", exchange="BINANCE", interval=tv_interval
-        )
-        analysis = handler.get_analysis()
-    except Exception:
-        try:
-            handler = TA_Handler(
-                symbol=symbol_pair, screener="crypto", exchange="GATEIO", interval=tv_interval
-            )
-            analysis = handler.get_analysis()
-        except Exception:
-            return None
-
-    if not analysis:
-        return None
-    ind = analysis.indicators
-    summ = analysis.summary
-    return {
-        "source": "TradingView",
-        "close": ind.get("close", 0),
-        "volume": ind.get("volume", 0),
-        "RSI": ind.get("RSI", 0),
-        "MFI": ind.get("MFI", 0) or 0,
-        "CCI": ind.get("CCI20", 0),
-        "ADX": ind.get("ADX", 0),
-        "WR": ind.get("W.R", 0),
-        "OBV": ind.get("OBV", 0) or ind.get("volume", 0),
-        "Pivot": ind.get("Pivot.M.Classic.Middle", 0),
-        "R1": ind.get("Pivot.M.Classic.R1", 0),
-        "R2": ind.get("Pivot.M.Classic.R2", 0),
-        "R3": ind.get("Pivot.M.Classic.R3", 0),
-        "S1": ind.get("Pivot.M.Classic.S1", 0),
-        "S2": ind.get("Pivot.M.Classic.S2", 0),
-        "S3": ind.get("Pivot.M.Classic.S3", 0),
-        "RECOMMENDATION": summ.get("RECOMMENDATION", "NEUTRAL"),
-        "BUY_SCORE": summ.get("BUY", 0),
-        "SELL_SCORE": summ.get("SELL", 0),
-        "MACD_hist": ind.get("MACD.hist", 0),
-        "SMA_50": ind.get("SMA50", 0),
-        "ATR": ind.get("ATR", 0),
     }
 
 
@@ -503,9 +385,9 @@ async def ta_command(
         ("ADX", "ADX_list"),
         ("OBV", "OBV_list"),
     ]
-    for l, k in rows:
+    for label, k in rows:
         v = final_data.get(k, [0, 0, 0])
-        table_msg += f"{l:<6} {fmt_cell(v[0])}  {fmt_cell(v[1])}  {fmt_cell(v[2])}\n"
+        table_msg += f"{label:<6} {fmt_cell(v[0])}  {fmt_cell(v[1])}  {fmt_cell(v[2])}\n"
     table_msg += "```"
 
     # 1. Definimos el precio ANTES de usarlo en los if
@@ -612,14 +494,10 @@ async def ta_command(
 
     # === ENVÍO / EDICIÓN ===
     if is_callback:
-        try:
-            # Editamos el mensaje original con el nuevo contenido y teclado
+        with contextlib.suppress(Exception):
             await update.callback_query.edit_message_text(
                 text=msg, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup
             )
-        except Exception:
-            # Si el mensaje es idéntico, Telegram lanza error, lo ignoramos
-            pass
     else:
         await msg_wait.edit_text(msg, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
 
@@ -692,12 +570,10 @@ async def ai_analysis_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
     except Exception as e:
         print(f"Error en callback IA: {e}")
-        try:
+        with contextlib.suppress(Exception):
             await query.message.reply_text(
                 _("⚠️ La IA está ocupada, intenta de nuevo.", user_id), parse_mode=ParseMode.MARKDOWN
             )
-        except Exception:
-            pass
 
 
 # === HANDLER DEL BOTÓN ===

@@ -105,7 +105,7 @@ async def resume_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         # Reanudar trading
-        result = await resume_trading(user_id)
+        await resume_trading(user_id)
 
         await update.message.reply_text(
             "✅ *TRADING REANUDADO*\n\n"
@@ -171,7 +171,7 @@ async def resetdd_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "resetdd_confirm":
         try:
-            result = await reset_drawdown(user_id)
+            await reset_drawdown(user_id)
 
             await query.edit_message_text(
                 "✅ *DRAWDOWN RESETEADO*\n\n"

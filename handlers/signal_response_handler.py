@@ -95,7 +95,7 @@ async def _handle_taken(update: Update, timestamp: int):
         # 3. INSERT INTO active_trades (signal_id, direction, entry_price, tp1_level, sl_level, status, created_at)
         await execute(
             """
-            INSERT INTO active_trades 
+            INSERT INTO active_trades
             (signal_id, direction, entry_price, tp1_level, sl_level, status, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, 'ABIERTO', NOW(), NOW())
             """,
@@ -284,9 +284,9 @@ async def process_signal_timeout():
             # Obtener señales que necesitan timeout
             expired_signals = await fetch(
                 """
-                SELECT id, direction, detected_at 
-                FROM signals 
-                WHERE status = 'EMITIDA' 
+                SELECT id, direction, detected_at
+                FROM signals
+                WHERE status = 'EMITIDA'
                 AND detected_at < $1
                 """,
                 timeout_threshold,

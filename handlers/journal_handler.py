@@ -3,6 +3,7 @@ Handler para comandos /journal y /active.
 Muestra historial de señales con estadísticas y trades activos.
 """
 
+import contextlib
 from datetime import datetime
 from typing import Any
 
@@ -82,10 +83,8 @@ def calculate_journal_stats(signals: list[dict[str, Any]]) -> dict[str, Any]:
     for s in signals:
         pnl = s.get("pnl_usdt")
         if pnl is not None:
-            try:
+            with contextlib.suppress(TypeError, ValueError):
                 pnl_values.append(float(pnl))
-            except (TypeError, ValueError):
-                pass
 
     pnl_total = sum(pnl_values)
 
@@ -284,7 +283,6 @@ async def journal_cmd(update: Update, context: CallbackContext) -> None:
     message = await journal_command(limit=limit, offset=offset)
 
     # Añadir keyboard con paginación si hay más señales
-    keyboard = []
     # Por ahora solo text, el handler de callback se puede añadir después
 
     await update.message.reply_text(message, parse_mode="Markdown")

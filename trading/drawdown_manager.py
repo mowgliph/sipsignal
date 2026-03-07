@@ -32,7 +32,7 @@ async def get_or_create_drawdown(user_id: int) -> dict[str, Any]:
     # Crear nuevo drawdown
     await execute(
         """
-        INSERT INTO drawdown_tracker 
+        INSERT INTO drawdown_tracker
         (user_id, current_drawdown_usdt, current_drawdown_percent, losses_count, is_paused, updated_at)
         VALUES ($1, 0.00, 0.000, 0, false, NOW())
         """,
@@ -55,7 +55,7 @@ async def get_drawdown(user_id: int) -> dict[str, Any] | None:
     # Join con user_config para obtener capital y max_drawdown
     result = await fetchrow(
         """
-        SELECT 
+        SELECT
             dt.user_id,
             dt.current_drawdown_usdt,
             dt.current_drawdown_percent,
@@ -98,7 +98,7 @@ async def update_drawdown(user_id: int, pnl_usdt: float, bot) -> dict[str, Any]:
 
     capital_total = float(user_config["capital_total"])
     max_drawdown_percent = float(user_config["max_drawdown_percent"])
-    max_drawdown_usdt = capital_total * (max_drawdown_percent / 100)
+    capital_total * (max_drawdown_percent / 100)
 
     # 2. Obtener o crear drawdown actual
     dd = await get_or_create_drawdown(user_id)
@@ -123,7 +123,7 @@ async def update_drawdown(user_id: int, pnl_usdt: float, bot) -> dict[str, Any]:
     # 6. Actualizar base de datos
     await execute(
         """
-        UPDATE drawdown_tracker 
+        UPDATE drawdown_tracker
         SET current_drawdown_usdt = $1,
             current_drawdown_percent = $2,
             losses_count = $3,
@@ -206,7 +206,7 @@ async def reset_drawdown(user_id: int) -> dict[str, Any]:
 
     await execute(
         """
-        UPDATE drawdown_tracker 
+        UPDATE drawdown_tracker
         SET current_drawdown_usdt = 0.00,
             current_drawdown_percent = 0.000,
             losses_count = 0,
@@ -236,7 +236,7 @@ async def resume_trading(user_id: int) -> dict[str, Any]:
     """
     await execute(
         """
-        UPDATE drawdown_tracker 
+        UPDATE drawdown_tracker
         SET is_paused = false,
             updated_at = NOW()
         WHERE user_id = $1

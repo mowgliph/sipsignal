@@ -80,7 +80,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # COMANDO /ver REFACTORIZADO
 async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
     chat_id = update.effective_chat.id
 
     # === GUARDIA DE PAGO ===
@@ -125,7 +124,7 @@ async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 5. Construir el mensaje
     mensaje = "📊 *Precios Actuales (Tu Lista):*\n─────────────\n\n"
 
-    TOLERANCIA = 0.0000001
+    tolerancia = 0.0000001
 
     for moneda in monedas:
         p_actual = precios_actuales.get(moneda)
@@ -135,9 +134,9 @@ async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Calcular indicador visual
             indicador = ""
             if p_anterior:
-                if p_actual > p_anterior + TOLERANCIA:
+                if p_actual > p_anterior + tolerancia:
                     indicador = " 🔺"
-                elif p_actual < p_anterior - TOLERANCIA:
+                elif p_actual < p_anterior - tolerancia:
                     indicador = " 🔻"
                 else:
                     indicador = " ▫️"

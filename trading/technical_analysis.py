@@ -4,7 +4,6 @@ Supertrend, ASH, ATR — port desde Pine Script.
 
 import numpy as np
 import pandas as pd
-import pandas_ta
 
 
 def _alma(s: pd.Series, length: int, offset: float = 0.85, sigma: float = 6) -> pd.Series:
@@ -24,7 +23,7 @@ def _alma(s: pd.Series, length: int, offset: float = 0.85, sigma: float = 6) -> 
         raw=False,
     )
 
-    half_window = length // 2
+    length // 2
     for i in range(length - 1):
         if i < len(result):
             result.iloc[i] = s.iloc[: i + 1].mean()

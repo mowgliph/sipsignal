@@ -67,10 +67,10 @@ async def signal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         sl_price = None
         rr_ratio = None
 
-        supertrend_cross = (last["sup_is_bullish"] and not prev["sup_is_bullish"]) or (
+        (last["sup_is_bullish"] and not prev["sup_is_bullish"]) or (
             not last["sup_is_bullish"] and prev["sup_is_bullish"]
         )
-        ash_signal = last["ash_bullish_signal"] or last["ash_bearish_signal"]
+        last["ash_bullish_signal"] or last["ash_bearish_signal"]
 
         if last["sup_is_bullish"] and last["ash_bullish"]:
             signal_active = True

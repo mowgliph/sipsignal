@@ -1,6 +1,7 @@
 # core/config.py
 
 import os
+import platform
 import sys
 from dataclasses import dataclass
 
@@ -90,7 +91,6 @@ class Settings:
 
 
 # --- Compatibilidad hacia atrás (exports) ---
-import platform
 
 # --- Instancia global de configuración ---
 try:

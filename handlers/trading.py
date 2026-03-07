@@ -249,18 +249,15 @@ async def mk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             is_weekend = now_local.weekday() >= 5
 
             # Estado base
-            is_open = False
             msg_status = ""
 
             if not is_weekend and m["open"] <= current_float < m["close"]:
-                is_open = True
 
                 # Calcular tiempo para cerrar
                 minutes_to_close = (m["close"] - current_float) * 60
                 time_str = get_time_str(minutes_to_close)
                 msg_status = f"Open ✅ closes {time_str}"
             else:
-                is_open = False
 
                 # Calcular tiempo para abrir
                 if is_weekend:

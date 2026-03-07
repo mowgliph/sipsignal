@@ -4,6 +4,8 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from db.models import Base
+
 config = context.config
 
 if config.config_file_name is not None:
@@ -13,8 +15,6 @@ database_url = os.getenv(
     "DATABASE_URL", "postgresql://sipsignal:F4lz8XJhPKiF84ID26cAcQ@localhost:5432/sipsignal_db"
 )
 config.set_main_option("sqlalchemy.url", database_url)
-
-from db.models import Base
 
 target_metadata = Base.metadata
 

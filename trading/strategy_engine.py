@@ -84,20 +84,24 @@ async def run_cycle(config: UserConfig) -> SignalDTO | None:
         if active:
             return None
 
-        if config.enable_long and last["sup_is_bullish"] and last["ash_bullish_signal"]:
-            if last["rr_ratio"] >= 1.0:
-                atr_col = f"ATRr_{config.tp_period}"
-                return SignalDTO(
-                    direction="LONG",
-                    entry_price=float(last["close"]),
-                    tp1_level=float(last["long_tp"]),
-                    sl_level=float(last["long_sl"]),
-                    rr_ratio=float(last["rr_ratio"]),
-                    atr_value=float(last[atr_col]),
-                    supertrend_line=float(last["supertrend_line"]),
-                    timeframe=config.timeframe,
-                    detected_at=datetime.now(UTC),
-                )
+        if (
+            config.enable_long
+            and last["sup_is_bullish"]
+            and last["ash_bullish_signal"]
+            and last["rr_ratio"] >= 1.0
+        ):
+            atr_col = f"ATRr_{config.tp_period}"
+            return SignalDTO(
+                direction="LONG",
+                entry_price=float(last["close"]),
+                tp1_level=float(last["long_tp"]),
+                sl_level=float(last["long_sl"]),
+                rr_ratio=float(last["rr_ratio"]),
+                atr_value=float(last[atr_col]),
+                supertrend_line=float(last["supertrend_line"]),
+                timeframe=config.timeframe,
+                detected_at=datetime.now(UTC),
+            )
 
         if config.enable_short and not last["sup_is_bullish"] and last["ash_bearish_signal"]:
             if last["rr_ratio"] >= 1.0:

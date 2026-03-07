@@ -87,10 +87,12 @@ class ChartCapture:
         closes = df["close"].values
         volumes = df["volume"].values
 
-        for i, (date, o, h, l, c, v) in enumerate(zip(dates, opens, highs, lows, closes, volumes)):
+        for _i, (date, o, h, low_price, c, v) in enumerate(
+            zip(dates, opens, highs, lows, closes, volumes, strict=False)
+        ):
             color = COLOR_UP if c >= o else COLOR_DOWN
 
-            ax_price.plot([date, date], [l, h], color=color, linewidth=0.8)
+            ax_price.plot([date, date], [low_price, h], color=color, linewidth=0.8)
             ax_price.plot([date - 0.3, date + 0.3], [o, o], color=color, linewidth=0.8)
             ax_price.plot([date - 0.3, date + 0.3], [c, c], color=color, linewidth=0.8)
 

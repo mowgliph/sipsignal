@@ -9,7 +9,7 @@ class TestSupertrend:
     @pytest.fixture
     def sample_df(self):
         np.random.seed(42)
-        dates = pd.date_range("2024-01-01", periods=200, freq="1h")
+        pd.date_range("2024-01-01", periods=200, freq="1h")
         df = pd.DataFrame(
             {
                 "High": 100 + np.random.randn(200).cumsum() + 10,

@@ -154,7 +154,7 @@ class BinanceDataFetcher:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         data = {}
-        for interval, result in zip(intervals, results):
+        for interval, result in zip(intervals, results, strict=False):
             if isinstance(result, Exception):
                 logger.error(f"Failed to fetch {interval}: {result}")
                 data[interval] = pd.DataFrame()
