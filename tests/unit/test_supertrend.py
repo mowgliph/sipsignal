@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import pytest
-
 from trading.technical_analysis import _ma, calculate_supertrend
 
 

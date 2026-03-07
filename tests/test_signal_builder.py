@@ -5,7 +5,6 @@ Tests para signal_builder.
 from datetime import UTC, datetime
 
 import pytest
-
 from trading.signal_builder import build_signal_message
 from trading.strategy_engine import SignalDTO, UserConfig
 

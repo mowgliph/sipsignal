@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock, patch
 import numpy as np
 import pandas as pd
 import pytest
-
 from trading.strategy_engine import Database, SignalDTO, UserConfig, run_cycle
 
 

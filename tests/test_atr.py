@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-
 from trading.technical_analysis import calculate_all, calculate_atr_levels
 
 
