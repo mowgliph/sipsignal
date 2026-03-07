@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-03-06
+
+### 🚀 Added
+- **CI/CD Pipeline**: Complete GitHub Actions pipeline with lint, test, build, and security stages
+- **Project Configuration**: pyproject.toml with pytest, coverage, and ruff configurations
+- **Linter Configuration**: .ruff.toml with comprehensive linting rules
+- **Test Structure**: Basic test directory with example tests
+
+### 🛠 Fixed
+- Python version updated to 3.13
+
+---
+
 ## [1.0.0] - 2026-03-06
 
 ### 🚀 Added
