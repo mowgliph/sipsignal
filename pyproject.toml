@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "sipsignal"
 version = "0.1.0"
 description = "Signal-based trading system"
-requires-python = ">=3.9"
+requires-python = ">=3.13"
 dependencies = [
     "groq>=0.4.0",
     "alembic>=1.12.0",
@@ -57,7 +57,7 @@ exclude_lines = [
 ]
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py313"
 line-length = 100
 
 [tool.ruff.lint]
