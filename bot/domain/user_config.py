@@ -9,6 +9,7 @@ class UserConfig:
     max_drawdown_percent: float = 5.0
     direction: str = "LONG"
     timeframe_primary: str = "15m"
+    timeframe: str = "15m"
     setup_completed: bool = False
 
     def max_drawdown_usdt(self) -> float:
