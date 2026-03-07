@@ -37,7 +37,7 @@ class MockAIAnalysisPort:
     async def analyze_signal(self, signal: Signal) -> str:
         return self._context
 
-    async def analyze_scenario(self, context: str) -> str:
+    async def analyze_scenario(self) -> str:
         return self._context
 
 

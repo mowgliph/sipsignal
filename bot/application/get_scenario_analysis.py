@@ -52,8 +52,5 @@ class GetScenarioAnalysis:
         if ema_position is not None:
             summary_parts.append(f"Precio: {ema_position}")
 
-        summary = " | ".join(summary_parts)
-
-        analysis = await self._ai.analyze_scenario(summary)
-
+        analysis = await self._ai.analyze_scenario()
         return analysis

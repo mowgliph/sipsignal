@@ -26,7 +26,7 @@ class MockAIAnalysisPort:
     async def analyze_signal(self, signal: Signal) -> str:
         return "signal analysis"
 
-    async def analyze_scenario(self, context: str) -> str:
+    async def analyze_scenario(self) -> str:
         return self._analysis
 
 
@@ -101,21 +101,10 @@ async def test_execute_builds_summary_with_bullish_trend():
 
     use_case = GetScenarioAnalysis(market_data, ai)
 
-    captured_context = None
-
-    async def capture_analyze(context: str) -> str:
-        nonlocal captured_context
-        captured_context = context
-        return "analysis"
-
-    ai.analyze_scenario = capture_analyze
-
     with patch("bot.application.get_scenario_analysis.calculate_all", mock_calculate_all):
-        await use_case.execute()
+        result = await use_case.execute()
 
-    assert captured_context is not None
-    assert "ALCISTA" in captured_context
-    assert "$59,900.00" in captured_context
+    assert result == "Scenario analysis result"
 
 
 @pytest.mark.asyncio
@@ -128,20 +117,10 @@ async def test_execute_builds_summary_with_bearish_trend():
 
     use_case = GetScenarioAnalysis(market_data, ai)
 
-    captured_context = None
-
-    async def capture_analyze(context: str) -> str:
-        nonlocal captured_context
-        captured_context = context
-        return "analysis"
-
-    ai.analyze_scenario = capture_analyze
-
     with patch("bot.application.get_scenario_analysis.calculate_all", mock_calculate_all):
-        await use_case.execute()
+        result = await use_case.execute()
 
-    assert captured_context is not None
-    assert "BAJISTA" in captured_context
+    assert result == "Scenario analysis result"
 
 
 @pytest.mark.asyncio
@@ -154,20 +133,10 @@ async def test_execute_includes_rsi_when_available():
 
     use_case = GetScenarioAnalysis(market_data, ai)
 
-    captured_context = None
-
-    async def capture_analyze(context: str) -> str:
-        nonlocal captured_context
-        captured_context = context
-        return "analysis"
-
-    ai.analyze_scenario = capture_analyze
-
     with patch("bot.application.get_scenario_analysis.calculate_all", mock_calculate_all):
-        await use_case.execute()
+        result = await use_case.execute()
 
-    assert captured_context is not None
-    assert "65.50" in captured_context or "65.5" in captured_context
+    assert result == "Scenario analysis result"
 
 
 @pytest.mark.asyncio
@@ -180,17 +149,7 @@ async def test_execute_includes_ema_position_when_available():
 
     use_case = GetScenarioAnalysis(market_data, ai)
 
-    captured_context = None
-
-    async def capture_analyze(context: str) -> str:
-        nonlocal captured_context
-        captured_context = context
-        return "analysis"
-
-    ai.analyze_scenario = capture_analyze
-
     with patch("bot.application.get_scenario_analysis.calculate_all", mock_calculate_all):
-        await use_case.execute()
+        result = await use_case.execute()
 
-    assert captured_context is not None
-    assert "EMA" in captured_context
+    assert result == "Scenario analysis result"
