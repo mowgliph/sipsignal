@@ -1,408 +1,200 @@
-# 🤖 BitBread Alert (BBAlert)
+# SipSignal Trading Bot
 
-<div align="center">
+🤖 **Bot de Telegram para Análisis Técnico y Señales de Trading**
 
-[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://python.org)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.1.7-orange.svg)](version.txt)
-[![Telegram](https://img.shields.io/badge/Telegram-Bot-26A5E4.svg)](https://t.me/bbalertchannel)
-
-**Bot de Telegram Multifuncional para Criptomonedas, Clima y Trading**
-
-[📖 Documentación Completa](./docs/PROYECTO_DETALLADO.md) • [🚀 Instalación Rápida](#-instalación-rápida) • [📋 Comandos](#-comandos-principales) • [🔧 Configuración](#-configuración)
-
-</div>
+Sistema inteligente de señales BTC con análisis técnico automatizado 24/7 y monitoreo de TP/SL en tiempo real.
 
 ---
 
-## 📋 Tabla de Contenidos
+## Características
 
-- [✨ Características](#-características)
-- [🚀 Instalación Rápida](#-instalación-rápida)
-- [🔧 Configuración](#-configuración)
-- [📋 Comandos Principales](#-comandos-principales)
-- [🏗️ Arquitectura](#️-arquitectura)
-- [📁 Estructura del Proyecto](#-estructura-del-proyecto)
-- [🛡️ Seguridad](#️-seguridad)
-- [🤝 Contribución](#-contribución)
-- [📄 Licencia](#-licencia)
-- [📞 Soporte](#-soporte)
+- 📊 **Análisis Técnico Automatizado** - RSI, MACD, Bollinger Bands, EMA y más
+- 🎯 **Señales de Trading** - Oportunidades de entrada con ratio riesgo:beneficio
+- 📡 **Monitoreo TP/SL** - WebSocket para seguimiento de take profit y stop loss en tiempo real
+- 📈 **Gráficos** - Visualización de datos de mercado con análisis técnico
+- 🧠 **IA Integrada** - Contexto de mercado con Groq AI
+- 🌐 **Multi-idioma** - Soporte para Español e Inglés
+- 💰 **Gestión de Capital** - Control de drawdown y seguimiento de rendimiento
 
 ---
 
-## ✨ Características
+## Comandos Disponibles
 
-### 🔔 Sistema de Alertas Multiplataforma
-- **Alertas BTC**: Monitoreo de niveles clave (pivot, soportes/resistencias) con análisis técnico avanzado
-- **Alertas HBD**: Umbrales dinámicos de precio para HIVE Dollar
-- **Alertas Personalizadas**: Configuración de límites de precio para cualquier criptomoneda
-- **Alertas Clima**: Notificaciones de lluvia, tormenta, UV alto, calor/frío extremo
+### Comandos Básicos
+| Comando | Descripción |
+|---------|-------------|
+| `/start` | Iniciar el bot y registrarse |
+| `/help` | Mostrar menú de ayuda |
+| `/status` | Ver estado del bot y último análisis |
+| `/myid` | Obtener tu ID de Telegram |
+| `/lang` | Cambiar idioma (Español/Inglés) |
 
-### 📊 Herramientas de Trading
-- Análisis técnico avanzado (`/ta`) con indicadores múltiples (RSI, MACD, Bollinger Bands)
-- Gráficos automáticos desde TradingView (`/graf`)
-- Monitoreo de mercados globales (`/mk`)
-- Tasas de cambio informal para Cuba (`/tasa`)
+### Comandos de Trading y Señales
+| Comando | Descripción |
+|---------|-------------|
+| `/signal` | Análisis técnico instantáneo de BTC |
+| `/chart [tf]` | Ver gráfico (5m, 15m, 1h, 4h, 1D) |
+| `/ta <símbolo>` | Análisis técnico completo |
+| `/mk` | Ver datos de mercado |
+| `/p <símbolo>` | Precio de una criptomoneda específica |
+| `/ver` | Ver precios de tus monedas configuradas |
+| `/journal` | Historial de señales emitidas |
+| `/capital` | Gestión de capital y control de drawdown |
+| `/risk [entrada] [sl] [tp]` | Calcular ratio riesgo:beneficio |
 
-### 🌐 Características Adicionales
-- **Multi-idioma**: Español e Inglés (i18n con gettext/Babel)
-- **Sistema de Pagos**: Integración con Telegram Stars
-- **Feeds RSS/Atom**: Monitoreo de noticias personalizado
-- **Recordatorios**: Sistema de recordatorios programados
-- **Progreso Anual**: Seguimiento del avance del año
+### Comandos de Administrador
+| Comando | Descripción |
+|---------|-------------|
+| `/users` | Dashboard de administración |
+| `/logs` | Ver logs del sistema |
+| `/ms` | Mensaje masivo a usuarios |
+| `/ad` | Gestión de anuncios |
 
 ---
 
-## 🚀 Instalación Rápida
+## Instalación
 
-### Prerrequisitos
-- Servidor VPS con Ubuntu/Debian (recomendado)
-- Python 3.12 o superior
+### Requisitos
+- Python 3.13+
+- pip
 - Git
 
-### Instalación Automatizada (Recomendada)
+### Setup
 
+1. **Clonar el repositorio:**
 ```bash
-# 1. Clonar repositorio
-git clone https://github.com/ersus93/bbalert.git
-cd bbalert
-
-# 2. Configurar permisos
-chmod +x mbot.sh
-
-# 3. Ejecutar instalador
-./mbot.sh
-
-# 4. Seleccionar opción 1 (Instalación Completa)
+git clone https://github.com/mowgliph/sipsignal.git
+cd sipsignal
 ```
 
-### Instalación Manual
-
+2. **Crear entorno virtual:**
 ```bash
-# 1. Clonar y entrar al directorio
-git clone https://github.com/ersus93/bbalert.git
-cd bbalert
-
-# 2. Crear entorno virtual
-python3.12 -m venv venv
+python3.13 -m venv venv
 source venv/bin/activate
+```
 
-# 3. Instalar dependencias
+3. **Instalar dependencias:**
+```bash
 pip install -r requirements.txt
-
-# 4. Configurar variables de entorno
-cp apit.env.example apit.env
-nano apit.env  # Editar con tus credenciales
-
-# 5. Iniciar bot
-python bbalert.py
 ```
 
----
-
-## 🔧 Configuración
-
-### Variables de Entorno
-
-Crear archivo `apit.env`:
-
-```env
-# Credenciales Telegram (obligatorio)
-TOKEN_TELEGRAM="TU_TOKEN_DE_BOTFATHER"
-ADMIN_CHAT_IDS="123456789,987654321"
-
-# APIs Externas
-CMC_API_KEY_ALERTA="TU_CMC_API_KEY"
-CMC_API_KEY_CONTROL="TU_CMC_API_KEY"
-OPENWEATHER_API_KEY="TU_OPENWEATHER_KEY"
-GROQ_API_KEY="TU_GROQ_KEY"
-ELTOQUE_API_KEY="TU_ELTOQUE_KEY"
-SCREENSHOT_API_KEY="TU_SCREENSHOT_KEY"
-```
-
-### Configuración del Bot en Telegram
-
-1. Buscar **@BotFather** en Telegram
-2. Enviar `/newbot`
-3. Seguir instrucciones para nombre y username
-4. Guardar el token proporcionado
-5. Configurar comandos del bot:
-   ```
-   start - Iniciar bot
-   help - Ayuda general
-   btcalerts - Alertas BTC
-   hbdalerts - Alertas HBD
-   alerta - Crear alerta personalizada
-   w - Consultar clima
-   ta - Análisis técnico
-   p - Precio de cripto
-   mk - Mercados globales
-   shop - Tienda
-   ```
-
----
-
-## 📋 Comandos Principales
-
-### 👤 Usuario
-
-| Comando | Descripción |
-|---------|-------------|
-| `/start` | Iniciar bot y detectar idioma |
-| `/help` | Mostrar ayuda general |
-| `/myid` | Obtener tu ID de Telegram |
-| `/lang` | Cambiar idioma (ES/EN) |
-| `/ver` | Ver versión del bot |
-
-### 💰 Criptomonedas
-
-| Comando | Descripción | Ejemplo |
-|---------|-------------|---------|
-| `/p [moneda]` | Precio actual | `/p BTC` |
-| `/ta [par]` | Análisis técnico | `/ta BTCUSDT` |
-| `/graf [par] [tf]` | Gráfico TradingView | `/graf BTCUSDT 1h` |
-| `/mk` | Estado de mercados | - |
-| `/tasa` | Tasas de cambio Cuba | - |
-| `/btcalerts` | Gestionar alertas BTC | - |
-| `/hbdalerts` | Gestionar alertas HBD | - |
-| `/alerta [moneda] [precio]` | Crear alerta | `/alerta BTC 50000` |
-| `/misalertas` | Ver alertas activas | - |
-| `/monedas [lista]` | Configurar monedas | `/monedas BTC,ETH,HIVE` |
-| `/parar` | Detener alertas | - |
-| `/temp [horas]` | Intervalo alertas | `/temp 2.5` |
-
-### 🌤️ Clima
-
-| Comando | Descripción | Ejemplo |
-|---------|-------------|---------|
-| `/w [ciudad]` | Clima actual | `/w Havana` |
-| `/weather_sub` | Suscribirse a alertas | - |
-| `/weather_settings` | Configurar alertas | - |
-
-### 🛠️ Administración (Solo Admins)
-
-| Comando | Descripción |
-|---------|-------------|
-| `/users` | Estadísticas de usuarios |
-| `/logs` | Ver logs del sistema |
-| `/ad [add/del/list]` | Gestionar anuncios |
-| `/ms` | Envío masivo de mensajes |
-
----
-
-## 🏗️ Arquitectura
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Telegram Bot API                     │
-└───────────────────────────┬─────────────────────────────┘
-                            │
-              ┌─────────────▼────────────────┐
-              │      bbalert.py (Entry)      │
-              └─────────────┬────────────────┘
-                            │
-        ┌───────────────────┼───────────────────┐
-        │                   │                   │
-   ┌────▼─────┐      ┌──────▼──────┐      ┌────▼─────┐
-   │ Handlers │      │ Core Loops  │      │  Utils   │
-   └────┬─────┘      └──────┬──────┘      └────┬─────┘
-        │                   │                   │
-        └───────────────────┼───────────────────┘
-                            │
-                   ┌────────▼─────────┐
-                   │  JSON Storage    │
-                   └──────────────────┘
-```
-
-### Tecnologías Principales
-
-- **Python 3.12+** con Async/Await
-- **python-telegram-bot v20.x** para API de Telegram
-- **Pandas** para análisis de datos
-- **Babel** para internacionalización
-- **Systemd** para gestión de servicios
-
----
-
-## 📁 Estructura del Proyecto
-
-```
-bbalert/
-├── bbalert.py              # Punto de entrada
-├── mbot.sh                 # Script de gestión
-├── apit.env                # Variables de entorno
-├── requirements.txt        # Dependencias
-│
-├── core/                   # Núcleo del sistema
-│   ├── btc_loop.py         # Monitor BTC
-│   ├── weather_loop_v2.py  # Alertas clima
-│   ├── loops.py            # Bucles generales
-│   ├── valerts_loop.py     # Multi-moneda PRO
-│   ├── i18n.py             # Internacionalización
-│   ├── config.py           # Configuración
-│   └── api_client.py       # Clientes API
-│
-├── handlers/               # Comandos
-│   ├── btc_handlers.py
-│   ├── weather.py
-│   ├── trading.py
-│   ├── admin.py
-│   └── alerts.py
-│
-├── utils/                  # Utilidades
-│   ├── btc_manager.py
-│   ├── weather_manager.py
-│   ├── file_manager.py
-│   └── logger.py
-│
-├── data/                   # Datos persistentes
-│   ├── users.json
-│   ├── price_alerts.json
-│   └── weather_subs.json
-│
-├── locales/                # Traducciones
-│   ├── es/
-│   └── en/
-│
-└── docs/                   # Documentación
-    └── PROYECTO_DETALLADO.md
-```
-
----
-
-## 🛡️ Seguridad
-
-### Checklist de Seguridad
-
-- ✅ **Nunca** hardcodear credenciales
-- ✅ Usar `apit.env` para variables sensibles
-- ✅ Incluir `apit.env` en `.gitignore`
-- ✅ Validar todas las entradas de usuario
-- ✅ Manejar errores adecuadamente
-- ✅ Usar HTTPS para todas las conexiones
-
-### Buenas Prácticas
-
+4. **Configurar variables de entorno:**
 ```bash
-# Configurar firewall
-sudo ufw allow OpenSSH
-sudo ufw enable
-
-# Desactivar acceso root
-sudo nano /etc/ssh/sshd_config
-# PermitRootLogin no
-
-# Actualizar sistema regularmente
-sudo apt update && sudo apt upgrade -y
+cp env.example .env
+# Editar .env con tus credenciales
 ```
 
----
-
-## 🤝 Contr
-
-## 🤝 Contribución
-
-### Flujo de Trabajo (6 Fases)
-
-1. **Investigación**: Analizar requisitos y archivos afectados
-2. **Planificación**: Crear Issue en GitHub con plan detallado
-3. **Implementación**: Desarrollar en rama `feature/nombre`
-4. **i18n**: Actualizar traducciones si hay texto visible
-5. **Pruebas**: Tests unitarios y QA manual
-6. **Despliegue**: Merge, versión y reinicio en VPS
-
-### Estándares de Código
-
-- **Variables/Funciones**: `snake_case`
-- **Clases**: `CamelCase`
-- **Comentarios**: Docstrings obligatorios
-- **Tests**: Obligatorios para nuevas funcionalidades
-
+5. **Ejecutar el bot:**
 ```bash
-# Crear rama feature
-git checkout -b feature/nueva-funcionalidad dev
-
-# Commits convencionales
-# tipo(ámbito): descripción (#IssueID)
-git commit -m "feat(btc): agregar indicador MACD (#23)"
+python sipsignal.py
 ```
 
 ---
 
-## 📄 Licencia
-
-Este proyecto está bajo la licencia **MIT**.
+## Estructura del Proyecto
 
 ```
-MIT License
-
-Copyright (c) 2025 Ersus
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+sipsignal/
+├── sipsignal.py          # Punto de entrada principal
+├── requirements.txt      # Dependencias
+├── env.example           # Variables de entorno de ejemplo
+├── venv/                 # Entorno virtual (ignorado en git)
+├── core/                 # Lógica principal
+│   ├── config.py         # Configuración
+│   ├── loops.py          # Utilidades de logs
+│   ├── api_client.py     # Cliente API (CoinMarketCap, etc.)
+│   ├── database.py       # Base de datos PostgreSQL
+│   ├── scheduler.py      # Programador de señales
+│   └── btc_advanced_analysis.py  # Análisis avanzado de BTC
+├── handlers/             # Manejadores de comandos
+│   ├── general.py        # Comandos básicos (/start, /help, etc.)
+│   ├── admin.py          # Comandos de admin
+│   ├── trading.py        # Comandos de trading (/p, /mk, /ta)
+│   ├── signal_handler.py # Manejador de señales
+│   ├── chart_handler.py  # Generación de gráficos
+│   ├── capital_handler.py# Gestión de capital y drawdown
+│   ├── journal_handler.py# Historial de señales
+│   └── user_settings.py  # Configuración de usuario (/lang)
+├── trading/              # Módulos de trading
+│   ├── signal_builder.py # Constructor de mensajes de señales
+│   ├── strategy_engine.py# Motor de estrategias
+│   ├── price_monitor.py  # Monitor WebSocket TP/SL
+│   ├── drawdown_manager.py# Control de drawdown
+│   └── technical_analysis.py # Análisis técnico
+├── ai/                   # Integración con IA (Groq)
+├── utils/                # Utilidades
+│   ├── logger.py         # Logging
+│   ├── file_manager.py   # Gestión de archivos JSON
+│   └── ads_manager.py    # Gestión de anuncios
+├── scheduler.py          # Programador de señales autónomas
+├── db/                   # Migraciones y modelos de BD
+├── tests/                # Tests
+│   ├── unit/
+│   ├── integration/
+│   └── e2e/
+└── docs/                 # Documentación
 ```
 
 ---
 
-## 📞 Soporte
+## Testing
 
-### Canales Oficiales
+Ejecutar todas las pruebas:
+```bash
+source venv/bin/activate
+pytest tests/ -v
+```
 
-- 📱 **Canal Telegram**: [@bbalertchannel](https://t.me/bbalertchannel)
-- 💬 **Grupo Soporte**: [@bbalertsupport](https://t.me/bbalertsupport)
-- 🐙 **GitHub Issues**: [github.com/ersus93/bbalert/issues](https://github.com/ersus93/bbalert/issues)
-- 📧 **Email**: soporte@bbalert.com
-
-### Reportar Problemas
-
-Al reportar un issue, incluir:
-- Versión del bot (`/ver`)
-- Sistema operativo (`lsb_release -a`)
-- Versión Python (`python3 --version`)
-- Logs relevantes (`journalctl -u bbalert -n 50`)
-- Pasos para reproducir el problema
+Ejecutar tests específicos:
+```bash
+pytest tests/unit/ -v
+pytest tests/integration/ -v
+```
 
 ---
 
-## 🔮 Roadmap
+## Variables de Entorno
 
-### ✅ Completado (v1.1.7)
-- Alertas BTC avanzadas
-- Sistema de clima inteligente
-- Alertas HBD dinámicas
-- Pagos con Telegram Stars
-- Feeds RSS/Atom
-- Análisis técnico (/ta)
-
-### ⏳ En Desarrollo (v2.x)
-- Integración con más exchanges
-- Panel web de administración
-- API REST
-- Soporte para más idiomas
-
-### 🔮 Futuro (v3.x)
-- Microservicios
-- Docker completo
-- PostgreSQL
-- Redis caché
+| Variable | Descripción | Requerida |
+|----------|-------------|-----------|
+| `TELEGRAM_BOT_TOKEN` | Token del bot de Telegram | ✅ |
+| `ADMIN_CHAT_IDS` | IDs de administradores separados por coma | ✅ |
+| `GROQ_API_KEY` | API Key para análisis con IA | ❌ |
 
 ---
 
-<div align="center">
+## Política de Uso
 
-**⭐ Si te gusta este proyecto, dale una estrella en GitHub!**
-
-[📖 Documentación Completa](./docs/PROYECTO_DETALLADO.md) • [🐛 Reportar Issue](https://github.com/ersus93/bbalert/issues) • [💡 Sugerencias](https://github.com/ersus93/bbalert/discussions)
+Al usar este bot, aceptas los términos descritos en [POLITICA_DE_USO.md](docs/POLITICA_DE_USO.md).
 
 ---
 
-**Desarrollado con ❤️ por [Ersus](https://github.com/ersus93)**
+## Soporte
 
-</div>
+Para soporte o consultas, contacta a los administradores del bot.
+
+---
+
+## 📊 Métricas del Proyecto
+
+- **⭐ Estrellas en GitHub:** [![GitHub stars](https://img.shields.io/github/stars/mowgliph/sipsignal)](https://github.com/mowgliph/sipsignal)
+- **🍴 Forks:** [![GitHub forks](https://img.shields.io/github/forks/mowgliph/sipsignal)](https://github.com/mowgliph/sipsignal)
+- **📦 Versión:** [![Version](https://img.shields.io/badge/version-1.0--dev-blue)](https://github.com/mowgliph/sipsignal/releases)
+- **🐍 Python:** [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+- **📄 Licencia:** [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+---
+
+## 🚀 Estado del Proyecto
+
+**Versión:** 1.0-dev  
+**Última actualización:** Marzo 2026  
+**Estado:** 🚧 En Desarrollo  
+**Mantenimiento:** Activo
+
+---
+
+**© 2026 SipSignal Trading Bot. Todos los derechos reservados.**  
+**Desarrollado con ❤️ por [mowgliph](https://github.com/mowgliph)**
+
+*Este proyecto es de código abierto y está disponible bajo la Licencia MIT.*

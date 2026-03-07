@@ -18,8 +18,12 @@ from utils.file_manager import (
     add_log_line, check_feature_access, registrar_uso_comando
 )
 from utils.ads_manager import get_random_ad_text
-from core.i18n import _
+# from core.i18n import _  # TODO: Implementar i18n en el futuro
 from core.btc_advanced_analysis import BTCAdvancedAnalyzer
+
+# Función identidad para reemplazar i18n (textos ya están en español)
+def _(message, *args, **kwargs):
+    return message
 
 
 
@@ -580,7 +584,7 @@ async def ai_analysis_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         # 5. Enviar respuesta con encabezado dinámico
         # Usamos un icono diferente según la fuente
         icon = "📡" if source == "TV" else "📊"
-        header = f"🤖 *BitBread IA* (_Experimental_)\n {icon} *{source}* | Moneda: *{full_symbol}* ({timeframe})\n—————————————————\n"
+        header = f"🤖 *Sip Signal IA* (_Experimental_)\n {icon} *{source}* | Moneda: *{full_symbol}* ({timeframe})\n—————————————————\n"
         
         await query.message.reply_text(
             header + ai_response, 

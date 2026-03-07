@@ -12,9 +12,9 @@ from typing import Optional, Union
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(CURRENT_DIR)
 LOGS_DIR = os.path.join(BASE_DIR, "logs")
-LOG_FILE_NAME = "bbalert.log"  # Mantenemos tu nombre de archivo original
+LOG_FILE_NAME = "sipsignal.log"  # Nombre del archivo de log
 LOG_FILE_PATH = os.path.join(LOGS_DIR, LOG_FILE_NAME)
-ERROR_LOG_PATH = os.path.join(LOGS_DIR, "bbalert_errors.log")
+ERROR_LOG_PATH = os.path.join(LOGS_DIR, "sipsignal_errors.log")
 
 # Asegurar que la carpeta logs exista (Lógica original mejorada)
 if not os.path.exists(LOGS_DIR):
@@ -29,7 +29,7 @@ except ImportError:
     HAS_LOGURU = False
     # Fallback a logging estándar si loguru no está instalado
     # Esto asegura que el bot no crashee si faltan dependencias
-    _std_logger = logging.getLogger("bbalert_fallback")
+    _std_logger = logging.getLogger("sipsignal_fallback")
     _std_logger.setLevel(logging.INFO)
     if not _std_logger.handlers:
         _handler = logging.StreamHandler(sys.stdout)
@@ -192,12 +192,7 @@ class Logger:
         if details: msg += f" - {details}"
         self.log_bot_event("INFO", msg, user_id)
 
-    def log_payment_event(self, event_type: str, amount: int, user_id: int, success: bool):
-        """Ej: logger.log_payment_event('stars_deposit', 500, 12345, True)"""
-        status = "✅" if success else "❌"
-        level = "INFO" if success else "ERROR"
-        msg = f"Payment {event_type} {status} - {amount} stars"
-        self.log_bot_event(level, msg, user_id)
+
 
     # --- UTILIDADES DE LECTURA ---
     def get_last_logs(self, lines: int = 15) -> str:

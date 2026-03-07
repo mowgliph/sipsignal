@@ -6,7 +6,6 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 from utils.file_manager import (
-    registrar_usuario, 
     obtener_monedas_usuario, 
     load_last_prices_status,
     obtener_datos_usuario,
@@ -16,8 +15,30 @@ from utils.file_manager import (
 from core.api_client import obtener_precios_control
 from utils.ads_manager import get_random_ad_text
 from core.config import ADMIN_CHAT_IDS
-from locales.texts import HELP_MSG
-from core.i18n import _
+from db.users import register_or_update_user
+
+# Mensajes estáticos (sin internacionalización)
+HELP_MSG = {
+    'es': """📚 *Ayuda de SipSignal*
+
+*Comandos Básicos:*
+/start - Iniciar el bot
+/help - Mostrar esta ayuda
+/status - Ver estado del bot
+/myid - Obtener tu ID
+/ver - Ver precios de tus monedas
+/mk - Datos de mercado
+/p <símbolo> - Precio de cripto
+/ta <símbolo> - Análisis técnico
+/signal - Análisis técnico instantáneo de BTC
+/chart [tf] - Ver gráfico (5m, 15m, 1h, 4h, 1D)
+/journal - Historial de señales emitidas
+/capital - Gestión de capital y drawdown
+/lang - Cambiar idioma
+
+*Para más información:* Contacta a un administrador.
+"""
+}
 
 #  Telegram comando /start 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -25,23 +46,33 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user = update.effective_user
     user_id = user.id
-    user_lang = user.language_code
+    user_lang = user.language_code or "es"
     
-    registrar_usuario(user_id, user_lang)
+    await register_or_update_user(user_id, user_lang)
     
     nombre_usuario = update.effective_user.first_name
 
-    mensaje = _(
-    "*Hola👋 {nombre_usuario}!* Bienvenido a BitBreadAlert.\n————————————————————\n\n"
-    "Para recibir alertas periódicas con los precios de tu lista de monedas, "
-    "usa el comando `/monedas` seguido de los símbolos separados por comas. "
-    "Puedes usar *cualquier* símbolo de criptomoneda listado en CoinMarketCap. Ejemplo:\n\n"
-    "`/monedas BTC, ETH, TRX, HIVE, ADA`\n\n"
-    "Puedes modificar la temporalidad de esta alerta en cualquier momento con el comando /temp seguido de las horas (entre 0.5 y 24.0).\n"
-    "Ejemplo: /temp 2.5 (para 2 horas y 30 minutos)\n\n"
-    "Usa /help para ver todos los comandos disponibles.",
-    user_id
-    ).format(nombre_usuario=nombre_usuario) 
+    mensaje = (
+        "*⚡ SIPSIGNAL - Sistema de Señales BTC*\n"
+        "─────────────\n\n"
+        "Hola {nombre}! 👋 Bienvenido a SipSignal, tu asistente de trading automatizado para Bitcoin.\n\n"
+        "*🎯 ¿Qué hace SipSignal?*\n\n"
+        "SipSignal analiza el mercado de BTC/USDT 24/7 y te envía señales de trading cuando detecta oportunidades según tu estrategia. "
+        "Incluye monitoreo de TP/SL en tiempo real. No ejecuta órdenes automáticamente - te notifica para que tú decidas.\n\n"
+        "*📱 Comandos disponibles:*\n\n"
+        "/signal - Análisis técnico instantáneo de BTC\n"
+        "/chart [tf] - Ver gráfico (5m, 15m, 1h, 4h, 1D)\n"
+        "/risk [entrada] [sl] [tp] - Calcular ratio riesgo/beneficio\n"
+        "/journal - Historial de señales emitidas\n"
+        "/capital - Gestión de capital y drawdown\n"
+        "/status - Estado del sistema y último análisis\n\n"
+        "*🔍 Análisis incluye:*\n\n"
+        "• RSI, MACD, Bollinger Bands, EMA\n"
+        "• Soportes y resistencias\n"
+        "• Contexto de mercado con IA (Groq)\n"
+        "• Ratio riesgo:beneficio recomendado\n\n"
+        "Usa /help para más detalles o /status para ver el estado actual del sistema."
+    ).format(nombre=nombre_usuario) 
 
     await update.message.reply_text(mensaje, parse_mode=ParseMode.MARKDOWN)
 
@@ -67,20 +98,20 @@ async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if not monedas:
         await update.message.reply_text(
-            _("⚠️ No tienes monedas configuradas. Usa /monedas para añadir algunas.", user_id),
+            "⚠️ No tienes monedas configuradas. Usa /monedas para añadir algunas.",
             parse_mode=ParseMode.MARKDOWN
         )
         return
 
     # 2. Notificar que estamos cargando (ya que la API puede tardar un segundo)
-    mensaje_espera = await update.message.reply_text(_("⏳ Consultando precios actuales...", user_id))
+    mensaje_espera = await update.message.reply_text("⏳ Consultando precios actuales...")
 
     # 3. Obtener precios en tiempo real
     precios_actuales = obtener_precios_control(monedas)
     
     if not precios_actuales:
         await mensaje_espera.edit_text(
-            _("❌ No se pudieron obtener los precios en este momento. Intenta luego.", user_id)
+            "❌ No se pudieron obtener los precios en este momento. Intenta luego."
         )
         return
 
@@ -90,7 +121,7 @@ async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
     precios_anteriores_usuario = todos_precios_anteriores.get(str(chat_id), {})
 
     # 5. Construir el mensaje
-    mensaje = _("📊 *Precios Actuales (Tu Lista):*\n—————————————————\n\n", user_id)
+    mensaje = "📊 *Precios Actuales (Tu Lista):*\n─────────────\n\n"
     
     TOLERANCIA = 0.0000001
     
@@ -115,7 +146,7 @@ async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Añadir fecha
     fecha_actual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    mensaje += f"\n—————————————————\n_📅 Consulta: {fecha_actual}_"
+    mensaje += f"\n─────────────\n_📅 Consulta: {fecha_actual}_"
 
     mensaje += get_random_ad_text()
 
@@ -134,12 +165,11 @@ async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username_str = f"@{user.username}" if user.username else 'N/A'
 
 
-    mensaje_template = _(
-        "Estos son tus datos de Telegram:\n—————————————————\n\n"
+    mensaje_template = (
+        "Estos son tus datos de Telegram:\n─────────────\n\n"
         "Nombre: {nombre}\n"
         "Usuario: {usuario}\n"
-        "ID: `{id_chat}`",
-        user_id 
+        "ID: `{id_chat}`"
     )
 
 
