@@ -8,3 +8,6 @@ class NotifierPort(ABC):
     async def send_signal(
         self, chat_id: int, signal: Signal, chart: bytes | None, ai_context: str
     ) -> None: ...
+
+    @abstractmethod
+    async def send_warning(self, chat_id: int, message: str) -> None: ...
