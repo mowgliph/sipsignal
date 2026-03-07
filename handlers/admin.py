@@ -19,10 +19,8 @@ from telegram.ext import (
     CallbackQueryHandler,
     filters
 )
-from utils.valerts_manager import get_active_symbols, get_valerts_subscribers
-from utils.btc_manager import load_btc_subs
 from collections import Counter
-from utils.file_manager import cargar_usuarios, load_price_alerts, get_user_alerts, load_hbd_history, migrate_user_timestamps
+from utils.file_manager import cargar_usuarios, migrate_user_timestamps
 from utils.ads_manager import load_ads, add_ad, delete_ad
 from utils.logger import LOG_FILE_PATH
 from utils.telemetry import (
@@ -33,9 +31,8 @@ from utils.telemetry import (
 )
 from core.config import (
     VERSION, PID, PYTHON_VERSION, STATE, ADMIN_CHAT_IDS,
-    USUARIOS_PATH, PRICE_ALERTS_PATH, HBD_HISTORY_PATH,
-    CUSTOM_ALERT_HISTORY_PATH, ADS_PATH,
-    LAST_PRICES_PATH, TEMPLATE_PATH, HBD_THRESHOLDS_PATH
+    USUARIOS_PATH, ADS_PATH,
+    LAST_PRICES_PATH, TEMPLATE_PATH
     )
 # Función identidad para reemplazar i18n (textos ya están en español)
 def _(message, *args, **kwargs):
@@ -366,11 +363,11 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # 1. CARGA DE DATOS (Centralizada)
     usuarios = cargar_usuarios()
-    all_alerts = load_price_alerts()
-    btc_subs = load_btc_subs()
+    # Sistemas eliminados: price alerts, valerts, btc - mostrar 0
+    all_alerts = {}
+    btc_subscribers = 0
     
-    # Carga de datos de Valerts
-    valerts_symbols = get_active_symbols()
+    # Nota: Valerts fue eliminado - los contadores de ese servicio se muestran en 0
     
     # 2. VISTA DE USUARIO NORMAL (Perfil Propio)
     if chat_id not in ADMIN_CHAT_IDS:
@@ -381,10 +378,10 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Calcular datos del usuario
         monedas = user_data.get('monedas', [])
-        alerts_count = len([a for a in all_alerts.get(chat_id_str, []) if a['status'] == 'ACTIVE'])
+        alerts_count = 0  # Sistema de alertas eliminado
         
-        # Estados de servicios
-        btc_status = "✅ Activado" if btc_subs.get(chat_id_str, {}).get('active') else "❌ Desactivado"
+        # Estados de servicios - BTC eliminado
+        btc_status = "❌ Eliminado"
         hbd_status = "✅ Activado" if user_data.get('hbd_alerts') else "❌ Desactivado"
         
         # Suscripciones activas
@@ -553,29 +550,16 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     top_coins = coin_popularity.most_common(5)
     top_coins_str = ", ".join([f"{c[0]} ({c[1]})" for c in top_coins]) if top_coins else "N/A"
 
-    # --- C. CÁLCULOS DE SERVICIOS (BTC, HBD, CLIMA, VALERTS) ---
+    # --- C. CÁLCULOS DE SERVICIOS (BTC, HBD, VALERTS) ---
     
-    # 1. BTC
-    btc_subscribers = sum(1 for s in btc_subs.values() if s.get('active'))
+    # 1. BTC - Sistema eliminado ya, se usa btc_subscribers = 0 (ya asignado antes)
     
     # 2. HBD
     hbd_subscribers = sum(1 for u in usuarios.values() if u.get('hbd_alerts'))
     
-    # 3. VALERTS (Volatilidad)
-    valerts_active_symbols_count = len(valerts_symbols)
-    valerts_unique_users = set()
-    
-    timeframes = ["4h", "1d"]
-    
-    for sym in valerts_symbols:
-        for tf in timeframes:
-            # Ahora usamos la función correcta que devuelve una LISTA de IDs
-            subs_list = get_valerts_subscribers(sym, tf)
-            if subs_list:
-                for uid in subs_list:
-                    valerts_unique_users.add(uid)
-                
-    valerts_total_users = len(valerts_unique_users)
+    # 3. VALERTS (Volatilidad) - Sistema eliminado, mostrar 0
+    valerts_active_symbols_count = 0
+    valerts_total_users = 0
 
     # --- D. CÁLCULOS DE RECURSOS (RAM, CPU, Uptime) ---
     # BUG-5 FIX: Eliminar doble instanciación de psutil.Process — reusar proc_global
@@ -592,7 +576,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     size={"file_size": 0}
     archivos = [
         USUARIOS_PATH, PRICE_ALERTS_PATH, HBD_HISTORY_PATH,
-        CUSTOM_ALERT_HISTORY_PATH, ADS_PATH, ELTOQUE_HISTORY_PATH,
+        CUSTOM_ALERT_HISTORY_PATH, ADS_PATH,
         LAST_PRICES_PATH, TEMPLATE_PATH, HBD_THRESHOLDS_PATH
     ]
     
