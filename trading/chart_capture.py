@@ -2,10 +2,8 @@
 Captura de gráficos TradingView.
 """
 
-import asyncio
 import io
 import time
-from typing import Dict, Optional
 
 import aiohttp
 import matplotlib
@@ -27,7 +25,7 @@ TF_MAP = {
 
 CACHE_TTL = 300
 
-_cache: Dict[str, Dict] = {}
+_cache: dict[str, dict] = {}
 
 COLOR_UP = "#26a69a"
 COLOR_DOWN = "#ef5350"
@@ -39,7 +37,7 @@ COLOR_TEXT = "#d1d4dc"
 class ChartCapture:
     def __init__(self):
         self.data_fetcher = BinanceDataFetcher()
-        self.session: Optional[aiohttp.ClientSession] = None
+        self.session: aiohttp.ClientSession | None = None
 
     async def _get_session(self) -> aiohttp.ClientSession:
         if self.session is None or self.session.closed:
@@ -54,7 +52,7 @@ class ChartCapture:
     def _get_cache_key(self, symbol: str, timeframe: str) -> str:
         return f"{symbol}_{timeframe}"
 
-    def _get_from_cache(self, symbol: str, timeframe: str) -> Optional[bytes]:
+    def _get_from_cache(self, symbol: str, timeframe: str) -> bytes | None:
         key = self._get_cache_key(symbol, timeframe)
         entry = _cache.get(key)
         if entry and (time.time() - entry["timestamp"]) < CACHE_TTL:
@@ -67,8 +65,7 @@ class ChartCapture:
 
     def _generate_candlestick_chart(self, df) -> bytes:
         fig, (ax_price, ax_volume) = plt.subplots(
-            2, 1, figsize=(12, 8), height_ratios=[3, 1], 
-            facecolor=COLOR_BG, edgecolor=COLOR_BG
+            2, 1, figsize=(12, 8), height_ratios=[3, 1], facecolor=COLOR_BG, edgecolor=COLOR_BG
         )
         fig.subplots_adjust(hspace=0.1)
 
@@ -92,11 +89,11 @@ class ChartCapture:
 
         for i, (date, o, h, l, c, v) in enumerate(zip(dates, opens, highs, lows, closes, volumes)):
             color = COLOR_UP if c >= o else COLOR_DOWN
-            
+
             ax_price.plot([date, date], [l, h], color=color, linewidth=0.8)
             ax_price.plot([date - 0.3, date + 0.3], [o, o], color=color, linewidth=0.8)
             ax_price.plot([date - 0.3, date + 0.3], [c, c], color=color, linewidth=0.8)
-            
+
             ax_volume.bar(date, v, width=0.6, color=color, alpha=0.7)
 
         ax_price.set_ylabel("Price", color=COLOR_TEXT)
@@ -117,7 +114,7 @@ class ChartCapture:
         buf.seek(0)
         return buf.getvalue()
 
-    async def _capture_with_matplotlib(self, symbol: str, timeframe: str) -> Optional[bytes]:
+    async def _capture_with_matplotlib(self, symbol: str, timeframe: str) -> bytes | None:
         try:
             df = await self.data_fetcher.get_ohlcv(symbol, timeframe, limit=100)
             if df is None or df.empty:
@@ -130,7 +127,7 @@ class ChartCapture:
             logger.warning(f"Error generando gráfico con matplotlib: {e}")
             return None
 
-    async def _capture_with_api(self, symbol: str, timeframe: str) -> Optional[bytes]:
+    async def _capture_with_api(self, symbol: str, timeframe: str) -> bytes | None:
         if not SCREENSHOT_API_KEY:
             logger.warning("SCREENSHOT_API_KEY no configurada")
             return None
@@ -138,6 +135,7 @@ class ChartCapture:
         try:
             tv_interval = TF_MAP.get(timeframe, timeframe)
             import time
+
             cache_buster = str(int(time.time() * 1000))
             chart_url = f"https://www.tradingview.com/chart/?symbol=BINANCE:{symbol}&interval={tv_interval}&__cb={cache_buster}"
 
@@ -158,7 +156,7 @@ class ChartCapture:
                     "cache": False,
                     "staleTTL": 0,
                 },
-                timeout=aiohttp.ClientTimeout(total=15)
+                timeout=aiohttp.ClientTimeout(total=15),
             ) as response:
                 if response.status == 200:
                     result = await response.json()
@@ -170,7 +168,9 @@ class ChartCapture:
                             if len(img_bytes) > 100:
                                 return img_bytes
                             else:
-                                logger.warning(f"API screenshot returned empty image: {len(img_bytes)} bytes")
+                                logger.warning(
+                                    f"API screenshot returned empty image: {len(img_bytes)} bytes"
+                                )
                                 return None
                     else:
                         logger.warning(f"API screenshot returned error: {result}")
@@ -179,14 +179,14 @@ class ChartCapture:
                     logger.warning(f"HTTP error en screenshot API: {response.status}")
                     return None
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning("Timeout en screenshot API")
             return None
         except Exception as e:
             logger.warning(f"Error en screenshot API: {e}")
             return None
 
-    async def capture(self, symbol: str, timeframe: str) -> Optional[bytes]:
+    async def capture(self, symbol: str, timeframe: str) -> bytes | None:
         cached = self._get_from_cache(symbol, timeframe)
         if cached:
             return cached

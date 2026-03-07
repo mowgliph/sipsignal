@@ -1,12 +1,22 @@
 """
 Modelos de base de datos para SipSignal.
 """
+
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric, Text, ForeignKey, CheckConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -14,14 +24,14 @@ Base = declarative_base()
 
 class SignalBase(BaseModel):
     direction: str = Field(..., pattern="^(LONG|SHORT)$")
-    entry_price: Optional[Decimal] = None
-    tp1_level: Optional[Decimal] = None
-    sl_level: Optional[Decimal] = None
-    rr_ratio: Optional[Decimal] = None
-    atr_value: Optional[Decimal] = None
+    entry_price: Decimal | None = None
+    tp1_level: Decimal | None = None
+    sl_level: Decimal | None = None
+    rr_ratio: Decimal | None = None
+    atr_value: Decimal | None = None
     timeframe: str
     status: str = "EMITIDA"
-    ai_context: Optional[str] = None
+    ai_context: str | None = None
 
 
 class SignalCreate(SignalBase):
@@ -31,15 +41,15 @@ class SignalCreate(SignalBase):
 class Signal(SignalBase):
     id: int
     detected_at: datetime
-    taken_at: Optional[datetime] = None
+    taken_at: datetime | None = None
     tp1_hit: bool = False
-    tp1_hit_at: Optional[datetime] = None
+    tp1_hit_at: datetime | None = None
     sl_moved_to_breakeven: bool = False
-    close_price: Optional[Decimal] = None
-    close_at: Optional[datetime] = None
-    result: Optional[str] = None
-    pnl_usdt: Optional[Decimal] = None
-    pnl_percent: Optional[Decimal] = None
+    close_price: Decimal | None = None
+    close_at: datetime | None = None
+    result: str | None = None
+    pnl_usdt: Decimal | None = None
+    pnl_percent: Decimal | None = None
     supertrend_exit: bool = False
     created_at: datetime
     updated_at: datetime
@@ -52,8 +62,8 @@ class ActiveTradeBase(BaseModel):
     signal_id: int
     direction: str = Field(..., pattern="^(LONG|SHORT)$")
     entry_price: Decimal
-    tp1_level: Optional[Decimal] = None
-    sl_level: Optional[Decimal] = None
+    tp1_level: Decimal | None = None
+    sl_level: Decimal | None = None
     status: str = "ABIERTO"
 
 
@@ -104,7 +114,7 @@ class DrawdownTrackerCreate(DrawdownTrackerBase):
 
 class DrawdownTracker(DrawdownTrackerBase):
     user_id: int
-    last_reset_at: Optional[datetime] = None
+    last_reset_at: datetime | None = None
     updated_at: datetime
 
     class Config:
@@ -140,7 +150,9 @@ class SignalModel(Base):
 
     __table_args__ = (
         CheckConstraint("direction IN ('LONG', 'SHORT')", name="signals_direction_check"),
-        CheckConstraint("status IN ('EMITIDA', 'TOMADA', 'CERRADA', 'CANCELADA')", name="signals_status_check"),
+        CheckConstraint(
+            "status IN ('EMITIDA', 'TOMADA', 'CERRADA', 'CANCELADA')", name="signals_status_check"
+        ),
     )
 
 
@@ -159,7 +171,9 @@ class ActiveTradeModel(Base):
 
     __table_args__ = (
         CheckConstraint("direction IN ('LONG', 'SHORT')", name="active_trades_direction_check"),
-        CheckConstraint("status IN ('ABIERTO', 'CERRADO', 'PAUSADO')", name="active_trades_status_check"),
+        CheckConstraint(
+            "status IN ('ABIERTO', 'CERRADO', 'PAUSADO')", name="active_trades_status_check"
+        ),
     )
 
 
@@ -176,14 +190,18 @@ class UserConfigModel(Base):
     updated_at = Column(DateTime(timezone=True), server_default="NOW()")
 
     __table_args__ = (
-        CheckConstraint("direction IN ('LONG', 'SHORT', 'AMBOS')", name="user_config_direction_check"),
+        CheckConstraint(
+            "direction IN ('LONG', 'SHORT', 'AMBOS')", name="user_config_direction_check"
+        ),
     )
 
 
 class DrawdownTrackerModel(Base):
     __tablename__ = "drawdown_tracker"
 
-    user_id = Column(Integer, ForeignKey("user_config.user_id", ondelete="CASCADE"), primary_key=True)
+    user_id = Column(
+        Integer, ForeignKey("user_config.user_id", ondelete="CASCADE"), primary_key=True
+    )
     current_drawdown_usdt = Column(Numeric(10, 2), default=0.00)
     current_drawdown_percent = Column(Numeric(5, 3), default=0.000)
     losses_count = Column(Integer, default=0)

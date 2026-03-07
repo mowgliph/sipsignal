@@ -5,29 +5,29 @@ Revises: ebccb9690eee
 Create Date: 2026-03-05 17:18:39.280684
 
 """
-from typing import Sequence, Union
 
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = 'b500dbed383f'
-down_revision: Union[str, Sequence[str], None] = 'ebccb9690eee'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "b500dbed383f"
+down_revision: str | Sequence[str] | None = "ebccb9690eee"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
     """Upgrade schema."""
     op.create_table(
-        'users',
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('language', sa.String(length=5), server_default='es', nullable=True),
-        sa.Column('registered_at', sa.DateTime(timezone=True), nullable=False),
-        sa.Column('last_seen', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('is_active', sa.Boolean(), server_default='true', nullable=True),
-        sa.PrimaryKeyConstraint('user_id')
+        "users",
+        sa.Column("user_id", sa.Integer(), nullable=False),
+        sa.Column("language", sa.String(length=5), server_default="es", nullable=True),
+        sa.Column("registered_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("last_seen", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("is_active", sa.Boolean(), server_default="true", nullable=True),
+        sa.PrimaryKeyConstraint("user_id"),
     )
 
 

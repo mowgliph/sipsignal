@@ -2,18 +2,19 @@
 Handler para comandos /journal y /active.
 Muestra historial de señales con estadísticas y trades activos.
 """
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+
+from datetime import datetime
+from typing import Any
 
 from loguru import logger
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler
 
 from core.database import fetch
 from trading.data_fetcher import BinanceDataFetcher
 
 
-def get_signal_emoji(result: Optional[str], status: str) -> str:
+def get_signal_emoji(result: str | None, status: str) -> str:
     """Retorna el emoji según el resultado o status de la señal."""
     if result == "GANADA":
         return "🏆"
@@ -31,7 +32,7 @@ def get_signal_emoji(result: Optional[str], status: str) -> str:
         return "❓"
 
 
-def format_signal_line(signal: Dict[str, Any]) -> str:
+def format_signal_line(signal: dict[str, Any]) -> str:
     """Formatea una línea de señal para el journal."""
     detected_at = signal.get("detected_at")
     if detected_at:
@@ -52,7 +53,7 @@ def format_signal_line(signal: Dict[str, Any]) -> str:
     return f"{emoji} {fecha} · {direction} · {entry_str} → {result}"
 
 
-def calculate_journal_stats(signals: List[Dict[str, Any]]) -> Dict[str, Any]:
+def calculate_journal_stats(signals: list[dict[str, Any]]) -> dict[str, Any]:
     """Calcula estadísticas del journal."""
     if not signals:
         return {
@@ -110,7 +111,7 @@ def calculate_journal_stats(signals: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def calculate_streaks(results: List[str]) -> tuple:
+def calculate_streaks(results: list[str]) -> tuple:
     """Calcula mejor racha de wins y peor racha de losses."""
     if not results:
         return 0, 0
@@ -135,9 +136,11 @@ def calculate_streaks(results: List[str]) -> tuple:
     return best_streak, worst_streak
 
 
-def format_stats_block(stats: Dict[str, Any], n: int) -> str:
+def format_stats_block(stats: dict[str, Any], n: int) -> str:
     """Formatea el bloque de estadísticas."""
-    pnl_str = f"${stats['pnl_total']:+.2f}" if stats['pnl_total'] >= 0 else f"${stats['pnl_total']:.2f}"
+    pnl_str = (
+        f"${stats['pnl_total']:+.2f}" if stats["pnl_total"] >= 0 else f"${stats['pnl_total']:.2f}"
+    )
     return (
         f"📊 *Resumen* (últimas {n}):\n"
         f"Total: {stats['total']} | Tomadas: {stats['taken']} | Winrate: {stats['winrate']:.0f}%\n"
@@ -146,7 +149,7 @@ def format_stats_block(stats: Dict[str, Any], n: int) -> str:
     )
 
 
-async def get_signals_history(limit: int = 10, offset: int = 0) -> List[Dict[str, Any]]:
+async def get_signals_history(limit: int = 10, offset: int = 0) -> list[dict[str, Any]]:
     """Obtiene el historial de señales de la base de datos."""
     query = """
         SELECT id, detected_at, direction, entry_price, status, result, pnl_usdt
@@ -162,7 +165,7 @@ async def get_signals_history(limit: int = 10, offset: int = 0) -> List[Dict[str
         return []
 
 
-async def get_active_trades() -> List[Dict[str, Any]]:
+async def get_active_trades() -> list[dict[str, Any]]:
     """Obtiene los trades activos (status=ABIERTO) de la base de datos."""
     query = """
         SELECT id, signal_id, direction, entry_price, tp1_level, sl_level
@@ -178,17 +181,17 @@ async def get_active_trades() -> List[Dict[str, Any]]:
         return []
 
 
-async def format_active_trade(trade: Dict[str, Any], current_price: Optional[float] = None) -> str:
+async def format_active_trade(trade: dict[str, Any], current_price: float | None = None) -> str:
     """Formatea un trade activo con precios actuales y distancias."""
     direction = trade.get("direction", "N/A")
     entry_price = float(trade.get("entry_price", 0))
-    
+
     # Accept current_price as param or inside the dict
     if current_price is None:
         current_price = trade.get("current_price")
     if current_price is None:
         current_price = 0.0
-    
+
     tp1 = float(trade.get("tp1_level", 0)) if trade.get("tp1_level") else None
     sl = float(trade.get("sl_level", 0)) if trade.get("sl_level") else None
 
@@ -270,7 +273,7 @@ async def journal_cmd(update: Update, context: CallbackContext) -> None:
     # Parsear argumentos: /journal [N]
     limit = 10
     offset = 0
-    
+
     if context.args:
         try:
             limit = int(context.args[0])
@@ -279,11 +282,11 @@ async def journal_cmd(update: Update, context: CallbackContext) -> None:
             limit = 10
 
     message = await journal_command(limit=limit, offset=offset)
-    
+
     # Añadir keyboard con paginación si hay más señales
     keyboard = []
     # Por ahora solo text, el handler de callback se puede añadir después
-    
+
     await update.message.reply_text(message, parse_mode="Markdown")
 
 

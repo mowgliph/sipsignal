@@ -4,10 +4,11 @@ Revision ID: c1234567890a
 Revises: b500dbed383f
 Create Date: 2026-01-15
 """
+
 from alembic import op
 
-revision = 'c1234567890a'
-down_revision = 'b500dbed383f'
+revision = "c1234567890a"
+down_revision = "b500dbed383f"
 branch_labels = None
 depends_on = None
 
@@ -18,7 +19,7 @@ def upgrade() -> None:
         ALTER TABLE signals 
         DROP CONSTRAINT IF EXISTS signals_status_check
     """)
-    
+
     # Agregar el constraint actualizado con los nuevos status
     op.execute("""
         ALTER TABLE signals 
@@ -32,7 +33,7 @@ def downgrade() -> None:
         ALTER TABLE signals 
         DROP CONSTRAINT IF EXISTS signals_status_check
     """)
-    
+
     op.execute("""
         ALTER TABLE signals 
         ADD CONSTRAINT signals_status_check 

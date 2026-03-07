@@ -1,21 +1,22 @@
 """
 Plantillas de prompts para Groq.
 """
+
 from trading.strategy_engine import SignalDTO
 
 
 def build_signal_prompt(signal: SignalDTO) -> str:
     """
     Construye prompt para análisis de contexto de mercado.
-    
+
     Args:
         signal: SignalDTO con los datos de la señal
-        
+
     Returns:
         Prompt en español para análisis de 2-3 oraciones
     """
     direction_text = "alcista" if signal.direction == "LONG" else "bajista"
-    
+
     return (
         f"Analiza el contexto de mercado para esta señal {direction_text} en BTC/USDT "
         f"timeframe {signal.timeframe}. "

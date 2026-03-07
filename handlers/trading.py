@@ -1,24 +1,18 @@
 # handlers/trading.py
 
-import json
-import pytz 
-import pandas as pd
-import pandas_ta as ta
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
+from datetime import datetime
+
+import pytz
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
-from tradingview_ta import TA_Handler, Interval, Exchange
-from datetime import timedelta, datetime
-from core.ai_logic import get_groq_crypto_analysis
+from telegram.ext import ContextTypes
+
 # Importamos configuraciones y utilidades existentes
-from core.config import ADMIN_CHAT_IDS
 from core.api_client import obtener_datos_moneda
-from utils.file_manager import (
-    add_log_line, check_feature_access, registrar_uso_comando
-)
 from utils.ads_manager import get_random_ad_text
+
 # from core.i18n import _  # TODO: Implementar i18n en el futuro
-from core.btc_advanced_analysis import BTCAdvancedAnalyzer
+
 
 # Función identidad para reemplazar i18n (textos ya están en español)
 def _(message, *args, **kwargs):
@@ -31,7 +25,7 @@ async def p_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Uso: /p <MONEDA>
     """
     user_id = update.effective_user.id
-    
+
     if not context.args:
         error_msg = _("⚠️ *Formato incorrecto*.\nUso: `/p <MONEDA>` (ej: `/p BTC`)", user_id)
         if update.callback_query:
@@ -41,16 +35,18 @@ async def p_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     moneda = context.args[0].upper()
-    
+
     # Notificar que estamos 'escribiendo' para dar feedback visual si tarda la API
     # Solo si es un mensaje nuevo (no un callback de refresh)
     if update.message:
         await update.message.reply_chat_action("typing")
-    
+
     datos = obtener_datos_moneda(moneda)
 
     if not datos:
-        error_msg = _("😕 No se pudieron obtener los datos para *{moneda}*.", user_id).format(moneda=moneda)
+        error_msg = _("😕 No se pudieron obtener los datos para *{moneda}*.", user_id).format(
+            moneda=moneda
+        )
         if update.callback_query:
             await update.callback_query.edit_message_text(error_msg, parse_mode=ParseMode.MARKDOWN)
         else:
@@ -59,8 +55,11 @@ async def p_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Helper para formatear cambios porcentuales
     def format_change(change):
-        if change is None: return "0.00%"
-        icon = "😄" if change > 0.5 else ("😕" if change > -0.5 else ("😔" if change > -5 else "😢"))
+        if change is None:
+            return "0.00%"
+        icon = (
+            "😄" if change > 0.5 else ("😕" if change > -0.5 else ("😔" if change > -5 else "😢"))
+        )
         sign = "+" if change > 0 else ""
         return f"{sign}{change:.2f}%  {icon}"
 
@@ -71,9 +70,9 @@ async def p_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lbl_vol = _("Vol:", user_id)
 
     # --- LÓGICA HIGH / LOW ---
-    high_24h = datos.get('high_24h', 0)
-    low_24h = datos.get('low_24h', 0)
-    
+    high_24h = datos.get("high_24h", 0)
+    low_24h = datos.get("low_24h", 0)
+
     # Si high es 0, asumimos que no hay datos disponibles y mostramos N/A
     if high_24h > 0:
         str_high = f"${high_24h:,.4f}"
@@ -102,12 +101,14 @@ async def p_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje += get_random_ad_text()
 
     # Botones de actualizar y análisis técnico
-    btn_refresh = _("🔄 Actualizar /p {symbol}", user_id).format(symbol=datos['symbol'])
+    btn_refresh = _("🔄 Actualizar /p {symbol}", user_id).format(symbol=datos["symbol"])
     btn_ta = _("📊 Ver Análisis Técnico (4H)", user_id)
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton(btn_refresh, callback_data=f"refresh_{datos['symbol']}")],
-        [InlineKeyboardButton(btn_ta, callback_data=f"ta_quick|{datos['symbol']}|4h")]
-    ])
+    keyboard = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton(btn_refresh, callback_data=f"refresh_{datos['symbol']}")],
+            [InlineKeyboardButton(btn_ta, callback_data=f"ta_quick|{datos['symbol']}|4h")],
+        ]
+    )
 
     # Detectar si es un callback (refresh) o un comando nuevo
     # Si es callback, editamos el mensaje existente; si es nuevo, enviamos uno nuevo
@@ -115,9 +116,7 @@ async def p_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         try:
             await query.edit_message_text(
-                mensaje,
-                parse_mode=ParseMode.MARKDOWN,
-                reply_markup=keyboard
+                mensaje, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard
             )
         except Exception as e:
             # Si el mensaje no cambió (mismo contenido), Telegram lanza error
@@ -128,10 +127,9 @@ async def p_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 raise
     else:
         await update.message.reply_text(
-            mensaje,
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=keyboard
+            mensaje, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard
         )
+
 
 async def refresh_command_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -140,6 +138,7 @@ async def refresh_command_callback(update: Update, context: ContextTypes.DEFAULT
     moneda = query.data.replace("refresh_", "").upper()
     context.args = [moneda]
     await p_command(update, context)
+
 
 async def ta_quick_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -160,22 +159,31 @@ async def ta_quick_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Importar y llamar al comando ta con override_args
         # Esto permite el flujo completo: intenta Binance, si falla hace fallback a TV
         from handlers.ta import ta_command
-        await ta_command(update, context, override_source="BINANCE", override_args=[moneda, pair, timeframe], skip_binance_check=True)
+
+        await ta_command(
+            update,
+            context,
+            override_source="BINANCE",
+            override_args=[moneda, pair, timeframe],
+            skip_binance_check=True,
+        )
 
 
 # === NUEVA LÓGICA PARA /MK ===
+
 
 def get_time_str(minutes_delta):
     """Convierte minutos a formato legible (ej: 'in an hour', 'in 2 hours')."""
     hours = int(minutes_delta // 60)
     minutes = int(minutes_delta % 60)
-    
+
     if hours == 0:
         return f"in {minutes} minutes"
     elif hours == 1:
         return "in an hour"
     else:
         return f"in {hours} hours"
+
 
 async def mk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -186,18 +194,42 @@ async def mk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Configuración de Mercados: (Nombre, Emoji, Timezone, Hora Apertura, Hora Cierre)
     # Horas en formato 24h local
     markets = [
-        {"name": "NYC", "flag": "🇺🇸", "tz": "America/New_York", "open": 9.5, "close": 16.0}, # 9:30 - 16:00
+        {
+            "name": "NYC",
+            "flag": "🇺🇸",
+            "tz": "America/New_York",
+            "open": 9.5,
+            "close": 16.0,
+        },  # 9:30 - 16:00
         {"name": "Hong Kong", "flag": "🇭🇰", "tz": "Asia/Hong_Kong", "open": 9.5, "close": 16.0},
         {"name": "Tokyo", "flag": "🇯🇵", "tz": "Asia/Tokyo", "open": 9.0, "close": 15.0},
         {"name": "Seoul", "flag": "🇰🇷", "tz": "Asia/Seoul", "open": 9.0, "close": 15.5},
         {"name": "London", "flag": "🇬🇧", "tz": "Europe/London", "open": 8.0, "close": 16.5},
         {"name": "Shanghai", "flag": "🇨🇳", "tz": "Asia/Shanghai", "open": 9.5, "close": 15.0},
-        {"name": "South Africa", "flag": "🇿🇦", "tz": "Africa/Johannesburg", "open": 9.0, "close": 17.0},
+        {
+            "name": "South Africa",
+            "flag": "🇿🇦",
+            "tz": "Africa/Johannesburg",
+            "open": 9.0,
+            "close": 17.0,
+        },
         {"name": "Dubai", "flag": "🇦🇪", "tz": "Asia/Dubai", "open": 10.0, "close": 15.0},
         {"name": "Australia", "flag": "🇦🇺", "tz": "Australia/Sydney", "open": 10.0, "close": 16.0},
-        {"name": "India", "flag": "🇮🇳", "tz": "Asia/Kolkata", "open": 9.25, "close": 15.5}, # 9:15
-        {"name": "Russia", "flag": "🇷🇺", "tz": "Europe/Moscow", "open": 10.0, "close": 18.75}, # 18:45
-        {"name": "Germany", "flag": "🇩🇪", "tz": "Europe/Berlin", "open": 9.0, "close": 17.5}, # 17:30
+        {"name": "India", "flag": "🇮🇳", "tz": "Asia/Kolkata", "open": 9.25, "close": 15.5},  # 9:15
+        {
+            "name": "Russia",
+            "flag": "🇷🇺",
+            "tz": "Europe/Moscow",
+            "open": 10.0,
+            "close": 18.75,
+        },  # 18:45
+        {
+            "name": "Germany",
+            "flag": "🇩🇪",
+            "tz": "Europe/Berlin",
+            "open": 9.0,
+            "close": 17.5,
+        },  # 17:30
         {"name": "Canada", "flag": "🇨🇦", "tz": "America/Toronto", "open": 9.5, "close": 16.0},
         {"name": "Brazil", "flag": "🇧🇷", "tz": "America/Sao_Paulo", "open": 10.0, "close": 17.0},
     ]
@@ -209,32 +241,33 @@ async def mk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             tz = pytz.timezone(m["tz"])
             now_local = now_utc.astimezone(tz)
-            
+
             # Convertir hora actual a float para comparar fácil (ej: 9:30 = 9.5)
             current_float = now_local.hour + (now_local.minute / 60.0)
-            
+
             # Determinar si es fin de semana (Saturday=5, Sunday=6)
             is_weekend = now_local.weekday() >= 5
-            
+
             # Estado base
             is_open = False
             msg_status = ""
-            
+
             if not is_weekend and m["open"] <= current_float < m["close"]:
                 is_open = True
-                
+
                 # Calcular tiempo para cerrar
                 minutes_to_close = (m["close"] - current_float) * 60
                 time_str = get_time_str(minutes_to_close)
                 msg_status = f"Open ✅ closes {time_str}"
             else:
                 is_open = False
-                
+
                 # Calcular tiempo para abrir
                 if is_weekend:
                     # Si es finde, abre el Lunes (calculo aproximado sumando días)
-                    days_ahead = 7 - now_local.weekday() # 7 - 5(Sab) = 2 dias
-                    if days_ahead == 0: days_ahead = 1 # Si es Domingo noche y ya pasó la hora 0
+                    days_ahead = 7 - now_local.weekday()  # 7 - 5(Sab) = 2 dias
+                    if days_ahead == 0:
+                        days_ahead = 1  # Si es Domingo noche y ya pasó la hora 0
                     # Simplificación: "Opens on Monday" o calcular horas reales es complejo
                     msg_status = "Closed ❌ opens Monday"
                 elif current_float < m["open"]:

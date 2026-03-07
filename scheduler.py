@@ -1,22 +1,20 @@
 """
 Scheduler autónomo de análisis de señales.
 """
+
 import asyncio
-from typing import Optional
 
 from loguru import logger
 
-from trading.strategy_engine import run_cycle, UserConfig
-from trading.chart_capture import ChartCapture
 from ai.groq_client import GroqClient
-from trading.signal_builder import build_signal_message
-from core.config import ADMIN_CHAT_IDS, settings
+from core.config import ADMIN_CHAT_IDS
 from core.database import execute
-from handlers.signal_response_handler import process_signal_timeout
-
+from trading.chart_capture import ChartCapture
+from trading.signal_builder import build_signal_message
+from trading.strategy_engine import UserConfig, run_cycle
 
 CYCLE_INTERVALS = {
-    "4h": 900,   # 15 minutos
+    "4h": 900,  # 15 minutos
     "1d": 3600,  # 60 minutos
 }
 
@@ -25,21 +23,21 @@ SIGNAL_TIMEOUT = 3600  # 60 minutos para respuesta del trader
 
 class SignalScheduler:
     """Autonomous signal analysis scheduler.
-    
+
     Runs periodic analysis cycles to detect trading signals
     based on chart analysis and AI interpretation.
     """
-    
+
     def __init__(self, timeframe: str = "4h"):
         self._running = False
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
         self._config = UserConfig(
             timeframe=timeframe,
             enable_long=True,
             enable_short=True,
         )
 
-    async def start(self, bot, config: Optional[UserConfig] = None):
+    async def start(self, bot, config: UserConfig | None = None):
         """Inicia el loop del scheduler."""
         if self._running:
             logger.warning("Scheduler ya está corriendo")
@@ -66,7 +64,7 @@ class SignalScheduler:
                     logger.info(f"📡 Señal detectada: {signal.direction} en {signal.timeframe}")
 
                     chart_capture = ChartCapture()
-                    chart_bytes = await chart_capture.capture('BTCUSDT', self._config.timeframe)
+                    chart_bytes = await chart_capture.capture("BTCUSDT", self._config.timeframe)
                     await chart_capture.close()
 
                     ai_context = ""
@@ -76,7 +74,9 @@ class SignalScheduler:
                     except Exception as e:
                         logger.warning(f"Groq analysis failed: {e}")
 
-                    text, keyboard = await build_signal_message(signal, self._config, ai_context, chart_bytes)
+                    text, keyboard = await build_signal_message(
+                        signal, self._config, ai_context, chart_bytes
+                    )
 
                     admin_id = ADMIN_CHAT_IDS[0] if ADMIN_CHAT_IDS else None
                     if not admin_id:
@@ -87,13 +87,11 @@ class SignalScheduler:
                                 chat_id=admin_id,
                                 photo=chart_bytes,
                                 caption=text,
-                                reply_markup=keyboard
+                                reply_markup=keyboard,
                             )
                         else:
                             await bot.send_message(
-                                chat_id=admin_id,
-                                text=text,
-                                reply_markup=keyboard
+                                chat_id=admin_id, text=text, reply_markup=keyboard
                             )
                         logger.info(f"✅ Señal enviada al admin {admin_id}")
 
@@ -113,14 +111,14 @@ class SignalScheduler:
 
         logger.info("🛑 SignalScheduler detenido")
 
-    async def _save_signal(self, signal) -> Optional[int]:
+    async def _save_signal(self, signal) -> int | None:
         """Guarda la señal en la base de datos."""
         try:
             detected_at = signal.detected_at
             if detected_at is None:
                 logger.warning("signal.detected_at is None - skipping DB insert")
                 return None
-                
+
             query = """
                 INSERT INTO signals 
                 (direction, entry_price, tp1_level, sl_level, rr_ratio, atr_value, timeframe, status, detected_at, created_at, updated_at)
@@ -137,7 +135,7 @@ class SignalScheduler:
                 signal.atr_value,
                 signal.timeframe,
                 "EMITIDA",
-                detected_at
+                detected_at,
             )
             logger.info(f"💾 Señal guardada en DB con ID: {signal_id}")
             return signal_id

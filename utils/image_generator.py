@@ -1,13 +1,12 @@
 # utils/image_generator.py
 
-from PIL import Image, ImageDraw, ImageFont
-from datetime import datetime
 import io
 import os
 
+from PIL import Image, ImageDraw, ImageFont
+
 from core.config import TEMPLATE_PATH
 from utils.logger import logger
-
 
 COLOR_TINTA = "#0B1E38"
 
@@ -15,7 +14,7 @@ COLOR_TINTA = "#0B1E38"
 def generate_generic_image(text_lines, footer_text=""):
     """
     Genera una imagen con texto sobre la plantilla base.
-    
+
     Args:
         text_lines: Lista de tuplas (texto, y_position)
         footer_text: Texto opcional para el footer
@@ -34,7 +33,11 @@ def generate_generic_image(text_lines, footer_text=""):
     draw = ImageDraw.Draw(img)
 
     try:
-        font_path = "arial.ttf" if os.name == 'nt' else "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        font_path = (
+            "arial.ttf"
+            if os.name == "nt"
+            else "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        )
         font_lg = ImageFont.truetype(font_path, int(H * 0.032))
         font_sm = ImageFont.truetype(font_path, int(H * 0.021))
     except OSError:
@@ -48,8 +51,8 @@ def generate_generic_image(text_lines, footer_text=""):
         draw.text((W / 2, footer_y), footer_text, fill=COLOR_TINTA, anchor="mm", font=font_sm)
 
     bio = io.BytesIO()
-    img_rgb = img.convert('RGB')
-    img_rgb.save(bio, 'JPEG', quality=85, optimize=True)
+    img_rgb = img.convert("RGB")
+    img_rgb.save(bio, "JPEG", quality=85, optimize=True)
     bio.seek(0)
 
     size_kb = len(bio.getvalue()) / 1024

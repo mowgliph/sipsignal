@@ -2,8 +2,8 @@
 
 import os
 import sys
-from dataclasses import dataclass, field
-from typing import List
+from dataclasses import dataclass
+
 from dotenv import load_dotenv
 
 # --- Cargar Variables de Entorno ---
@@ -16,7 +16,7 @@ class Settings:
 
     # --- Credenciales y IDs ---
     token_telegram: str
-    admin_chat_ids: List[int]
+    admin_chat_ids: list[int]
 
     # --- Claves de API ---
     binance_api_key: str = ""
@@ -62,20 +62,16 @@ class Settings:
         # Parsear ADMIN_CHAT_IDS a list[int]
         try:
             admin_chat_ids = [
-                int(id_str.strip())
-                for id_str in admin_chat_ids_raw.split(",")
-                if id_str.strip()
+                int(id_str.strip()) for id_str in admin_chat_ids_raw.split(",") if id_str.strip()
             ]
         except ValueError as e:
             raise ValueError(
-                f"ADMIN_CHAT_IDS debe ser una lista de números separados por coma. "
-                f"Error: {e}"
-            )
+                f"ADMIN_CHAT_IDS debe ser una lista de números separados por coma. Error: {e}"
+            ) from e
 
         if not admin_chat_ids:
             raise ValueError(
-                "ADMIN_CHAT_IDS no puede estar vacío. "
-                "Proporciona al menos un ID de administrador."
+                "ADMIN_CHAT_IDS no puede estar vacío. Proporciona al menos un ID de administrador."
             )
 
         return cls(
@@ -93,15 +89,15 @@ class Settings:
         )
 
 
+# --- Compatibilidad hacia atrás (exports) ---
+import platform
+
 # --- Instancia global de configuración ---
 try:
     settings = Settings.from_env()
 except ValueError as e:
     print(f"[ERROR] {e}", file=sys.stderr)
     sys.exit(1)
-
-# --- Compatibilidad hacia atrás (exports) ---
-import platform
 
 TOKEN_TELEGRAM = settings.token_telegram
 ADMIN_CHAT_IDS = settings.admin_chat_ids
@@ -139,7 +135,7 @@ LOG_LINES = []
 
 # --- Versión ---
 try:
-    with open(os.path.join(BASE_DIR, "version.txt"), "r") as f:
+    with open(os.path.join(BASE_DIR, "version.txt")) as f:
         VERSION = f.read().strip()
 except Exception:
     VERSION = "1.0.0-dev"
