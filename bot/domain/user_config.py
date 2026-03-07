@@ -4,6 +4,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class UserConfig:
     user_id: int
+    chat_id: int
     capital_total: float = 1000.0
     risk_percent: float = 1.0
     max_drawdown_percent: float = 5.0
