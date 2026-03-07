@@ -92,8 +92,11 @@ git push -u origin feat/nombre-descriptivo
 - Merge a develop activa CI/CD automáticamente
 - Cierra el issue con referencia al PR
 - Elimina la rama remota si ya no es necesaria
+- **NUNCA elimines la rama `dev` del remoto ni del local**
 
 ---
+
+## Git Branch Protection
 
 ## Build, Lint, and Test Commands
 
