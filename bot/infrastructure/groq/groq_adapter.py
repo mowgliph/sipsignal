@@ -1,3 +1,5 @@
+import os
+
 import httpx
 
 from bot.domain.ports import AIAnalysisPort
@@ -7,8 +9,8 @@ from bot.domain.signal import Signal
 class GroqAdapter(AIAnalysisPort):
     """Async adapter for Groq API using httpx."""
 
-    MODEL = "llama3-70b-8192"
-    ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
+    MODEL = os.getenv("GROQ_MODEL", "llama3-70b-8192")
+    ENDPOINT = os.getenv("GROQ_ENDPOINT", "https://api.groq.com/openai/v1/chat/completions")
     MAX_TOKENS = 150
     TEMPERATURE = 0.3
 

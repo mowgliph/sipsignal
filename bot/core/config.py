@@ -23,6 +23,8 @@ class Settings:
     binance_api_key: str = ""
     binance_api_secret: str = ""
     groq_api_key: str = ""
+    groq_endpoint: str = "https://api.groq.com/openai/v1/chat/completions"
+    groq_model: str = "llama3-70b-8192"
     screenshot_api_key: str = ""
     cmc_api_key_alerta: str = ""
     cmc_api_key_control: str = ""
@@ -81,6 +83,10 @@ class Settings:
             binance_api_key=os.environ.get("BINANCE_API_KEY", "").strip(),
             binance_api_secret=os.environ.get("BINANCE_API_SECRET", "").strip(),
             groq_api_key=os.environ.get("GROQ_API_KEY", "").strip(),
+            groq_endpoint=os.environ.get(
+                "GROQ_ENDPOINT", "https://api.groq.com/openai/v1/chat/completions"
+            ).strip(),
+            groq_model=os.environ.get("GROQ_MODEL", "llama3-70b-8192").strip(),
             screenshot_api_key=os.environ.get("SCREENSHOT_API_KEY", "").strip(),
             cmc_api_key_alerta=os.environ.get("CMC_API_KEY_ALERTA", "").strip(),
             cmc_api_key_control=os.environ.get("CMC_API_KEY_CONTROL", "").strip(),
@@ -102,6 +108,8 @@ except ValueError as e:
 TOKEN_TELEGRAM = settings.token_telegram
 ADMIN_CHAT_IDS = settings.admin_chat_ids
 GROQ_API_KEY = settings.groq_api_key
+GROQ_ENDPOINT = settings.groq_endpoint
+GROQ_MODEL = settings.groq_model
 SCREENSHOT_API_KEY = settings.screenshot_api_key
 BINANCE_API_KEY = settings.binance_api_key
 BINANCE_API_SECRET = settings.binance_api_secret
