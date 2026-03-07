@@ -9,7 +9,7 @@ import json
 import os
 import time
 from collections import defaultdict
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from datetime import datetime, timedelta
 from threading import Lock
 from typing import Any
@@ -55,10 +55,8 @@ def _atomic_write(filepath: str):
     except Exception:
         # Clean up temp file on failure
         if os.path.exists(temp_path):
-            try:
+            with suppress(OSError):
                 os.remove(temp_path)
-            except OSError:
-                pass
         raise
 
 
@@ -473,16 +471,16 @@ def get_retention_metrics() -> dict[str, any]:
     now = datetime.now()
 
     # Activity windows
-    cutoff_24h = now - timedelta(hours=24)
-    cutoff_7d = now - timedelta(days=7)
-    cutoff_30d = now - timedelta(days=30)
+    now - timedelta(hours=24)
+    now - timedelta(days=7)
+    now - timedelta(days=30)
 
     dau = 0  # Daily Active Users (24h)
     wau = 0  # Weekly Active Users (7d)
     mau = 0  # Monthly Active Users (30d)
     active_7d_and_30d = 0  # Users active in both 7d and 30d windows
 
-    for uid, u in usuarios.items():
+    for _uid, u in usuarios.items():
         last_seen_str = u.get("last_seen") or u.get("last_alert_timestamp")
         if not last_seen_str:
             continue
@@ -546,7 +544,7 @@ def get_commands_per_user() -> dict[str, any]:
     total_commands = 0
     active_users_today = 0
 
-    for uid, u in usuarios.items():
+    for _uid, u in usuarios.items():
         daily = u.get("daily_usage", {})
         if daily.get("date") == today:
             user_commands = sum(
@@ -581,7 +579,7 @@ def get_daily_events() -> dict[str, int]:
     commands_today = 0
     alerts_triggered = 0
 
-    for uid, u in usuarios.items():
+    for _uid, u in usuarios.items():
         # Count new joins today
         reg_str = u.get("registered_at")
         if reg_str:
@@ -614,7 +612,7 @@ def get_users_registration_stats() -> dict[str, any]:
         Dict with counts and percentages of users with/without registration dates
     """
     usuarios = cargar_usuarios()
-    now = datetime.now()
+    datetime.now()
 
     total = len(usuarios)
     with_registered_at = 0
@@ -622,7 +620,7 @@ def get_users_registration_stats() -> dict[str, any]:
     with_last_seen = 0
     could_estimate = 0
 
-    for uid, u in usuarios.items():
+    for _uid, u in usuarios.items():
         if u.get("registered_at"):
             with_registered_at += 1
         else:

@@ -3,6 +3,7 @@ Scheduler autónomo de análisis de señales.
 """
 
 import asyncio
+import contextlib
 
 from loguru import logger
 
@@ -120,7 +121,7 @@ class SignalScheduler:
                 return None
 
             query = """
-                INSERT INTO signals 
+                INSERT INTO signals
                 (direction, entry_price, tp1_level, sl_level, rr_ratio, atr_value, timeframe, status, detected_at, created_at, updated_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
                 RETURNING id
@@ -157,8 +158,6 @@ class SignalScheduler:
         self._running = False
         if self._task and not self._task.done():
             self._task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
         logger.info("🛑 SignalScheduler solicitado stop")

@@ -433,7 +433,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # --- MIGRACIÓN DE TIMESTAMPS (retroactiva) ---
     # Asegura que todos los usuarios tengan registered_at estimado si no existe
-    migration_result = migrate_user_timestamps()
+    migrate_user_timestamps()
 
     # --- NUEVAS MÉTRICAS DE TELEMETRÍA ---
     retention = get_retention_metrics()
@@ -476,7 +476,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cutoff_30d = now - timedelta(days=30)
     expiry_window = now + timedelta(days=7)
 
-    for uid, u in usuarios.items():
+    for _uid, u in usuarios.items():
         # 1. Actividad — BUG-1 FIX: usar last_seen (actividad real) con total_seconds
         #    Fallback a last_alert_timestamp para usuarios sin last_seen aún
         last_seen_str = u.get("last_seen") or u.get("last_alert_timestamp")
@@ -547,7 +547,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total_alerts_active = 0
     coin_popularity = Counter()
 
-    for uid, alerts in all_alerts.items():
+    for _uid, alerts in all_alerts.items():
         for a in alerts:
             if a["status"] == "ACTIVE":
                 total_alerts_active += 1
@@ -582,13 +582,9 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     size = {"file_size": 0}
     archivos = [
         USUARIOS_PATH,
-        PRICE_ALERTS_PATH,
-        HBD_HISTORY_PATH,
-        CUSTOM_ALERT_HISTORY_PATH,
         ADS_PATH,
         LAST_PRICES_PATH,
         TEMPLATE_PATH,
-        HBD_THRESHOLDS_PATH,
     ]
 
     total_kb = 0
@@ -666,11 +662,11 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     valerts_total_users_esc = _clean_markdown(valerts_total_users)
     valerts_symbols_esc = _clean_markdown(valerts_active_symbols_count)
     top_coins_str_esc = _clean_markdown(top_coins_str)
-    VERSION_esc = _clean_markdown(VERSION)
+    version_esc = _clean_markdown(VERSION)
     now_str_esc = _clean_markdown(now.strftime("%d/%m/%Y %H:%M"))
 
     dashboard = (
-        f"👮‍♂️ *PANEL DE CONTROL* v{VERSION_esc}\n"
+        f"👮‍♂️ *PANEL DE CONTROL* v{version_esc}\n"
         f"📅 {now_str_esc}\n"
         f"———————————————————\n\n"
         f"*🖥️ ESTADO DEL SISTEMA*\n"

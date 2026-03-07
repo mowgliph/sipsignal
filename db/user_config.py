@@ -29,7 +29,7 @@ async def create_or_update_user_config(
     now = datetime.now()
     await execute(
         """
-        INSERT INTO user_config 
+        INSERT INTO user_config
         (user_id, capital_total, risk_percent, max_drawdown_percent, direction, timeframe_primary, setup_completed, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         ON CONFLICT (user_id) DO UPDATE SET

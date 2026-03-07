@@ -30,7 +30,6 @@ from db.users import register_or_update_user
 async def setup_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Inicia el proceso de setup / configuración de capital."""
     user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
 
     # Registrar usuario si no existe
     await register_or_update_user(user_id)
@@ -74,7 +73,6 @@ async def setup_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
 async def start_setup_flow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Inicia el flujo de setup desde el paso 1."""
-    user_id = update.effective_user.id
 
     msg = (
         "⚡ *CONFIGURACIÓN DE CAPITAL*\\n"
@@ -183,7 +181,7 @@ async def step_3_drawdown(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             # Callback con valor numérico
             try:
                 drawdown = Decimal(update.callback_query.data.replace("dd_", ""))
-            except:
+            except (ValueError, IndexError):
                 drawdown = Decimal("8.00")
     else:
         # El usuario envió un número

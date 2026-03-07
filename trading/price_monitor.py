@@ -6,6 +6,7 @@ los trades activos para notificaciones automáticas de TP1 y SL.
 """
 
 import asyncio
+import contextlib
 import json
 from datetime import UTC, datetime
 from typing import Any
@@ -361,10 +362,8 @@ class PriceMonitor:
 
         if self._task and not self._task.done():
             self._task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
 
         await self._cleanup()
         logger.info("🛑 PriceMonitor detenido")

@@ -103,7 +103,7 @@ class TestLongSignal:
             mock_instance.close = AsyncMock()
             MockFetcher.return_value = mock_instance
 
-            with patch("trading.strategy_engine.calculate_all", return_value=mock_df) as mock_calc:
+            with patch("trading.strategy_engine.calculate_all", return_value=mock_df):
                 with patch.object(
                     Database, "fetch_active_trade", new_callable=AsyncMock
                 ) as mock_db:
@@ -137,7 +137,7 @@ class TestRrRatio:
             mock_instance.close = AsyncMock()
             MockFetcher.return_value = mock_instance
 
-            with patch("trading.strategy_engine.calculate_all", return_value=mock_df) as mock_calc:
+            with patch("trading.strategy_engine.calculate_all", return_value=mock_df):
                 with patch.object(
                     Database, "fetch_active_trade", new_callable=AsyncMock
                 ) as mock_db:
@@ -166,7 +166,7 @@ class TestShortSignal:
             mock_instance.close = AsyncMock()
             MockFetcher.return_value = mock_instance
 
-            with patch("trading.strategy_engine.calculate_all", return_value=mock_df) as mock_calc:
+            with patch("trading.strategy_engine.calculate_all", return_value=mock_df):
                 with patch.object(
                     Database, "fetch_active_trade", new_callable=AsyncMock
                 ) as mock_db:

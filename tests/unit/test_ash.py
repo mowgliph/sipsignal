@@ -27,21 +27,21 @@ def test_ash_signal_is_transition():
 
     df = calculate_ash(df, length=5, smooth=2)
 
-    bullish_signals = df[df["ash_bullish_signal"] == True].index.tolist()
+    bullish_signals = df[df["ash_bullish_signal"]].index.tolist()
 
     for idx in bullish_signals:
-        assert df.loc[idx, "ash_bullish"] == True
+        assert df.loc[idx, "ash_bullish"]
 
         if idx > 0:
-            assert df.loc[idx - 1, "ash_bullish"] == False or df.loc[idx - 1, "ash_neutral"] == True
+            assert not df.loc[idx - 1, "ash_bullish"] or df.loc[idx - 1, "ash_neutral"]
 
-    bearish_signals = df[df["ash_bearish_signal"] == True].index.tolist()
+    bearish_signals = df[df["ash_bearish_signal"]].index.tolist()
 
     for idx in bearish_signals:
-        assert df.loc[idx, "ash_bearish"] == True
+        assert df.loc[idx, "ash_bearish"]
 
         if idx > 0:
-            assert df.loc[idx - 1, "ash_bearish"] == False or df.loc[idx - 1, "ash_neutral"] == True
+            assert not df.loc[idx - 1, "ash_bearish"] or df.loc[idx - 1, "ash_neutral"]
 
 
 def test_ash_neutral_when_balanced():

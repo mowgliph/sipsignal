@@ -33,7 +33,7 @@ class TestDrawdownManager:
 
             from trading.drawdown_manager import get_or_create_drawdown
 
-            result = await get_or_create_drawdown(1)
+            await get_or_create_drawdown(1)
 
             assert mock_exec.called
 
@@ -55,7 +55,7 @@ class TestDrawdownManager:
 
             from trading.drawdown_manager import reset_drawdown
 
-            result = await reset_drawdown(1)
+            await reset_drawdown(1)
 
             assert mock_exec.called
 
@@ -63,7 +63,7 @@ class TestDrawdownManager:
     async def test_resume_trading_sets_paused_false(self):
         """Resume debe establecer is_paused=False."""
         with (
-            patch("trading.drawdown_manager.execute") as mock_exec,
+            patch("trading.drawdown_manager.execute"),
             patch("trading.drawdown_manager.get_drawdown") as mock_get,
         ):
             mock_get.return_value = {
@@ -78,7 +78,7 @@ class TestDrawdownManager:
 
             result = await resume_trading(1)
 
-            assert result["is_paused"] == False
+            assert not result["is_paused"]
 
     @pytest.mark.asyncio
     async def test_get_drawdown_returns_current_state(self):
@@ -112,7 +112,7 @@ class TestDrawdownManager:
 
             result = await is_trading_paused(1)
 
-            assert result == False
+            assert not result
 
     @pytest.mark.asyncio
     async def test_is_trading_paused_returns_true_when_paused(self):
@@ -124,14 +124,14 @@ class TestDrawdownManager:
 
             result = await is_trading_paused(1)
 
-            assert result == True
+            assert result
 
     @pytest.mark.asyncio
     async def test_update_drawdown_calculates_correctly(self):
         """update_drawdown debe calcular correctamente el nuevo drawdown."""
         with (
             patch("trading.drawdown_manager.fetchrow") as mock_fetch,
-            patch("trading.drawdown_manager.execute") as mock_exec,
+            patch("trading.drawdown_manager.execute"),
             patch("trading.drawdown_manager.get_or_create_drawdown") as mock_get_or_create,
         ):
             mock_fetch.return_value = {

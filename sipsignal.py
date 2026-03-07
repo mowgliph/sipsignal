@@ -6,7 +6,10 @@
 # v1.0-dev · Marzo 2026
 
 import asyncio
+import contextlib
+import platform
 import warnings
+from datetime import UTC, datetime
 
 from telegram import Update
 from telegram.constants import ParseMode
@@ -105,10 +108,7 @@ async def price_monitor_callback(update: Update, context: ContextTypes.DEFAULT_T
                 direction = trade["direction"]
 
                 # Calcular pérdida
-                if direction == "LONG":
-                    loss = entry_price - sl_level
-                else:
-                    loss = sl_level - entry_price
+                loss = entry_price - sl_level if direction == "LONG" else sl_level - entry_price
 
                 # Actualizar drawdown con la pérdida
                 user_id = update.effective_chat.id
@@ -141,10 +141,7 @@ async def price_monitor_callback(update: Update, context: ContextTypes.DEFAULT_T
                 sl_level = float(trade["sl_level"])
                 direction = trade["direction"]
 
-                if direction == "LONG":
-                    loss = entry_price - sl_level
-                else:
-                    loss = sl_level - entry_price
+                loss = entry_price - sl_level if direction == "LONG" else sl_level - entry_price
                 loss_pct = (loss / entry_price) * 100
 
                 summary = (
@@ -160,18 +157,12 @@ async def price_monitor_callback(update: Update, context: ContextTypes.DEFAULT_T
 
     except Exception as e:
         logger.error(f"Error en price_monitor_callback: {e}")
-        try:
+        with contextlib.suppress(Exception):
             await query.edit_message_text("⚠️ Error al procesar la acción. Intenta de nuevo.")
-        except Exception:
-            pass
 
 
 # Ignorar advertencias específicas de PTB sobre CallbackQueryHandler en ConversationHandler
 warnings.filterwarnings("ignore", category=PTBUserWarning, message=".*CallbackQueryHandler.*")
-
-# --- Importaciones adicionales para validación ---
-import platform
-from datetime import UTC, datetime
 
 # --- Metadata ---
 START_TIME = datetime.now(UTC)

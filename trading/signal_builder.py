@@ -31,7 +31,7 @@ async def build_signal_message(
     signal_text = f"{signal_icon} *SEÑAL {direction} BTC/USDT*"
 
     tf = signal.timeframe
-    detected_at = signal.detected_at.strftime("%Y-%m-%d %H:%M:%S") if signal.detected_at else "N/A"
+    signal.detected_at.strftime("%Y-%m-%d %H:%M:%S") if signal.detected_at else "N/A"
 
     sl_distance = abs(entry_price - sl_level)
     sl_pct = (sl_distance / entry_price) * 100
@@ -45,10 +45,7 @@ async def build_signal_message(
     risk_pct = getattr(config, "risk_percent", 1.0)
     risk_usdt = capital * (risk_pct / 100)
 
-    if sl_distance > 0:
-        position_size = risk_usdt / sl_distance
-    else:
-        position_size = 0
+    position_size = risk_usdt / sl_distance if sl_distance > 0 else 0
 
     signal_id = (
         f"{signal.direction}_{int(signal.detected_at.timestamp()) if signal.detected_at else 0}"
