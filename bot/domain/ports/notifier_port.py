@@ -1,13 +1,23 @@
 from abc import ABC, abstractmethod
 
 from bot.domain.signal import Signal
+from bot.trading.strategy_engine import UserConfig
 
 
 class NotifierPort(ABC):
     @abstractmethod
     async def send_signal(
-        self, chat_id: int, signal: Signal, chart: bytes | None, ai_context: str
+        self,
+        bot,
+        chat_id: int,
+        signal: Signal,
+        chart: bytes | None,
+        ai_context: str,
+        user_config: UserConfig,
     ) -> None: ...
 
     @abstractmethod
-    async def send_warning(self, chat_id: int, message: str) -> None: ...
+    async def send_message(self, bot, chat_id: int, text: str) -> None: ...
+
+    @abstractmethod
+    async def send_warning(self, bot, chat_id: int, text: str) -> None: ...
