@@ -103,20 +103,24 @@ async def run_cycle(config: UserConfig) -> SignalDTO | None:
                 detected_at=datetime.now(UTC),
             )
 
-        if config.enable_short and not last["sup_is_bullish"] and last["ash_bearish_signal"]:
-            if last["rr_ratio"] >= 1.0:
-                atr_col = f"ATRr_{config.tp_period}"
-                return SignalDTO(
-                    direction="SHORT",
-                    entry_price=float(last["close"]),
-                    tp1_level=float(last["short_tp"]),
-                    sl_level=float(last["short_sl"]),
-                    rr_ratio=float(last["rr_ratio"]),
-                    atr_value=float(last[atr_col]),
-                    supertrend_line=float(last["supertrend_line"]),
-                    timeframe=config.timeframe,
-                    detected_at=datetime.now(UTC),
-                )
+        if (
+            config.enable_short
+            and not last["sup_is_bullish"]
+            and last["ash_bearish_signal"]
+            and last["rr_ratio"] >= 1.0
+        ):
+            atr_col = f"ATRr_{config.tp_period}"
+            return SignalDTO(
+                direction="SHORT",
+                entry_price=float(last["close"]),
+                tp1_level=float(last["short_tp"]),
+                sl_level=float(last["short_sl"]),
+                rr_ratio=float(last["rr_ratio"]),
+                atr_value=float(last[atr_col]),
+                supertrend_line=float(last["supertrend_line"]),
+                timeframe=config.timeframe,
+                detected_at=datetime.now(UTC),
+            )
 
         return None
 
