@@ -16,6 +16,7 @@ from bot.infrastructure.database.signal_repository import PostgreSQLSignalReposi
 from bot.infrastructure.database.user_repositories import (
     PostgreSQLDrawdownRepository,
     PostgreSQLUserConfigRepository,
+    PostgreSQLUserRepository,
 )
 from bot.infrastructure.groq.groq_adapter import GroqAdapter
 from bot.infrastructure.telegram.screenshot_adapter import ScreenshotAdapter
@@ -45,6 +46,7 @@ class Container:
         self.trade_repo = PostgreSQLActiveTradeRepository()
         self.user_config_repo = PostgreSQLUserConfigRepository()
         self.drawdown_repo = PostgreSQLDrawdownRepository()
+        self.user_repo = PostgreSQLUserRepository()
 
         self.run_signal_cycle = RunSignalCycle(
             market_data=self.market_data,
