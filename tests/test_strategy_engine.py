@@ -71,11 +71,11 @@ class TestReturnsNoneIfActiveTrade:
 
         mock_df = _create_test_df()
 
-        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as MockFetcher:
+        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as mock_fetcher:
             mock_instance = AsyncMock()
             mock_instance.get_ohlcv = AsyncMock(return_value=mock_df)
             mock_instance.close = AsyncMock()
-            MockFetcher.return_value = mock_instance
+            mock_fetcher.return_value = mock_instance
 
             with patch.object(Database, "fetch_active_trade", new_callable=AsyncMock) as mock_db:
                 mock_db.return_value = {"id": 1, "direction": "LONG"}
@@ -97,26 +97,26 @@ class TestLongSignal:
             is_bullish=True, ash_signal=True, rr_ratio=1.5, direction="LONG"
         )
 
-        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as MockFetcher:
+        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as mock_fetcher:
             mock_instance = AsyncMock()
             mock_instance.get_ohlcv = AsyncMock(return_value=mock_df)
             mock_instance.close = AsyncMock()
-            MockFetcher.return_value = mock_instance
+            mock_fetcher.return_value = mock_instance
 
-            with patch("bot.trading.strategy_engine.calculate_all", return_value=mock_df):
-                with patch.object(
-                    Database, "fetch_active_trade", new_callable=AsyncMock
-                ) as mock_db:
-                    mock_db.return_value = None
+            with (
+                patch("bot.trading.strategy_engine.calculate_all", return_value=mock_df),
+                patch.object(Database, "fetch_active_trade", new_callable=AsyncMock) as mock_db,
+            ):
+                mock_db.return_value = None
 
-                    result = await run_cycle(config)
+                result = await run_cycle(config)
 
-                    assert result is not None
-                    assert result.direction == "LONG"
-                    assert result.entry_price == mock_df["close"].iloc[-1]
-                    assert result.tp1_level == mock_df["long_tp"].iloc[-1]
-                    assert result.sl_level == mock_df["long_sl"].iloc[-1]
-                    assert result.rr_ratio >= 1.0
+                assert result is not None
+                assert result.direction == "LONG"
+                assert result.entry_price == mock_df["close"].iloc[-1]
+                assert result.tp1_level == mock_df["long_tp"].iloc[-1]
+                assert result.sl_level == mock_df["long_sl"].iloc[-1]
+                assert result.rr_ratio >= 1.0
 
 
 class TestRrRatio:
@@ -131,21 +131,21 @@ class TestRrRatio:
             is_bullish=True, ash_signal=True, rr_ratio=0.8, direction="LONG"
         )
 
-        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as MockFetcher:
+        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as mock_fetcher:
             mock_instance = AsyncMock()
             mock_instance.get_ohlcv = AsyncMock(return_value=mock_df)
             mock_instance.close = AsyncMock()
-            MockFetcher.return_value = mock_instance
+            mock_fetcher.return_value = mock_instance
 
-            with patch("bot.trading.strategy_engine.calculate_all", return_value=mock_df):
-                with patch.object(
-                    Database, "fetch_active_trade", new_callable=AsyncMock
-                ) as mock_db:
-                    mock_db.return_value = None
+            with (
+                patch("bot.trading.strategy_engine.calculate_all", return_value=mock_df),
+                patch.object(Database, "fetch_active_trade", new_callable=AsyncMock) as mock_db,
+            ):
+                mock_db.return_value = None
 
-                    result = await run_cycle(config)
+                result = await run_cycle(config)
 
-                    assert result is None
+                assert result is None
 
 
 class TestShortSignal:
@@ -160,25 +160,25 @@ class TestShortSignal:
             is_bullish=False, ash_signal=True, rr_ratio=1.5, direction="SHORT"
         )
 
-        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as MockFetcher:
+        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as mock_fetcher:
             mock_instance = AsyncMock()
             mock_instance.get_ohlcv = AsyncMock(return_value=mock_df)
             mock_instance.close = AsyncMock()
-            MockFetcher.return_value = mock_instance
+            mock_fetcher.return_value = mock_instance
 
-            with patch("bot.trading.strategy_engine.calculate_all", return_value=mock_df):
-                with patch.object(
-                    Database, "fetch_active_trade", new_callable=AsyncMock
-                ) as mock_db:
-                    mock_db.return_value = None
+            with (
+                patch("bot.trading.strategy_engine.calculate_all", return_value=mock_df),
+                patch.object(Database, "fetch_active_trade", new_callable=AsyncMock) as mock_db,
+            ):
+                mock_db.return_value = None
 
-                    result = await run_cycle(config)
+                result = await run_cycle(config)
 
-                    assert result is not None
-                    assert result.direction == "SHORT"
-                    assert result.entry_price == mock_df["close"].iloc[-1]
-                    assert result.tp1_level == mock_df["short_tp"].iloc[-1]
-                    assert result.sl_level == mock_df["short_sl"].iloc[-1]
+                assert result is not None
+                assert result.direction == "SHORT"
+                assert result.entry_price == mock_df["close"].iloc[-1]
+                assert result.tp1_level == mock_df["short_tp"].iloc[-1]
+                assert result.sl_level == mock_df["short_sl"].iloc[-1]
 
 
 class TestSignalDTO:

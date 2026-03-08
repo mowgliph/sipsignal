@@ -25,7 +25,7 @@ def generate_generic_image(text_lines, footer_text=""):
             return None
 
         img = Image.open(TEMPLATE_PATH).convert("RGBA")
-        W, H = img.size
+        width, height = img.size
     except Exception as e:
         logger.error(f"Error al abrir la imagen plantilla: {e}")
         return None
@@ -38,17 +38,17 @@ def generate_generic_image(text_lines, footer_text=""):
             if os.name == "nt"
             else "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         )
-        font_lg = ImageFont.truetype(font_path, int(H * 0.032))
-        font_sm = ImageFont.truetype(font_path, int(H * 0.021))
+        font_lg = ImageFont.truetype(font_path, int(height * 0.032))
+        font_sm = ImageFont.truetype(font_path, int(height * 0.021))
     except OSError:
         font_lg = font_sm = ImageFont.load_default()
 
     for text, y_pos in text_lines:
-        draw.text((W / 2, y_pos), text, fill=COLOR_TINTA, anchor="mm", font=font_lg)
+        draw.text((width / 2, y_pos), text, fill=COLOR_TINTA, anchor="mm", font=font_lg)
 
     if footer_text:
-        footer_y = H * 0.77
-        draw.text((W / 2, footer_y), footer_text, fill=COLOR_TINTA, anchor="mm", font=font_sm)
+        footer_y = height * 0.77
+        draw.text((width / 2, footer_y), footer_text, fill=COLOR_TINTA, anchor="mm", font=font_sm)
 
     bio = io.BytesIO()
     img_rgb = img.convert("RGB")
