@@ -71,7 +71,7 @@ class TestReturnsNoneIfActiveTrade:
 
         mock_df = _create_test_df()
 
-        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as mock_fetcher:
+        with patch("bot.trading.strategy_engine.BinanceAdapter") as mock_fetcher:
             mock_instance = AsyncMock()
             mock_instance.get_ohlcv = AsyncMock(return_value=mock_df)
             mock_instance.close = AsyncMock()
@@ -97,7 +97,7 @@ class TestLongSignal:
             is_bullish=True, ash_signal=True, rr_ratio=1.5, direction="LONG"
         )
 
-        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as mock_fetcher:
+        with patch("bot.trading.strategy_engine.BinanceAdapter") as mock_fetcher:
             mock_instance = AsyncMock()
             mock_instance.get_ohlcv = AsyncMock(return_value=mock_df)
             mock_instance.close = AsyncMock()
@@ -131,7 +131,7 @@ class TestRrRatio:
             is_bullish=True, ash_signal=True, rr_ratio=0.8, direction="LONG"
         )
 
-        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as mock_fetcher:
+        with patch("bot.trading.strategy_engine.BinanceAdapter") as mock_fetcher:
             mock_instance = AsyncMock()
             mock_instance.get_ohlcv = AsyncMock(return_value=mock_df)
             mock_instance.close = AsyncMock()
@@ -160,7 +160,7 @@ class TestShortSignal:
             is_bullish=False, ash_signal=True, rr_ratio=1.5, direction="SHORT"
         )
 
-        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as mock_fetcher:
+        with patch("bot.trading.strategy_engine.BinanceAdapter") as mock_fetcher:
             mock_instance = AsyncMock()
             mock_instance.get_ohlcv = AsyncMock(return_value=mock_df)
             mock_instance.close = AsyncMock()
