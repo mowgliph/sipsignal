@@ -12,7 +12,7 @@ from loguru import logger
 
 from bot.core.config import SCREENSHOT_API_KEY
 from bot.domain.ports.chart_port import ChartPort
-from bot.trading.data_fetcher import BinanceDataFetcher
+from bot.infrastructure.binance.binance_adapter import BinanceAdapter
 
 matplotlib.use("Agg")
 
@@ -37,7 +37,7 @@ COLOR_TEXT = "#d1d4dc"
 class ScreenshotAdapter(ChartPort):
     def __init__(self, api_key: str | None = None):
         self.api_key = api_key if api_key else SCREENSHOT_API_KEY
-        self.data_fetcher = BinanceDataFetcher()
+        self.data_fetcher = BinanceAdapter()
         self.session: aiohttp.ClientSession | None = None
 
     async def _get_session(self) -> aiohttp.ClientSession:

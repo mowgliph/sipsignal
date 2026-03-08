@@ -13,7 +13,7 @@ from telegram.ext import CallbackContext, CommandHandler
 
 from bot.core.database import fetch
 from bot.domain.signal import Signal
-from bot.trading.data_fetcher import BinanceDataFetcher
+from bot.infrastructure.binance.binance_adapter import BinanceAdapter
 from bot.utils import permitted_only
 
 
@@ -258,7 +258,7 @@ async def active_command() -> str:
 
     # Obtener precio actual de BTC
     try:
-        async with BinanceDataFetcher() as fetcher:
+        async with BinanceAdapter() as fetcher:
             current_price = await fetcher.get_current_price("BTCUSDT")
     except Exception as e:
         logger.error(f"Error fetching BTC price: {e}")
