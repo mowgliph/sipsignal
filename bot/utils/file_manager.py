@@ -141,64 +141,6 @@ def guardar_usuarios(usuarios_data=None):
 
 
 # --- FASE 1: NUEVAS FUNCIONES DE SUSCRIPCIÓN Y LÍMITES ---
-def obtener_datos_usuario_seguro(chat_id):
-    """
-    Obtiene los datos del usuario asegurando que existan los campos de suscripción
-    y uso diario. Si faltan claves, las crea.
-    """
-    usuarios = cargar_usuarios()
-    chat_id_str = str(chat_id)
-
-    if chat_id_str not in usuarios:
-        return None
-
-    usuario = usuarios[chat_id_str]
-    guardar = False
-
-    today_str = datetime.now().strftime("%Y-%m-%d")
-
-    # 1. Estructura de Uso Diario (Inicialización y Reinicio)
-    if "daily_usage" not in usuario or usuario["daily_usage"].get("date") != today_str:
-        # Si no existe o es un día nuevo, reiniciamos todo a 0
-        usuario["daily_usage"] = {
-            "date": today_str,
-            "ver": 0,
-            "ta": 0,
-            "temp_changes": 0,
-            "btc": 0,
-        }
-        guardar = True
-    else:
-        # IMPORTANTE: Si ya existe el registro de hoy, verificamos que tenga TODAS las claves nuevas.
-        # Esto soluciona el bug de usuarios antiguos que tienen acceso ilimitado.
-        keys_necesarias = ["ver", "ta", "temp_changes", "btc"]
-        for key in keys_necesarias:
-            if key not in usuario["daily_usage"]:
-                usuario["daily_usage"][key] = 0
-                guardar = True
-
-    # 2. Suscripciones (Relleno de estructura si falta)
-    if "subscriptions" not in usuario:
-        usuario["subscriptions"] = {
-            "alerts_extra": {"qty": 0, "expires": None},
-            "coins_extra": {"qty": 0, "expires": None},
-            "watchlist_bundle": {"active": False, "expires": None},
-            "ta_vip": {"active": False, "expires": None},
-        }
-        guardar = True
-
-    # 3. Campos de tracking (Relleno si faltan — compatibilidad con usuarios antiguos)
-    if "last_seen" not in usuario:
-        usuario["last_seen"] = None
-        guardar = True
-    if "registered_at" not in usuario:
-        usuario["registered_at"] = None
-        guardar = True
-
-    if guardar:
-        guardar_usuarios(usuarios)
-
-    return usuario
 
 
 def check_feature_access(chat_id, feature_type, current_count=None):
@@ -212,7 +154,46 @@ def check_feature_access(chat_id, feature_type, current_count=None):
             return 0.25, "Admin Mode"  # Mínimo flexible
         return True, "Admin Mode"
 
-    user_data = obtener_datos_usuario_seguro(chat_id)
+    # Inline: obtener_datos_usuario_seguro logic
+    usuarios = cargar_usuarios()
+    chat_id_str = str(chat_id)
+    if chat_id_str not in usuarios:
+        return False, "Usuario no registrado. Usa /start."
+    user_data = usuarios[chat_id_str]
+    guardar = False
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    if "daily_usage" not in user_data or user_data["daily_usage"].get("date") != today_str:
+        user_data["daily_usage"] = {
+            "date": today_str,
+            "ver": 0,
+            "ta": 0,
+            "temp_changes": 0,
+            "btc": 0,
+        }
+        guardar = True
+    else:
+        keys_necesarias = ["ver", "ta", "temp_changes", "btc"]
+        for key in keys_necesarias:
+            if key not in user_data["daily_usage"]:
+                user_data["daily_usage"][key] = 0
+                guardar = True
+    if "subscriptions" not in user_data:
+        user_data["subscriptions"] = {
+            "alerts_extra": {"qty": 0, "expires": None},
+            "coins_extra": {"qty": 0, "expires": None},
+            "watchlist_bundle": {"active": False, "expires": None},
+            "ta_vip": {"active": False, "expires": None},
+        }
+        guardar = True
+    if "last_seen" not in user_data:
+        user_data["last_seen"] = None
+        guardar = True
+    if "registered_at" not in user_data:
+        user_data["registered_at"] = None
+        guardar = True
+    if guardar:
+        guardar_usuarios(usuarios)
+
     if not user_data:
         return False, "Usuario no registrado. Usa /start."
 
@@ -336,8 +317,44 @@ def registrar_uso_comando(chat_id, comando):
     if chat_id in ADMIN_CHAT_IDS:
         return
 
-    # Aseguramos que la estructura exista antes de escribir
-    obtener_datos_usuario_seguro(chat_id)
+    # Inline: obtener_datos_usuario_seguro logic (ensure structure exists)
+    usuarios = cargar_usuarios()
+    chat_id_str = str(chat_id)
+    if chat_id_str in usuarios:
+        usuario = usuarios[chat_id_str]
+        guardar = False
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        if "daily_usage" not in usuario or usuario["daily_usage"].get("date") != today_str:
+            usuario["daily_usage"] = {
+                "date": today_str,
+                "ver": 0,
+                "ta": 0,
+                "temp_changes": 0,
+                "btc": 0,
+            }
+            guardar = True
+        else:
+            keys_necesarias = ["ver", "ta", "temp_changes", "btc"]
+            for key in keys_necesarias:
+                if key not in usuario["daily_usage"]:
+                    usuario["daily_usage"][key] = 0
+                    guardar = True
+        if "subscriptions" not in usuario:
+            usuario["subscriptions"] = {
+                "alerts_extra": {"qty": 0, "expires": None},
+                "coins_extra": {"qty": 0, "expires": None},
+                "watchlist_bundle": {"active": False, "expires": None},
+                "ta_vip": {"active": False, "expires": None},
+            }
+            guardar = True
+        if "last_seen" not in usuario:
+            usuario["last_seen"] = None
+            guardar = True
+        if "registered_at" not in usuario:
+            usuario["registered_at"] = None
+            guardar = True
+        if guardar:
+            guardar_usuarios(usuarios)
 
     usuarios = cargar_usuarios()
     chat_id_str = str(chat_id)
@@ -360,43 +377,6 @@ def registrar_uso_comando(chat_id, comando):
         print(f"DEBUG: Usuario {chat_id} usó {comando}. Nuevo total: {daily[comando]}")
 
 
-def add_subscription_days(chat_id, sub_type, days=30, quantity=0):
-    usuarios = cargar_usuarios()
-    obtener_datos_usuario_seguro(chat_id)
-    usuarios = cargar_usuarios()
-
-    chat_id_str = str(chat_id)
-    user = usuarios[chat_id_str]
-    subs = user["subscriptions"]
-    now = datetime.now()
-
-    if sub_type in ["watchlist_bundle", "ta_vip"]:
-        current_exp_str = subs[sub_type]["expires"]
-        if current_exp_str:
-            current_exp = datetime.strptime(current_exp_str, "%Y-%m-%d %H:%M:%S")
-            new_exp = (current_exp if current_exp > now else now) + timedelta(days=days)
-        else:
-            new_exp = now + timedelta(days=days)
-
-        subs[sub_type]["active"] = True
-        subs[sub_type]["expires"] = new_exp.strftime("%Y-%m-%d %H:%M:%S")
-        logger.info(f"💰 Usuario {chat_id} compró {sub_type}. Expira: {subs[sub_type]['expires']}")
-
-    elif sub_type in ["coins_extra", "alerts_extra"]:
-        subs[sub_type]["qty"] += quantity
-        current_exp_str = subs[sub_type]["expires"]
-        if current_exp_str:
-            current_exp = datetime.strptime(current_exp_str, "%Y-%m-%d %H:%M:%S")
-            new_exp = (current_exp if current_exp > now else now) + timedelta(days=days)
-        else:
-            new_exp = now + timedelta(days=days)
-
-        subs[sub_type]["expires"] = new_exp.strftime("%Y-%m-%d %H:%M:%S")
-        logger.info(f"💰 Usuario {chat_id} añadió +{quantity} a {sub_type}.")
-
-    guardar_usuarios(usuarios)
-
-
 # ------------------------------------------------------------------
 
 
@@ -411,34 +391,6 @@ def set_user_language(chat_id: int, lang_code: str):
 def get_user_language(chat_id: int) -> str:
     usuarios = cargar_usuarios()
     return usuarios.get(str(chat_id), {}).get("language", "es")
-
-
-def registrar_usuario(chat_id, user_lang_code: str = "es"):
-    usuarios = cargar_usuarios()
-    chat_id_str = str(chat_id)
-    if chat_id_str not in usuarios:
-        lang_to_save = "es"
-        if user_lang_code and user_lang_code.startswith("en"):
-            lang_to_save = "en"
-        usuarios[chat_id_str] = {
-            "monedas": ["BTC", "HIVE", "HBD", "TON"],
-            "hbd_alerts": False,
-            "language": lang_to_save,
-            "intervalo_alerta_h": 1.0,
-            # MEJORA: Campos de tracking para estadísticas del dashboard
-            "registered_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "last_seen": None,
-        }
-        guardar_usuarios(usuarios)
-
-
-def actualizar_monedas(chat_id, lista_monedas):
-    usuarios = cargar_usuarios()
-    chat_id_str = str(chat_id)
-    if chat_id_str not in usuarios:
-        usuarios[chat_id_str] = {}
-    usuarios[chat_id_str]["monedas"] = lista_monedas
-    guardar_usuarios(usuarios)
 
 
 def obtener_monedas_usuario(chat_id):
