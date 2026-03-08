@@ -136,7 +136,7 @@ class TestConcreteImplementations:
             timeframe="15m",
             detected_at=datetime.now(),
         )
-        user_config = UserConfig(user_id=123, capital_total=1000.0)
+        user_config = UserConfig(user_id=123, chat_id=123, capital_total=1000.0)
 
         await port.send_signal(123, signal, b"chart", "context", user_config)
         await port.send_message(123, "mensaje")
