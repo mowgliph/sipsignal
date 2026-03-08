@@ -7,6 +7,9 @@ apit.env
 # archivos JSON de usuarios, alertas o historial.
 data/
 
+# Git worktrees
+.worktrees/
+
 # Caché de Python y archivos compilados
 __pycache__/
 *.pyc
