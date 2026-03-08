@@ -5,7 +5,7 @@ Provides event tracking, user analytics, and historical data storage
 for monitoring bot usage and user engagement.
 """
 
-import asyncio
+import threading
 import json
 import os
 import time
@@ -27,7 +27,7 @@ LOCK_TIMEOUT_SECONDS = 5
 VALID_EVENT_TYPES = {"user_joined", "command_used", "alert_triggered", "subscription_started"}
 
 # --- Thread Safety ---
-_file_lock = asyncio.Lock()
+_file_lock = threading.Lock()
 
 
 class TelemetryError(Exception):
@@ -209,8 +209,8 @@ def log_event(event_type: str, user_id: int | str, metadata: dict[str, Any] | No
 
         _save_events(events)
 
-        # Log to main logger at debug level
-        logger.debug(f"Telemetry event logged: {event_type} for user {user_id}")
+        # Log to main logger at info level
+        logger.info(f"Telemetry event logged: {event_type} for user {user_id}")
         return True
 
     except Exception as e:
