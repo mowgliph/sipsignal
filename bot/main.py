@@ -42,6 +42,7 @@ from bot.handlers.capital_handler import (
 )
 from bot.handlers.chart_handler import chart_handlers_list
 from bot.handlers.general import help_command, myid, start, ver
+from bot.handlers.scenario_handler import scenario_handlers_list
 from bot.handlers.setup_handler import setup_conversation_handler
 from bot.handlers.signal_handler import signal_handlers_list
 from bot.handlers.signal_response_handler import process_signal_timeout, signal_response_handler
@@ -392,6 +393,8 @@ def main():
     for handler in signal_handlers_list:
         app.add_handler(handler)
     for handler in chart_handlers_list:
+        app.add_handler(handler)
+    for handler in scenario_handlers_list:
         app.add_handler(handler)
 
     # ============================================
