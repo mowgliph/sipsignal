@@ -5,7 +5,7 @@ Motor de detección de señales TZ.
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from bot.trading.data_fetcher import BinanceDataFetcher
+from bot.domain.ports import ActiveTradeRepository, MarketDataPort
 from bot.trading.technical_analysis import calculate_all
 
 
@@ -39,31 +39,24 @@ class UserConfig:
     risk_percent: float = 1.0
 
 
-class Database:
-    """Mock database para operaciones de trade."""
-
-    @staticmethod
-    async def fetch_active_trade() -> dict | None:
-        """
-        Retorna el trade activo actual o None si no hay operación abierta.
-        Implementación placeholder - debe integrarse con PostgreSQL.
-        """
-        return None
-
-
-async def run_cycle(config: UserConfig) -> SignalDTO | None:
+async def run_cycle(
+    config: UserConfig,
+    trade_repo: ActiveTradeRepository,
+    market_data: MarketDataPort,
+) -> SignalDTO | None:
     """
     Ejecuta un ciclo de análisis de estrategia.
 
     Args:
         config: Configuración del usuario para el análisis
+        trade_repo: Repositorio de trades activos
+        market_data: Puerto de datos de mercado
 
     Returns:
         SignalDTO si hay señal, None otherwise
     """
-    fetcher = BinanceDataFetcher()
     try:
-        df = await fetcher.get_ohlcv("BTCUSDT", config.timeframe, 200)
+        df = await market_data.get_ohlcv("BTCUSDT", config.timeframe, 200)
 
         config_dict = {
             "supertrend_period": config.supertrend_period,
@@ -80,7 +73,7 @@ async def run_cycle(config: UserConfig) -> SignalDTO | None:
 
         last = df.iloc[-1]
 
-        active = await Database.fetch_active_trade()
+        active = await trade_repo.get_active()
         if active:
             return None
 
@@ -124,5 +117,5 @@ async def run_cycle(config: UserConfig) -> SignalDTO | None:
 
         return None
 
-    finally:
-        await fetcher.close()
+    except Exception:
+        return None
