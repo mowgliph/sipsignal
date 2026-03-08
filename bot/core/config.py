@@ -28,8 +28,6 @@ class Settings:
     screenshot_api_key: str = ""
     cmc_api_key_alerta: str = ""
     cmc_api_key_control: str = ""
-    cmc_api_key_alerta: str = ""
-    cmc_api_key_control: str = ""
 
     # --- Configuración de Base de Datos ---
     database_url: str = ""

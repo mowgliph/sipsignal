@@ -1,7 +1,7 @@
 # cmc_api.py
 
 
-import requests
+import httpx
 
 from bot.core.config import CMC_API_KEY_ALERTA, CMC_API_KEY_CONTROL
 
@@ -13,25 +13,25 @@ def _obtener_precios(monedas, api_key):
     params = {"symbol": ",".join(monedas), "convert": "USD"}
     precios = {}
     try:
-        response = requests.get(
-            "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest",
-            headers=headers,
-            params=params,
-            timeout=10,
-        )
-        response.raise_for_status()
-        data = response.json()
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(
+                "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest",
+                headers=headers,
+                params=params,
+            )
+            response.raise_for_status()
+            data = response.json()
 
-        if not data or "data" not in data:
-            return None if len(monedas) == 3 else {}
+            if not data or "data" not in data:
+                return None if len(monedas) == 3 else {}
 
-        for m in monedas:
-            if m in data["data"]:
-                precios[m] = data["data"][m]["quote"]["USD"]["price"]
+            for m in monedas:
+                if m in data["data"]:
+                    precios[m] = data["data"][m]["quote"]["USD"]["price"]
 
-        return precios
+            return precios
 
-    except requests.exceptions.RequestException:
+    except httpx.HTTPError:
         return None if len(monedas) == 3 else {}
 
 
@@ -57,14 +57,15 @@ def obtener_high_low_24h(moneda):
     for pair in binance_pairs:
         try:
             url = "https://api.binance.com/api/v3/ticker/24hr"
-            response = requests.get(url, params={"symbol": pair}, timeout=2)
+            with httpx.Client(timeout=2.0) as client:
+                response = client.get(url, params={"symbol": pair})
 
-            if response.status_code == 200:
-                data = response.json()
-                high = float(data.get("highPrice", 0))
-                low = float(data.get("lowPrice", 0))
-                if high > 0:
-                    return high, low
+                if response.status_code == 200:
+                    data = response.json()
+                    high = float(data.get("highPrice", 0))
+                    low = float(data.get("lowPrice", 0))
+                    if high > 0:
+                        return high, low
         except Exception:
             pass  # Si falla, continuamos al siguiente intento
 
@@ -74,8 +75,9 @@ def obtener_high_low_24h(moneda):
         url_cc = "https://min-api.cryptocompare.com/data/pricemultifull"
         params_cc = {"fsyms": symbol, "tsyms": "USD"}
         # Timeout corto para no congelar el bot
-        response = requests.get(url_cc, params=params_cc, timeout=3)
-        data = response.json()
+        with httpx.Client(timeout=3.0) as client:
+            response = client.get(url_cc, params=params_cc)
+            data = response.json()
 
         # CryptoCompare devuelve una estructura RAW -> SYMBOL -> USD
         raw_data = data.get("RAW", {}).get(symbol, {}).get("USD", {})
@@ -102,8 +104,9 @@ def _obtener_datos_cryptocompare(moneda):
         url = "https://min-api.cryptocompare.com/data/pricemultifull"
         params = {"fsyms": f"{symbol},ETH,BTC", "tsyms": "USD"}
 
-        response = requests.get(url, params=params, timeout=5)
-        data = response.json()
+        with httpx.Client(timeout=5.0) as client:
+            response = client.get(url, params=params)
+            data = response.json()
 
         raw_data = data.get("RAW", {})
 
@@ -159,13 +162,13 @@ def obtener_datos_moneda(moneda):
 
         params = {"symbol": f"{symbol},ETH,BTC", "convert": "USD"}
 
-        response = requests.get(
-            "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest",
-            headers=headers,
-            params=params,
-            timeout=10,
-        )
-        response.raise_for_status()
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(
+                "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest",
+                headers=headers,
+                params=params,
+            )
+            response.raise_for_status()
 
         full_data = response.json()["data"]
 
