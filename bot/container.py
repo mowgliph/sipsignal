@@ -8,6 +8,7 @@ from bot.application.handle_drawdown import HandleDrawdown
 from bot.application.manage_journal import ManageJournal
 from bot.application.run_signal_cycle import RunSignalCycle
 from bot.core.config import Settings
+from bot.domain.ports.market_data_port import MarketDataPort
 from bot.infrastructure.binance.binance_adapter import BinanceAdapter
 from bot.infrastructure.database.active_trade_repository import (
     PostgreSQLActiveTradeRepository,
@@ -37,7 +38,7 @@ class Container:
         self._settings = settings
         self._bot = bot
 
-        self.market_data = BinanceAdapter()
+        self.market_data: MarketDataPort = BinanceAdapter()
         self.chart = ScreenshotAdapter(api_key=settings.screenshot_api_key)
         self.ai = GroqAdapter(api_key=settings.groq_api_key)
         self.notifier = TelegramNotifier()
