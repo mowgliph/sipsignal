@@ -10,7 +10,7 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import CallbackQueryHandler, ContextTypes
 
-from bot.core.database import execute, fetch, fetchrow
+from bot.core.database import execute, fetch
 from bot.utils.logger import logger
 
 # Pattern para extraer signal_id de los callbacks (formato: LONG_1234567890 o SHORT_1234567890)
@@ -45,72 +45,67 @@ async def signal_response_callback(update: Update, context: ContextTypes.DEFAULT
     detail_match = CALLBACK_PATTERNS["detail"].match(data)
 
     if taken_match:
-        # group(1)=direction, group(2)=timestamp
         timestamp = int(taken_match.group(2))
-        await _handle_taken(update, timestamp)
+        await _handle_taken(update, context, timestamp)
     elif skipped_match:
         timestamp = int(skipped_match.group(2))
-        await _handle_skipped(update, timestamp)
+        await _handle_skipped(update, context, timestamp)
     elif detail_match:
         timestamp = int(detail_match.group(2))
-        await _handle_detail(update, timestamp)
+        await _handle_detail(update, context, timestamp)
     else:
         logger.warning(f"⚠️ Callback desconocido: {data}")
         await query.edit_message_text("⚠️ Acción desconocida.")
 
 
-async def _handle_taken(update: Update, timestamp: int):
+async def _handle_taken(update: Update, context: ContextTypes.DEFAULT_TYPE, timestamp: int):
     """Maneja el callback de 'tomar señal'."""
     query = update.callback_query
 
     try:
-        # 1. Obtener la señal de la DB por detected_at timestamp
         from datetime import datetime
 
         detected_dt = datetime.fromtimestamp(timestamp)
 
-        signal = await fetchrow(
-            "SELECT * FROM signals WHERE detected_at = $1 AND status = 'EMITIDA' ORDER BY id DESC LIMIT 1",
-            detected_dt,
-        )
+        container = context.bot_data["container"]
+
+        signal = await container.signal_repo.get_by_detected_at_and_status(detected_dt, "EMITIDA")
 
         if not signal:
             await query.edit_message_text("⚠️ Señal no encontrada o ya procesada.")
             return
 
-        signal_id = signal["id"]
+        signal_id = signal.id
 
-        if signal["status"] != "EMITIDA":
+        if signal.status != "EMITIDA":
             await query.edit_message_text(
-                f"⚠️ Esta señal ya fue procesada (status: {signal['status']})"
+                f"⚠️ Esta señal ya fue procesada (status: {signal.status})"
             )
             return
 
-        # 2. UPDATE signals SET status='TOMADA', taken_at=now() WHERE id={signal_id}
-        await execute(
-            "UPDATE signals SET status = 'TOMADA', taken_at = NOW(), updated_at = NOW() WHERE id = $1",
-            signal_id,
-        )
+        await container.manage_journal.mark_taken(signal_id)
 
-        # 3. INSERT INTO active_trades (signal_id, direction, entry_price, tp1_level, sl_level, status, created_at)
-        await execute(
-            """
-            INSERT INTO active_trades
-            (signal_id, direction, entry_price, tp1_level, sl_level, status, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, 'ABIERTO', NOW(), NOW())
-            """,
-            signal_id,
-            signal["direction"],
-            signal["entry_price"],
-            signal["tp1_level"],
-            signal["sl_level"],
-        )
+        from datetime import UTC, datetime
 
-        # 4. Responder con mensaje de confirmación
-        direction = signal["direction"]
-        entry = float(signal["entry_price"])
-        tp1 = float(signal["tp1_level"])
-        sl = float(signal["sl_level"])
+        from bot.domain.active_trade import ActiveTrade
+
+        active_trade = ActiveTrade(
+            id=None,
+            signal_id=signal_id,
+            direction=signal.direction,
+            entry_price=signal.entry_price,
+            tp1_level=signal.tp1_level,
+            sl_level=signal.sl_level,
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+            status="ABIERTO",
+        )
+        await container.trade_repo.save(active_trade)
+
+        direction = signal.direction
+        entry = float(signal.entry_price)
+        tp1 = float(signal.tp1_level)
+        sl = float(signal.sl_level)
 
         confirmation_text = (
             f"✅ *Operación registrada* \\#{signal_id}\n\n"
@@ -121,7 +116,6 @@ async def _handle_taken(update: Update, timestamp: int):
             f"📡 *Monitoreando TP1 y Stop\\-Loss en tiempo real...*"
         )
 
-        # 5. Editar mensaje original para eliminar botones
         try:
             await query.edit_message_text(confirmation_text, parse_mode=ParseMode.MARKDOWN_V2)
         except Exception as e:
@@ -135,47 +129,40 @@ async def _handle_taken(update: Update, timestamp: int):
         await query.edit_message_text(f"⚠️ Error al procesar la señal: {str(e)[:100]}")
 
 
-async def _handle_skipped(update: Update, timestamp: int):
+async def _handle_skipped(update: Update, context: ContextTypes.DEFAULT_TYPE, timestamp: int):
     """Maneja el callback de 'no tomar señal'."""
     query = update.callback_query
 
     try:
-        # 1. Buscar la señal por timestamp
         from datetime import datetime
 
         detected_dt = datetime.fromtimestamp(timestamp)
 
-        signal = await fetchrow(
-            "SELECT * FROM signals WHERE detected_at = $1 AND status = 'EMITIDA' ORDER BY id DESC LIMIT 1",
-            detected_dt,
-        )
+        container = context.bot_data["container"]
+
+        signal = await container.signal_repo.get_by_detected_at_and_status(detected_dt, "EMITIDA")
 
         if not signal:
             await query.edit_message_text("⚠️ Señal no encontrada o ya procesada.")
             return
 
-        signal_id = signal["id"]
+        signal_id = signal.id
 
-        if signal["status"] != "EMITIDA":
+        if signal.status != "EMITIDA":
             await query.edit_message_text(
-                f"⚠️ Esta señal ya fue procesada (status: {signal['status']})"
+                f"⚠️ Esta señal ya fue procesada (status: {signal.status})"
             )
             return
 
-        # 2. UPDATE signals SET status='NO_TOMADA' WHERE id={signal_id}
-        await execute(
-            "UPDATE signals SET status = 'NO_TOMADA', updated_at = NOW() WHERE id = $1", signal_id
-        )
+        await container.manage_journal.mark_skipped(signal_id, "NO_TOMADA")
 
-        # 3. Responder con mensaje de confirmación
         skipped_text = (
             f"❌ *Señal registrada como no tomada* \\#{signal_id}\n\n"
-            f"📊 *Dirección:* {signal['direction']}\n"
-            f"💵 *Entrada:* ${float(signal['entry_price']):,.2f}\n\n"
+            f"📊 *Dirección:* {signal.direction}\n"
+            f"💵 *Entrada:* ${float(signal.entry_price):,.2f}\n\n"
             f"⏭️ *Siguiente ciclo en curso...*"
         )
 
-        # 4. Eliminar botones del mensaje original
         try:
             await query.edit_message_text(skipped_text, parse_mode=ParseMode.MARKDOWN_V2)
         except Exception as e:
@@ -189,46 +176,46 @@ async def _handle_skipped(update: Update, timestamp: int):
         await query.edit_message_text(f"⚠️ Error al procesar: {str(e)[:100]}")
 
 
-async def _handle_detail(update: Update, timestamp: int):
+async def _handle_detail(update: Update, context: ContextTypes.DEFAULT_TYPE, timestamp: int):
     """Maneja el callback de 'ver detalle de señal'."""
     query = update.callback_query
 
     try:
-        # 1. Recuperar señal de la DB por timestamp
         from datetime import datetime
 
         detected_dt = datetime.fromtimestamp(timestamp)
 
-        signal = await fetchrow(
-            "SELECT * FROM signals WHERE detected_at = $1 ORDER BY id DESC LIMIT 1", detected_dt
-        )
+        container = context.bot_data["container"]
+
+        signal = await container.signal_repo.get_by_detected_at_and_status(detected_dt, "EMITIDA")
 
         if not signal:
             await query.answer("⚠️ Señal no encontrada", show_alert=True)
             return
 
-        signal_id = signal["id"]
+        signal_id = signal.id
 
-        # 2. Construir mensaje de análisis completo
-        direction = signal["direction"]
-        entry = float(signal["entry_price"]) if signal["entry_price"] else 0
-        tp1 = float(signal["tp1_level"]) if signal["tp1_level"] else 0
-        sl = float(signal["sl_level"]) if signal["sl_level"] else 0
-        rr = float(signal["rr_ratio"]) if signal["rr_ratio"] else 0
-        atr = float(signal["atr_value"]) if signal["atr_value"] else 0
-        timeframe = signal["timeframe"]
-        ai_context = signal["ai_context"] or "Sin análisis IA disponible."
-
-        detected = (
-            signal["detected_at"].strftime("%Y-%m-%d %H:%M:%S") if signal["detected_at"] else "N/A"
+        direction = signal.direction
+        entry = float(signal.entry_price) if signal.entry_price else 0
+        tp1 = float(signal.tp1_level) if signal.tp1_level else 0
+        sl = float(signal.sl_level) if signal.sl_level else 0
+        rr = float(signal.rr_ratio) if signal.rr_ratio else 0
+        atr = float(signal.atr_value) if signal.atr_value else 0
+        timeframe = signal.timeframe
+        ai_context = (
+            signal.ai_context
+            if hasattr(signal, "ai_context") and signal.ai_context
+            else "Sin análisis IA disponible."
         )
+
+        detected = signal.detected_at.strftime("%Y-%m-%d %H:%M:%S") if signal.detected_at else "N/A"
 
         detail_text = (
             f"📊 *Análisis Completo de Señal* \\#{signal_id}\n\n"
             f"*Información General:*\n"
             f"├ 📅 *Detectada:* {detected}\n"
             f"├ ⏱️ *Timeframe:* {timeframe.upper()}\n"
-            f"├ 🏷️ *Status:* {signal['status']}\n"
+            f"├ 🏷️ *Status:* {signal.status}\n"
             f"└ 📈 *Dirección:* {direction}\n\n"
             f"*Niveles de Trading:*\n"
             f"├ 💵 *Entrada:* ${entry:,.2f}\n"
@@ -240,12 +227,11 @@ async def _handle_detail(update: Update, timestamp: int):
             f"{ai_context}"
         )
 
-        # 3. Enviar análisis completo (mantener botones originales)
         try:
             await query.edit_message_text(
                 detail_text,
                 parse_mode=ParseMode.MARKDOWN_V2,
-                reply_markup=query.message.reply_markup,  # Mantener botones originales
+                reply_markup=query.message.reply_markup,
             )
         except Exception as e:
             logger.warning(f"No se pudo editar mensaje: {e}")

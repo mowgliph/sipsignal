@@ -15,8 +15,8 @@ class ManageJournal:
     async def mark_taken(self, signal_id: int) -> None:
         await self._signal_repo.update_status(signal_id, "TOMADA")
 
-    async def mark_skipped(self, signal_id: int) -> None:
-        await self._signal_repo.update_status(signal_id, "CANCELADA")
+    async def mark_skipped(self, signal_id: int, status: str = "CANCELADA") -> None:
+        await self._signal_repo.update_status(signal_id, status)
 
     async def mark_closed(self, signal_id: int) -> None:
         await self._signal_repo.update_status(signal_id, "CERRADA")

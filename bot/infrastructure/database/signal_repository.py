@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import asyncpg
 
 from bot.core import database
@@ -59,6 +61,18 @@ class PostgreSQLSignalRepository(SignalRepository):
             limit,
         )
         return [_record_to_signal(record) for record in records]
+
+    async def get_by_detected_at_and_status(
+        self, detected_at: datetime, status: str
+    ) -> Signal | None:
+        record = await database.fetchrow(
+            "SELECT * FROM signals WHERE detected_at = $1 AND status = $2 ORDER BY id DESC LIMIT 1",
+            detected_at,
+            status,
+        )
+        if record is None:
+            return None
+        return _record_to_signal(record)
 
     async def update_status(self, signal_id: int, status: str) -> None:
         await database.execute(
