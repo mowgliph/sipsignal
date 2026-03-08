@@ -11,7 +11,7 @@ import platform
 import warnings
 from datetime import UTC, datetime
 
-from telegram import Update
+from telegram import Update, filters
 from telegram.constants import ParseMode
 from telegram.error import BadRequest
 from telegram.ext import (
@@ -20,12 +20,20 @@ from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
+    MessageHandler,
 )
 from telegram.warnings import PTBUserWarning
 
+from bot.core.access_manager import AccessManager
 from bot.core.config import PID, VERSION, settings
 from bot.core.database import execute, fetchrow
 from bot.core.loops import get_logs_data
+from bot.handlers.access_admin import (
+    approve_command,
+    deny_command,
+    list_users_command,
+    make_admin_command,
+)
 from bot.handlers.admin import (
     ad_command,
     logs_command,
@@ -265,6 +273,10 @@ def main():
     container = Container(settings=settings, bot=app.bot)
     app.bot_data["container"] = container
 
+    # Create AccessManager instance and store in bot_data
+    access_manager = AccessManager(admin_chat_ids=settings.admin_chat_ids)
+    app.bot_data["access_manager"] = access_manager
+
     # 1. FUNCIÓN DE ENVÍO DE MENSAJES
     async def enviar_mensajes(
         mensaje, chat_ids, parse_mode=ParseMode.MARKDOWN, reply_markup=None, photo=None
@@ -354,6 +366,21 @@ def main():
     # 3. REGISTRO DE HANDLERS
 
     # ============================================
+    # IMPORTANTE: AccessManager PRIMERO (middleware)
+    # ============================================
+
+    # 0️⃣ AccessManager - Middleware de control de acceso (PRIMER HANDLER)
+    async def access_manager_wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Wrapper para AccessManager que intercepta todos los mensajes."""
+        should_continue = await access_manager.handle_update(update, app)
+        if not should_continue:
+            # Detener el procesamiento si el usuario no tiene acceso
+            return
+
+    # Registrar AccessManager como el primer handler (antes que cualquier otro)
+    app.add_handler(MessageHandler(filters.ALL, access_manager_wrapper), group=-100)
+
+    # ============================================
     # IMPORTANTE: Handlers de conversación PRIMERO
     # ============================================
 
@@ -372,6 +399,14 @@ def main():
     # ============================================
     # Comandos de Admin
     # ============================================
+
+    # Access control admin commands (with @admin_only decorator)
+    app.add_handler(CommandHandler("approve", approve_command))
+    app.add_handler(CommandHandler("deny", deny_command))
+    app.add_handler(CommandHandler("make_admin", make_admin_command))
+    app.add_handler(CommandHandler("list_users", list_users_command))
+
+    # Other admin commands
     app.add_handler(CommandHandler("users", users))
     app.add_handler(CommandHandler("logs", logs_command))
     app.add_handler(CommandHandler("status", logs_command))

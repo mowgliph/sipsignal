@@ -4,7 +4,7 @@
 
 **Goal:** Corregir 4 vulnerabilidades de seguridad identificadas en la auditoría: duplicados en config, migrar requests a httpx, implementar rate limiting en AccessManager y comandos admin.
 
-**Architecture:** 
+**Architecture:**
 - Usar `aiolimiter` para rate limiting async
 - Migrar `requests` síncrono a `httpx` async
 - Crear módulo reutilizable de rate limiting en `bot/utils/rate_limiter.py`
@@ -109,7 +109,7 @@ def test_rate_limiter_creation():
 async def test_rate_limiter_allows_requests():
     """Test rate limiter allows requests within limit."""
     limiter = RateLimiter(max_requests=3, time_window=1)
-    
+
     # Should allow 3 requests
     await limiter.acquire()
     await limiter.acquire()
@@ -120,10 +120,10 @@ async def test_rate_limiter_allows_requests():
 async def test_rate_limiter_blocks_excess():
     """Test rate limiter blocks excess requests."""
     limiter = RateLimiter(max_requests=2, time_window=1)
-    
+
     await limiter.acquire()
     await limiter.acquire()
-    
+
     # Third request should raise or return False
     result = await limiter.try_acquire()
     assert result is False
@@ -153,7 +153,7 @@ from functools import lru_cache
 class RateLimiter:
     """
     Async rate limiter wrapper using aiolimiter.
-    
+
     Provides simple async rate limiting with configurable
     max requests and time window.
     """
@@ -177,7 +177,7 @@ class RateLimiter:
     async def try_acquire(self) -> bool:
         """
         Try to acquire rate limit slot without waiting.
-        
+
         Returns:
             True if acquired, False if rate limited
         """
@@ -195,12 +195,12 @@ class RateLimiter:
 class AdminRateLimiter:
     """
     Singleton rate limiter for admin commands.
-    
+
     Limits admin commands to prevent abuse.
     """
-    
+
     _instance: RateLimiter | None = None
-    
+
     @classmethod
     def get_instance(cls) -> RateLimiter:
         """Get singleton instance of admin rate limiter."""
@@ -213,12 +213,12 @@ class AdminRateLimiter:
 class AdminNotificationRateLimiter:
     """
     Singleton rate limiter for admin notifications.
-    
+
     Limits notifications to admins to prevent spam.
     """
-    
+
     _instance: RateLimiter | None = None
-    
+
     @classmethod
     def get_instance(cls) -> RateLimiter:
         """Get singleton instance of notification rate limiter."""
@@ -268,28 +268,28 @@ En el método `_notify_admins`, rodear el envío de notificaciones:
 ```python
 async def _notify_admins(self, bot: Bot, user_chat_id: int, username: str | None) -> None:
     """Notifica a todos los administradores sobre una nueva solicitud de acceso."""
-    
+
     # Rate limiting - check if we should send notification
     limiter = AdminNotificationRateLimiter.get_instance()
-    
+
     # Check cooldown for this specific user (don't spam about same user)
     now = datetime.now(UTC)
     last_notify = self._last_notification_user.get(user_chat_id)
-    
+
     if last_notify and (now - last_notify).total_seconds() < self.NOTIFICATION_COOLDOWN_SECONDS:
         # Already notified recently about this user, skip
         return
-    
+
     # Try to acquire rate limit slot
     if not await limiter.try_acquire():
         # Rate limited, skip notification but continue
         from bot.utils.logger import logger
         logger.warning(f"Admin notification rate limited, skipping for user {user_chat_id}")
         return
-    
+
     # Update last notification time for this user
     self._last_notification_user[user_chat_id] = now
-    
+
     # ... rest of existing code ...
 ```
 
@@ -327,7 +327,7 @@ Agregar al inicio del archivo (después de los imports):
 def rate_limited_admin(func):
     """
     Decorator that applies rate limiting to admin commands.
-    
+
     Combined with @admin_only decorator.
     """
     @functools.wraps(func)
@@ -356,7 +356,7 @@ async def approve_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     # ... existing code ...
 
 @admin_only
-@rate_limited_admin  
+@rate_limited_admin
 async def deny_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # ... existing code ...
 

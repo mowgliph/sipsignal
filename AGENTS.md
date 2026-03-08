@@ -263,15 +263,15 @@ except Exception as e:
 ```python
 async def signal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
-    
+
     # Access check first
     if chat_id not in settings.admin_chat_ids:
         await update.message.reply_text("⛔ Acceso denegado.")
         return
-    
+
     # Show loading state
     msg = await update.message.reply_text("⏳ Processing...")
-    
+
     try:
         # main logic
         await update.message.reply_text(result)
@@ -305,7 +305,7 @@ Base = declarative_base()
 
 class User(Base):
     __tablename__ = "users"
-    
+
     id = Column(Integer, primary_key=True)
     chat_id = Column(Integer, unique=True, nullable=False)
     username = Column(String)

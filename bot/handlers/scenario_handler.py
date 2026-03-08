@@ -3,16 +3,12 @@
 from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
 
-from bot.core.config import settings
+from bot.utils import admin_only
 
 
+@admin_only
 async def scenario_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Analiza y muestra escenarios de mercado."""
-    chat_id = update.effective_chat.id
-
-    if chat_id not in settings.admin_chat_ids:
-        await update.message.reply_text("⛔ Acceso denegado.")
-        return
 
     msg = await update.message.reply_text("Analizando escenarios de mercado... ⏳")
 

@@ -9,12 +9,11 @@ This hook:
 - Logs warnings to logs/pre-commit-warnings.log
 """
 
-import os
-import sys
-import subprocess
 import logging
+import os
+import subprocess
+import sys
 from pathlib import Path
-from datetime import datetime
 
 # Configurar logging
 LOG_DIR = Path("logs")

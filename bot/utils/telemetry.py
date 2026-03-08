@@ -5,9 +5,9 @@ Provides event tracking, user analytics, and historical data storage
 for monitoring bot usage and user engagement.
 """
 
-import threading
 import json
 import os
+import threading
 import time
 from collections import defaultdict
 from contextlib import contextmanager, suppress

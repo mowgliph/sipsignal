@@ -225,14 +225,14 @@ Para soporte o consultas, contacta a los administradores del bot.
 
 ## 🚀 Estado del Proyecto
 
-**Versión:** 1.0.0 (Production Release)  
-**Última actualización:** Marzo 2026  
-**Estado:** ✅ En Producción  
+**Versión:** 1.0.0 (Production Release)
+**Última actualización:** Marzo 2026
+**Estado:** ✅ En Producción
 **Mantenimiento:** Activo
 
 ---
 
-**© 2026 SipSignal Trading Bot. Todos los derechos reservados.**  
+**© 2026 SipSignal Trading Bot. Todos los derechos reservados.**
 **Desarrollado con ❤️ por [mowgliph](https://github.com/mowgliph)**
 
 *Este proyecto es de código abierto y está disponible bajo la Licencia MIT.*

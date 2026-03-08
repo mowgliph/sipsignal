@@ -4,16 +4,12 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import CommandHandler, ContextTypes
 
-from bot.core.config import settings
+from bot.utils import admin_only
 
 
+@admin_only
 async def signal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Muestra el estado actual de Supertrend + ASH y señal activa para BTC/USDT 4H."""
-    chat_id = update.effective_chat.id
-
-    if chat_id not in settings.admin_chat_ids:
-        await update.message.reply_text("⛔ Acceso denegado.")
-        return
 
     msg = await update.message.reply_text(
         "⏳ *Analizando mercado...*", parse_mode=ParseMode.MARKDOWN

@@ -135,20 +135,20 @@ check_venv_active() {
 # Verificar dependencias del sistema
 check_dependencies() {
     local missing=()
-    
+
     if ! command -v python3 &> /dev/null; then
         missing+=("python3")
     fi
-    
+
     if ! command -v pip3 &> /dev/null; then
         missing+=("pip3")
     fi
-    
+
     if [[ ${#missing[@]} -gt 0 ]]; then
         echo -e "${COLOR_RED}❌ Dependencias faltantes: ${missing[*]}${COLOR_RESET}"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -158,12 +158,12 @@ check_required_files() {
         echo -e "${COLOR_RED}❌ No se encontró ${REQUIREMENTS}${COLOR_RESET}"
         return 1
     fi
-    
+
     if [[ ! -f "${BOT_SCRIPT}" ]]; then
         echo -e "${COLOR_RED}❌ No se encontró ${BOT_SCRIPT}${COLOR_RESET}"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -173,7 +173,7 @@ get_service_status() {
         echo "unavailable"
         return
     fi
-    
+
     if systemctl is-active --quiet "${SERVICE_NAME}" 2>/dev/null; then
         echo "active"
     elif systemctl is-failed --quiet "${SERVICE_NAME}" 2>/dev/null; then
@@ -221,12 +221,12 @@ spinner() {
 # Instalar dependencias desde requirements.txt
 install_deps() {
     echo -e "${COLOR_BLUE}📦 Instalando dependencias...${COLOR_RESET}"
-    
+
     if ! check_venv_exists; then
         echo -e "${COLOR_YELLOW}⚠️  No se encontró entorno virtual. Creando primero...${COLOR_RESET}"
         create_venv
     fi
-    
+
     # Activar venv temporalmente para la instalación
     (
         source "${VENV_DIR}/bin/activate"
@@ -243,7 +243,7 @@ install_deps() {
 # Crear entorno virtual
 create_venv() {
     echo -e "${COLOR_BLUE}🔧 Creando entorno virtual...${COLOR_RESET}"
-    
+
     if check_venv_exists; then
         echo -e "${COLOR_YELLOW}⚠️  El entorno virtual ya existe${COLOR_RESET}"
         read -p "¿Deseas recrearlo? (s/N): " -n 1 -r
@@ -253,7 +253,7 @@ create_venv() {
         fi
         rm -rf "${VENV_DIR}"
     fi
-    
+
     if python3 -m venv "${VENV_DIR}"; then
         echo -e "${COLOR_GREEN}✅ Entorno virtual creado${COLOR_RESET}"
         echo -e "${COLOR_CYAN}📦 Instalando dependencias iniciales...${COLOR_RESET}"
@@ -285,12 +285,12 @@ activate_venv() {
         echo -e "${COLOR_RED}❌ No existe entorno virtual${COLOR_RESET}"
         return 1
     fi
-    
+
     if check_venv_active; then
         echo -e "${COLOR_GREEN}✅ El entorno virtual ya está activo${COLOR_RESET}"
         return 0
     fi
-    
+
     echo -e "${COLOR_BLUE}🔄 Activando entorno virtual...${COLOR_RESET}"
     exec bash -c "source ${VENV_DIR}/bin/activate && exec bash"
 }
@@ -511,7 +511,7 @@ restart_bot() {
 view_logs() {
     local status
     status=$(get_service_status)
-    
+
     if [[ "$status" == "unavailable" ]]; then
         echo -e "${COLOR_YELLOW}⚠️  systemd no disponible, mostrando logs locales...${COLOR_RESET}"
         if [[ -d "${LOGS_DIR}" ]]; then
@@ -521,11 +521,11 @@ view_logs() {
         fi
         return
     fi
-    
+
     echo -e "${COLOR_BLUE}📋 Mostrando logs (Ctrl+C para salir)...${COLOR_RESET}"
     echo -e "${COLOR_DIM}Últimas 50 líneas, siguiendo en tiempo real${COLOR_RESET}"
     echo ""
-    
+
     journalctl -u "${SERVICE_NAME}" -n 50 -f
 }
 
@@ -592,13 +592,13 @@ show_status() {
 # Health check completo
 health_check() {
     print_banner
-    
+
     echo -e "${COLOR_BOLD}🏥 HEALTH CHECK${COLOR_RESET}"
     echo ""
-    
+
     local checks_passed=0
     local total_checks=6
-    
+
     # Check 1: Python3
     if command -v python3 &> /dev/null; then
         echo -e "  ${COLOR_GREEN}✓${COLOR_RESET} Python3 instalado"
@@ -606,7 +606,7 @@ health_check() {
     else
         echo -e "  ${COLOR_RED}✗${COLOR_RESET} Python3 NO instalado"
     fi
-    
+
     # Check 2: Entorno virtual
     if check_venv_exists; then
         echo -e "  ${COLOR_GREEN}✓${COLOR_RESET} Entorno virtual existe"
@@ -614,7 +614,7 @@ health_check() {
     else
         echo -e "  ${COLOR_RED}✗${COLOR_RESET} Entorno virtual NO existe"
     fi
-    
+
     # Check 3: Dependencias instaladas
     if check_venv_exists; then
         if "${VENV_DIR}/bin/python" -c "import telegram" 2>/dev/null; then
@@ -626,7 +626,7 @@ health_check() {
     else
         echo -e "  ${COLOR_YELLOW}⚠${COLOR_RESET} No se puede verificar dependencias"
     fi
-    
+
     # Check 4: Archivo .env
     if [[ -f "${ENV_FILE}" ]]; then
         echo -e "  ${COLOR_GREEN}✓${COLOR_RESET} Archivo .env existe"
@@ -634,7 +634,7 @@ health_check() {
     else
         echo -e "  ${COLOR_RED}✗${COLOR_RESET} Archivo .env NO existe"
     fi
-    
+
     # Check 5: Servicio systemd
     local status
     status=$(get_service_status)
@@ -646,7 +646,7 @@ health_check() {
     else
         echo -e "  ${COLOR_RED}✗${COLOR_RESET} Servicio systemd inactivo"
     fi
-    
+
     # Check 6: Permisos de escritura
     if [[ -w "." ]]; then
         echo -e "  ${COLOR_GREEN}✓${COLOR_RESET} Permisos de escritura OK"
@@ -654,7 +654,7 @@ health_check() {
     else
         echo -e "  ${COLOR_RED}✗${COLOR_RESET} Sin permisos de escritura"
     fi
-    
+
     echo ""
     echo -e "${COLOR_BOLD}Resultado: ${checks_passed}/${total_checks} checks pasados${COLOR_RESET}"
 
@@ -676,20 +676,20 @@ health_check() {
 # Limpiar logs antiguos
 clean_logs() {
     echo -e "${COLOR_BLUE}🧹 Limpieza de logs...${COLOR_RESET}"
-    
+
     if [[ -d "${LOGS_DIR}" ]]; then
         local log_count
         log_count=$(find "${LOGS_DIR}" -name "*.log" | wc -l)
-        
+
         if [[ $log_count -eq 0 ]]; then
             echo -e "${COLOR_YELLOW}⚠️  No hay logs para limpiar${COLOR_RESET}"
             return 0
         fi
-        
+
         echo -e "Se encontraron ${log_count} archivos de log"
         read -p "¿Deseas eliminar los logs antiguos (>7 días)? (s/N): " -n 1 -r
         echo
-        
+
         if [[ $REPLY =~ ^[Ss]$ ]]; then
             find "${LOGS_DIR}" -name "*.log" -mtime +7 -delete
             echo -e "${COLOR_GREEN}✅ Logs antiguos eliminados${COLOR_RESET}"
@@ -699,7 +699,7 @@ clean_logs() {
     else
         echo -e "${COLOR_YELLOW}⚠️  Directorio de logs no encontrado${COLOR_RESET}"
     fi
-    
+
     # Limpiar journal systemd si está disponible
     if check_systemd && check_root; then
         echo -e "${COLOR_BLUE}🧹 Limpiando journal systemd...${COLOR_RESET}"
@@ -711,35 +711,35 @@ clean_logs() {
 # Crear backup de configuración
 backup_config() {
     local backup_dir="backups/$(date +%Y-%m-%d-%H%M%S)"
-    
+
     echo -e "${COLOR_BLUE}💾 Creando backup...${COLOR_RESET}"
-    
+
     mkdir -p "${backup_dir}"
-    
+
     # Backup de .env
     if [[ -f "${ENV_FILE}" ]]; then
         cp "${ENV_FILE}" "${backup_dir}/"
         echo -e "  ${COLOR_GREEN}✓${COLOR_RESET} .env copiado"
     fi
-    
+
     # Backup de logs recientes
     if [[ -d "${LOGS_DIR}" ]]; then
         cp -r "${LOGS_DIR}" "${backup_dir}/" 2>/dev/null || true
         echo -e "  ${COLOR_GREEN}✓${COLOR_RESET} Logs copiados"
     fi
-    
+
     # Comprimir
     local tar_file="${backup_dir}.tar.gz"
     tar -czf "${tar_file}" -C "${backup_dir%/*}" "${backup_dir##*/}"
     rm -rf "${backup_dir}"
-    
+
     echo -e "${COLOR_GREEN}✅ Backup creado: ${tar_file}${COLOR_RESET}"
 }
 
 # Reset completo del bot
 reset_bot() {
     print_banner
-    
+
     echo -e "${COLOR_RED}${COLOR_BOLD}⚠️  ADVERTENCIA: RESET COMPLETO${COLOR_RESET}"
     echo ""
     echo -e "${COLOR_YELLOW}Esta acción:${COLOR_RESET}"
@@ -750,16 +750,16 @@ reset_bot() {
     echo ""
     echo -e "${COLOR_RED}Los archivos de configuración (.env) NO se eliminarán${COLOR_RESET}"
     echo ""
-    
+
     read -p "¿Estás COMPLETAMENTE SEGURO? Escribe 'RESET' para confirmar: " confirm
-    
+
     if [[ "$confirm" != "RESET" ]]; then
         echo -e "${COLOR_DIM}Operación cancelada${COLOR_RESET}"
         return 0
     fi
-    
+
     echo -e "${COLOR_BLUE}🔄 Iniciando reset completo...${COLOR_RESET}"
-    
+
     # 1. Detener servicio
     local status
     status=$(get_service_status)
@@ -767,18 +767,18 @@ reset_bot() {
         echo -e "  → Deteniendo servicio..."
         systemctl stop "${SERVICE_NAME}" 2>/dev/null || true
     fi
-    
+
     # 2. Limpiar archivos temporales
     echo -e "  → Limpiando archivos temporales..."
     find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
     find . -type f -name "*.pyc" -delete 2>/dev/null || true
     find . -type f -name "*.pyo" -delete 2>/dev/null || true
-    
+
     # 3. Recrear entorno virtual
     echo -e "  → Recreando entorno virtual..."
     rm -rf "${VENV_DIR}"
     python3 -m venv "${VENV_DIR}"
-    
+
     # 4. Reinstalar dependencias
     echo -e "  → Reinstalando dependencias..."
     (
@@ -787,11 +787,11 @@ reset_bot() {
         pip install -q -r "${REQUIREMENTS}"
     ) &
     spinner $!
-    
+
     # 5. Reiniciar servicio
     echo -e "  → Reiniciando servicio..."
     systemctl start "${SERVICE_NAME}" 2>/dev/null || true
-    
+
     echo ""
     echo -e "${COLOR_GREEN}✅ Reset completo finalizado${COLOR_RESET}"
     echo -e "${COLOR_CYAN}📋 El bot debería estar iniciándose. Verifica el estado con la opción 9.${COLOR_RESET}"
@@ -809,7 +809,7 @@ show_status_bar() {
     status=$(get_service_status)
     local status_color
     local status_text
-    
+
     case "$status" in
         active)
             status_color="$COLOR_GREEN"
@@ -828,10 +828,10 @@ show_status_bar() {
             status_text="⚠ N/A"
             ;;
     esac
-    
+
     local pid=$(get_service_pid)
     local uptime=$(get_service_uptime)
-    
+
     printf "${COLOR_CYAN}║${COLOR_RESET} "
     printf "${COLOR_BOLD}Bot:${COLOR_RESET} ${status_color}%s${COLOR_RESET} | " "$status_text"
     printf "${COLOR_DIM}PID:${COLOR_RESET} %s | " "$pid"
@@ -842,11 +842,11 @@ show_status_bar() {
 # Mostrar menú principal
 show_main_menu() {
     print_banner
-    
+
     print_line "═" 74
     show_status_bar
     print_separator "═" 74
-    
+
     # Sección Entorno
     echo -e "${COLOR_CYAN}║${COLOR_RESET}                                                                         ${COLOR_CYAN}║${COLOR_RESET}"
     echo -e "${COLOR_CYAN}║${COLOR_RESET}  ${COLOR_GREEN}🟢 ENTORNO${COLOR_RESET}                                               ${COLOR_BLUE}🔵 SERVICIO${COLOR_RESET}        ${COLOR_CYAN}║${COLOR_RESET}"
@@ -902,7 +902,7 @@ main() {
     if ! check_dependencies; then
         exit 2
     fi
-    
+
     # Si se pasaron argumentos, ejecutar comando directamente
     case "${1:-}" in
         install|deps)
@@ -962,13 +962,13 @@ main() {
             exit 0
             ;;
     esac
-    
+
     # Modo interactivo
     while true; do
         show_main_menu
         echo ""
         read -p "Selecciona una opción: " choice
-        
+
         case $choice in
             1) install_deps ;;
             2) create_venv ;;
@@ -994,7 +994,7 @@ main() {
                 sleep 1
                 ;;
         esac
-        
+
         echo ""
         if [[ "$choice" != "8" && "$choice" != "q" && "$choice" != "Q" ]]; then
             read -n 1 -s -r -p "Presiona cualquier tecla para continuar..."

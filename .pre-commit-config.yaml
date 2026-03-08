@@ -3,8 +3,6 @@
 default_language_version:
   python: python3.13
 
-default_stages: [commit]
-
 repos:
   # Ruff - Linter y formatter
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -32,8 +30,7 @@ repos:
     hooks:
       - id: validate-tests
         name: Validate tests associated
-        entry: python bot/hooks/validate_tests.py
+        entry: python3 bot/hooks/validate_tests.py
         language: system
         pass_filenames: false
         always_run: true
-        stages: [commit]

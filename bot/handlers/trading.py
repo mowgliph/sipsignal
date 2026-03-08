@@ -9,6 +9,7 @@ from telegram.ext import ContextTypes
 
 # Importamos configuraciones y utilidades existentes
 from bot.core.api_client import obtener_datos_moneda
+from bot.utils import permitted_only
 from bot.utils.ads_manager import get_random_ad_text
 
 # from core.i18n import _  # TODO: Implementar i18n en el futuro
@@ -19,6 +20,7 @@ def _(message, *args, **kwargs):
     return message
 
 
+@permitted_only
 async def p_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Muestra el precio y otros datos de una criptomoneda.
@@ -140,6 +142,7 @@ async def refresh_command_callback(update: Update, context: ContextTypes.DEFAULT
     await p_command(update, context)
 
 
+@permitted_only
 async def ta_quick_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Callback para el botón "Ver Análisis Técnico" en el comando /p.
@@ -185,6 +188,7 @@ def get_time_str(minutes_delta):
         return f"in {hours} hours"
 
 
+@permitted_only
 async def mk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Muestra el estado de los mercados globales (Abierto/Cerrado).

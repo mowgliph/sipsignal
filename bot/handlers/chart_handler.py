@@ -6,20 +6,16 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import CommandHandler, ContextTypes
 
-from bot.core.config import settings
 from bot.trading.chart_capture import ChartCapture
+from bot.utils import admin_only
 
 VALID_TIMEFRAMES = ["1d", "4h", "1h", "15m"]
 DEFAULT_TIMEFRAME = "4h"
 
 
+@admin_only
 async def chart_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Captura y envía el gráfico del timeframe indicado."""
-    chat_id = update.effective_chat.id
-
-    if chat_id not in settings.admin_chat_ids:
-        await update.message.reply_text("⛔ Acceso denegado.")
-        return
 
     args = context.args
     timeframe = DEFAULT_TIMEFRAME

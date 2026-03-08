@@ -14,6 +14,7 @@ from telegram.ext import CallbackContext, CommandHandler
 from bot.core.database import fetch
 from bot.domain.signal import Signal
 from bot.trading.data_fetcher import BinanceDataFetcher
+from bot.utils import permitted_only
 
 
 def signal_to_dict(signal: Signal) -> dict[str, Any]:
@@ -276,6 +277,7 @@ async def active_command() -> str:
 # ============== Telegram Handlers ==============
 
 
+@permitted_only
 async def journal_cmd(update: Update, context: CallbackContext) -> None:
     """Maneja el comando /journal."""
     container = context.bot_data["container"]
@@ -299,6 +301,7 @@ async def journal_cmd(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text(message, parse_mode="Markdown")
 
 
+@permitted_only
 async def active_cmd(update: Update, context: CallbackContext) -> None:
     """Maneja el comando /active."""
     message = await active_command()
