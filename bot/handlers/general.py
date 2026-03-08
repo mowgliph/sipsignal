@@ -1,6 +1,6 @@
 # handlers/general.py
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from telegram import Update
 from telegram.constants import ParseMode
@@ -10,12 +10,7 @@ from bot.core.api_client import obtener_precios_control
 from bot.db.users import register_or_update_user
 from bot.utils import permitted_only
 from bot.utils.ads_manager import get_random_ad_text
-from bot.utils.file_manager import (
-    check_feature_access,
-    load_last_prices_status,
-    obtener_monedas_usuario,
-    registrar_uso_comando,
-)
+from bot.utils.file_manager import load_last_prices_status
 
 # Mensajes estáticos (sin internacionalización)
 HELP_MSG = {
@@ -82,20 +77,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
 
-    # === GUARDIA DE PAGO ===
-    # 1. Verificar acceso
-    acceso, mensaje = check_feature_access(chat_id, "ver_limit")
-    if not acceso:
-        # Si no tiene acceso, enviamos el mensaje de error (que contiene la info de venta) y paramos.
-        await update.message.reply_text(mensaje, parse_mode=ParseMode.MARKDOWN)
-        return
+    # Get container and repository
+    container = context.bot_data["container"]
+    watchlist_repo = container.user_watchlist_repo
 
-    # 2. Registrar el uso (se descuenta 1 del contador)
-    registrar_uso_comando(chat_id, "ver")
-    # =======================
-    # === LÓGICA DEL COMANDO /ver ====
-    # 1. Obtener las monedas configuradas por el usuario
-    monedas = obtener_monedas_usuario(chat_id)
+    # Get user's watchlist coins from PostgreSQL
+    monedas = await watchlist_repo.get_coins(chat_id)
 
     if not monedas:
         await update.message.reply_text(
@@ -145,8 +132,8 @@ async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             mensaje += f"*{moneda}/USD*: N/A\n"
 
-    # Añadir fecha
-    fecha_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Añadir fecha con UTC
+    fecha_actual = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
     mensaje += f"\n─────────────\n_📅 Consulta: {fecha_actual}_"
 
     mensaje += get_random_ad_text()
@@ -185,26 +172,26 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
 
-    # 1. Get container from context
+    # Get container from context
     container = context.bot_data["container"]
     user_repo = container.user_repo
 
-    # 2. Obtain user data from repository
+    # Obtain user data from repository
     datos_usuario = await user_repo.get(user_id)
 
-    # 3. Obtain language (default Spanish)
-    # Note: Repository uses 'language' field
+    # Obtain language (default Spanish)
+    # Repository uses 'language' field
     lang = datos_usuario.get("language", "es") if datos_usuario else "es"
 
-    # 4. Extra validation for safety
+    # Extra validation for safety
     if lang not in ["es", "en"]:
         lang = "es"
 
-    # 5. Get text directly from HELP_MSG dictionary
+    # Get text directly from HELP_MSG dictionary
     # If language fails for some reason, use Spanish as fallback
     texto = HELP_MSG.get(lang, HELP_MSG["es"])
 
-    # 6. Send message
+    # Send message
     await update.message.reply_text(
         text=texto, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True
     )

@@ -6,7 +6,7 @@ import os
 import shutil
 from datetime import datetime, timedelta
 
-from bot.core.config import ADMIN_CHAT_IDS, LAST_PRICES_PATH, LOG_LINES, LOG_MAX, USUARIOS_PATH
+from bot.core.config import LAST_PRICES_PATH, LOG_LINES, LOG_MAX, USUARIOS_PATH
 from bot.utils.logger import logger
 
 _USUARIOS_CACHE = None
@@ -140,241 +140,25 @@ def guardar_usuarios(usuarios_data=None):
         logger.error(f"❌ Error al guardar usuarios: {e}")
 
 
-# --- FASE 1: NUEVAS FUNCIONES DE SUSCRIPCIÓN Y LÍMITES ---
-
-
 def check_feature_access(chat_id, feature_type, current_count=None):
     """
-    Verifica si el usuario tiene permiso o si alcanzó su límite.
-    Retorna: (Bool, Mensaje) -> (True, "OK") o (False, "Razón")
+    Verifica acceso - ahora siempre permitido para usuarios registrados.
+    El control de acceso se maneja via @permitted_only decorator en los handlers.
     """
-    # 1. Los Admins siempre tienen pase VIP (Ilimitado)
-    if chat_id in ADMIN_CHAT_IDS:
-        if feature_type == "temp_min_val":
-            return 0.25, "Admin Mode"  # Mínimo flexible
-        return True, "Admin Mode"
-
-    # Inline: obtener_datos_usuario_seguro logic
-    usuarios = cargar_usuarios()
-    chat_id_str = str(chat_id)
-    if chat_id_str not in usuarios:
-        return False, "Usuario no registrado. Usa /start."
-    user_data = usuarios[chat_id_str]
-    guardar = False
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    if "daily_usage" not in user_data or user_data["daily_usage"].get("date") != today_str:
-        user_data["daily_usage"] = {
-            "date": today_str,
-            "ver": 0,
-            "ta": 0,
-            "temp_changes": 0,
-            "btc": 0,
-        }
-        guardar = True
-    else:
-        keys_necesarias = ["ver", "ta", "temp_changes", "btc"]
-        for key in keys_necesarias:
-            if key not in user_data["daily_usage"]:
-                user_data["daily_usage"][key] = 0
-                guardar = True
-    if "subscriptions" not in user_data:
-        user_data["subscriptions"] = {
-            "alerts_extra": {"qty": 0, "expires": None},
-            "coins_extra": {"qty": 0, "expires": None},
-            "watchlist_bundle": {"active": False, "expires": None},
-            "ta_vip": {"active": False, "expires": None},
-        }
-        guardar = True
-    if "last_seen" not in user_data:
-        user_data["last_seen"] = None
-        guardar = True
-    if "registered_at" not in user_data:
-        user_data["registered_at"] = None
-        guardar = True
-    if guardar:
-        guardar_usuarios(usuarios)
-
-    if not user_data:
-        return False, "Usuario no registrado. Usa /start."
-
-    subs = user_data["subscriptions"]
-    daily = user_data["daily_usage"]
-    now = datetime.now()
-
-    # Helper para verificar si una subscripción está activa y vigente
-    def is_active(sub_key):
-        if not subs.get(sub_key):
-            return False
-        if not subs[sub_key]["active"]:
-            return False
-        if not subs[sub_key]["expires"]:
-            return False
-        try:
-            exp_date = datetime.strptime(subs[sub_key]["expires"], "%Y-%m-%d %H:%M:%S")
-            return exp_date > now
-        except ValueError:
-            return False
-
-    # --- REGLA 1: Comando /ver ---
-    if feature_type == "ver_limit":
-        limit = 8  # Gratis
-        if is_active("watchlist_bundle"):
-            limit = 48  # Pago (Pack Control Total)
-
-        if daily["ver"] >= limit:
-            return False, (
-                f"🔒 *Límite Diario Alcanzado ({limit}/{limit})*\n—————————————————\n\n"
-                f"Has usado tus {limit} consultas gratuitas de /ver por hoy.\n"
-                f"El límite se reinicia mañana."
-            )
-        return True, "OK"
-
-    # --- REGLA 2: Comando /ta ---
-    if feature_type == "ta_limit":
-        limit = 21  # Gratis
-        if is_active("ta_vip"):
-            limit = 999999  # Pago (Ilimitado)
-
-        if daily["ta"] >= limit:
-            return False, (
-                f"🔒 *Límite Diario Alcanzado ({limit}/{limit})*\n—————————————————\n\n"
-                f"Has realizado {limit} análisis técnicos hoy.\n"
-                f"El límite se reinicia mañana."
-            )
-        return True, "OK"
-
-    # --- REGLA 4: Cambios de Temporalidad ---
+    # Acceso siempre permitido - el control se hace en los handlers via @permitted_only
     if feature_type == "temp_min_val":
-        min_val = 8.0
-        if is_active("watchlist_bundle"):
-            min_val = 0.25
-        return min_val, "Valor Mínimo"
-
-    # --- REGLA 5: Cambios de Temporalidad ---
-    if feature_type == "temp_change_limit":
-        if is_active("watchlist_bundle"):
-            return True, "OK"  # Ilimitado con el pack
-
-        # Plan Gratis: Solo 1 cambio al día
-        if daily.get("temp_changes", 0) >= 1:
-            return False, (
-                "🔒 *Límite Diario Alcanzado*\n—————————————————\n\n"
-                "Solo puedes cambiar la temporalidad 1 vez al día en el plan gratuito.\n"
-                "Adquiere el 'Pack Control Total' para cambios ilimitados durante 30 días, entre otras finciones."
-            )
-        return True, "OK"
-
-    # --- REGLA 6: Capacidad de Lista de Monedas (/monedas) ---
-    if feature_type == "coins_capacity":
-        # current_count es la cantidad de monedas que el usuario INTENTA guardar
-        base_capacity = 5
-
-        # Verificamos extras comprados
-        extra_capacity = 0
-        if is_active("coins_extra"):
-            extra_capacity = subs["coins_extra"]["qty"]
-
-        total_capacity = base_capacity + extra_capacity
-
-        if current_count > total_capacity:
-            return False, (
-                f"🔒 *Capacidad Excedida ({current_count}/{total_capacity})*\n—————————————————\n\n"
-                f"Tu límite actual es de {total_capacity} monedas.\n"
-                f"Has intentado guardar {current_count}.\n\n"
-                f"Elimina alguna moneda antes de agregar nuevas."
-            )
-        return True, "OK"
-
-    # --- REGLA 7: Capacidad de Alertas de Cruce (/alerta) ---
-    if feature_type == "alerts_capacity":
-        # current_count aquí será el total de alertas ACTIVAS en la BD
-        # Recordar: 1 alerta de usuario = 2 registros en BD (Arriba + Abajo)
-
-        base_pairs = 10  # 10 alertas del usuario (20 registros)
-        extra_pairs = 0
-
-        if is_active("alerts_extra"):
-            extra_pairs = subs["alerts_extra"]["qty"]
-
-        total_pairs = base_pairs + extra_pairs
-        total_slots_db = total_pairs * 2  # Capacidad real en base de datos
-
-        # Al crear una alerta nueva, se suman 2 slots. Verificamos si caben.
-        if (current_count + 2) > total_slots_db:
-            return False, (
-                f"🔒 *Capacidad de Alertas Llena*\n—————————————————\n\n"
-                f"Tienes ocupados tus {total_pairs} espacios para alertas.\n"
-                f"Elimina alguna con /misalertas antes de crear nuevas."
-            )
-        return True, "OK"
-
+        return 0.25, "Valor Mínimo"
     return True, "OK"
 
 
 def registrar_uso_comando(chat_id, comando):
-    """Incrementa el contador de uso para un comando específico y actualiza last_seen."""
-    # Los admins no registran uso (son ilimitados)
-    if chat_id in ADMIN_CHAT_IDS:
-        return
-
-    # Inline: obtener_datos_usuario_seguro logic (ensure structure exists)
-    usuarios = cargar_usuarios()
-    chat_id_str = str(chat_id)
-    if chat_id_str in usuarios:
-        usuario = usuarios[chat_id_str]
-        guardar = False
-        today_str = datetime.now().strftime("%Y-%m-%d")
-        if "daily_usage" not in usuario or usuario["daily_usage"].get("date") != today_str:
-            usuario["daily_usage"] = {
-                "date": today_str,
-                "ver": 0,
-                "ta": 0,
-                "temp_changes": 0,
-                "btc": 0,
-            }
-            guardar = True
-        else:
-            keys_necesarias = ["ver", "ta", "temp_changes", "btc"]
-            for key in keys_necesarias:
-                if key not in usuario["daily_usage"]:
-                    usuario["daily_usage"][key] = 0
-                    guardar = True
-        if "subscriptions" not in usuario:
-            usuario["subscriptions"] = {
-                "alerts_extra": {"qty": 0, "expires": None},
-                "coins_extra": {"qty": 0, "expires": None},
-                "watchlist_bundle": {"active": False, "expires": None},
-                "ta_vip": {"active": False, "expires": None},
-            }
-            guardar = True
-        if "last_seen" not in usuario:
-            usuario["last_seen"] = None
-            guardar = True
-        if "registered_at" not in usuario:
-            usuario["registered_at"] = None
-            guardar = True
-        if guardar:
-            guardar_usuarios(usuarios)
-
-    usuarios = cargar_usuarios()
-    chat_id_str = str(chat_id)
-
-    if chat_id_str in usuarios:
-        daily = usuarios[chat_id_str].get("daily_usage", {})
-
-        # Incrementamos de forma segura (creando la clave si por alguna razón no está)
-        actual = daily.get(comando, 0)
-        daily[comando] = actual + 1
-
-        usuarios[chat_id_str]["daily_usage"] = daily  # Asegurar asignación
-
-        # MEJORA: Actualizar last_seen con cada uso de comando (actividad real del usuario)
-        usuarios[chat_id_str]["last_seen"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        guardar_usuarios(usuarios)
-
-        # LOG DE DEBUG (Opcional: te ayudará a ver en consola si cuenta)
-        print(f"DEBUG: Usuario {chat_id} usó {comando}. Nuevo total: {daily[comando]}")
+    """
+    Registra uso de comando - función simplificada.
+    El control de acceso se maneja via @permitted_only decorator.
+    """
+    # Ya no se necesita registro de uso diario - acceso ilimitado para usuarios aprobados
+    # La función se mantiene para compatibilidad pero no hace nada
+    pass
 
 
 # ------------------------------------------------------------------

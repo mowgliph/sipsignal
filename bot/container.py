@@ -17,7 +17,10 @@ from bot.infrastructure.database.signal_repository import PostgreSQLSignalReposi
 from bot.infrastructure.database.user_repositories import (
     PostgreSQLDrawdownRepository,
     PostgreSQLUserConfigRepository,
+    PostgreSQLUserPreferenceRepository,
     PostgreSQLUserRepository,
+    PostgreSQLUserUsageStatsRepository,
+    PostgreSQLUserWatchlistRepository,
 )
 from bot.infrastructure.groq.groq_adapter import GroqAdapter
 from bot.infrastructure.telegram.screenshot_adapter import ScreenshotAdapter
@@ -48,6 +51,9 @@ class Container:
         self.user_config_repo = PostgreSQLUserConfigRepository()
         self.drawdown_repo = PostgreSQLDrawdownRepository()
         self.user_repo = PostgreSQLUserRepository()
+        self.user_watchlist_repo = PostgreSQLUserWatchlistRepository()
+        self.user_preference_repo = PostgreSQLUserPreferenceRepository()
+        self.user_usage_stats_repo = PostgreSQLUserUsageStatsRepository()
 
         self.run_signal_cycle = RunSignalCycle(
             market_data=self.market_data,

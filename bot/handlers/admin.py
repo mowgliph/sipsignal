@@ -30,7 +30,7 @@ from bot.core.config import (
     VERSION,
 )
 from bot.utils.ads_manager import add_ad, delete_ad, load_ads
-from bot.utils.file_manager import cargar_usuarios, migrate_user_timestamps
+from bot.utils.file_manager import migrate_user_timestamps
 from bot.utils.telemetry import (
     get_commands_per_user,
     get_daily_events,
@@ -224,8 +224,13 @@ async def send_broadcast(query, context: ContextTypes.DEFAULT_TYPE) -> int:
     text_to_send = context.user_data.get("ms_text", "")
     photo_id_to_send = context.user_data.get("ms_photo_id")
 
-    usuarios = cargar_usuarios()
-    chat_ids = list(usuarios.keys())
+    # Get container and repository
+    container = context.bot_data["container"]
+    user_repo = container.user_repo
+
+    # Get all users from PostgreSQL
+    usuarios = await user_repo.get_all()
+    chat_ids = [str(u["user_id"]) for u in usuarios]
 
     fallidos = await _enviar_mensaje_telegram_async_ref(
         text_to_send, chat_ids, photo=photo_id_to_send
@@ -234,7 +239,7 @@ async def send_broadcast(query, context: ContextTypes.DEFAULT_TYPE) -> int:
     total_enviados = len(chat_ids) - len(fallidos)
     if fallidos:
         # Mensaje 3a: Reporte de fallos
-        fallidos_reporte = [f"  - `{chat_id}`: _{error}_" for chat_id, error in fallidos.items()]
+        fallidos_reporte = [f"  - `{chat_id}`: _{error}_" for chat_id, error in fallidos.items()]
         fallidos_str = "\n".join(fallidos_reporte)
 
         mensaje_admin_base = _(
@@ -355,62 +360,45 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     chat_id_str = str(chat_id)
 
+    # Get container and repositories
+    container = context.bot_data["container"]
+    user_repo = container.user_repo
+    watchlist_repo = container.user_watchlist_repo
+    preference_repo = container.user_preference_repo
+
     # 1. CARGA DE DATOS (Centralizada)
-    usuarios = cargar_usuarios()
+    # Get all users from PostgreSQL
+    usuarios = await user_repo.get_all()
+    usuarios_dict = {str(u["user_id"]): u for u in usuarios}
+
     # Sistemas eliminados: price alerts, valerts, btc - mostrar 0
     all_alerts = {}
-    btc_subscribers = 0
 
     # Nota: Valerts fue eliminado - los contadores de ese servicio se muestran en 0
 
     # 2. VISTA DE USUARIO NORMAL (Perfil Propio)
     if chat_id not in ADMIN_CHAT_IDS:
-        user_data = usuarios.get(chat_id_str)
+        user_data = usuarios_dict.get(chat_id_str)
         if not user_data:
             await update.message.reply_text(_("❌ No estás registrado.", chat_id))
             return
 
-        # Calcular datos del usuario
-        monedas = user_data.get("monedas", [])
+        # Get user's watchlist coins from PostgreSQL
+        monedas = await watchlist_repo.get_coins(chat_id)
+        # Get user's HBD alerts preference from PostgreSQL
+        hbd_enabled = await preference_repo.get_hbd_alerts(chat_id)
+
         alerts_count = 0  # Sistema de alertas eliminado
 
         # Estados de servicios - BTC eliminado
         btc_status = "❌ Eliminado"
-        hbd_status = "✅ Activado" if user_data.get("hbd_alerts") else "❌ Desactivado"
+        hbd_status = "✅ Activado" if hbd_enabled else "❌ Desactivado"
 
-        # Suscripciones activas
-        subs = user_data.get("subscriptions", {})
-        active_subs = []
-        now = datetime.now()
-
-        map_names = {
-            "watchlist_bundle": "📦 Pack Control Total",
-            "tasa_vip": "💱 Tasa VIP",
-            "ta_vip": "📈 TA Pro",
-            "coins_extra": "🪙 Slot Moneda",
-            "alerts_extra": "🔔 Slot Alerta",
-        }
-
-        for key, val in subs.items():
-            # Tipo A: Por tiempo (active + expires)
-            if isinstance(val, dict) and val.get("active"):
-                exp = val.get("expires")
-                if exp:
-                    try:
-                        if datetime.strptime(exp, "%Y-%m-%d %H:%M:%S") > now:
-                            active_subs.append(
-                                f"• {map_names.get(key, key)} (Vence: {exp.split()[0]})"
-                            )
-                    except Exception:
-                        pass
-            # Tipo B: Por cantidad (qty > 0)
-            elif isinstance(val, dict) and val.get("qty", 0) > 0:
-                active_subs.append(f"• {map_names.get(key, key)} (+{val['qty']})")
-
-        subs_txt = "\n".join(active_subs) if active_subs else "_Sin suscripciones activas_"
+        # Nota: Suscripciones eliminadas - no se muestran
+        subs_txt = "_Sin suscripciones activas_"
 
         msg = (
-            f"👤 *TU PERFIL BITBREAD*\n"
+            f"👤 *TU PERFIL SIPSIGNAL*\n"
             f"—————————————————\n"
             f"🆔 ID: `{chat_id}`\n"
             f"🗣 Idioma: `{user_data.get('language', 'es')}`\n\n"
@@ -454,18 +442,6 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     new_7d = 0
     new_30d = 0
 
-    # Contadores VIP
-    vip_stats = {
-        "watchlist_bundle": 0,
-        "tasa_vip": 0,
-        "ta_vip": 0,
-        "coins_extra_users": 0,
-        "alerts_extra_users": 0,
-    }
-
-    # Suscripciones próximas a vencer (próximos 7 días)
-    subs_expiring_soon = 0
-
     # Contadores de Carga (Uso hoy)
     total_usage_today = 0
     usage_breakdown = Counter()
@@ -474,7 +450,6 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cutoff_24h = now - timedelta(hours=24)
     cutoff_7d = now - timedelta(days=7)
     cutoff_30d = now - timedelta(days=30)
-    expiry_window = now + timedelta(days=7)
 
     for _uid, u in usuarios.items():
         # 1. Actividad — BUG-1 FIX: usar last_seen (actividad real) con total_seconds
@@ -514,27 +489,6 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             lang_es += 1
 
-        # 4. VIP Check
-        subs = u.get("subscriptions", {})
-        # Check tiempo
-        for k in ["watchlist_bundle", "tasa_vip", "ta_vip"]:
-            s = subs.get(k, {})
-            if s.get("active") and s.get("expires"):
-                try:
-                    exp_dt = datetime.strptime(s["expires"], "%Y-%m-%d %H:%M:%S")
-                    if exp_dt > now:
-                        vip_stats[k] += 1
-                        # Verificar si vence en los próximos 7 días
-                        if exp_dt <= expiry_window:
-                            subs_expiring_soon += 1
-                except Exception:
-                    pass
-        # Check cantidad
-        if subs.get("coins_extra", {}).get("qty", 0) > 0:
-            vip_stats["coins_extra_users"] += 1
-        if subs.get("alerts_extra", {}).get("qty", 0) > 0:
-            vip_stats["alerts_extra_users"] += 1
-
         # 5. Uso Diario (Carga del Bot)
         daily = u.get("daily_usage", {})
         if daily.get("date") == now.strftime("%Y-%m-%d"):
@@ -553,19 +507,15 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 total_alerts_active += 1
                 coin_popularity[a["coin"]] += 1
 
-    top_coins = coin_popularity.most_common(5)
-    top_coins_str = ", ".join([f"{c[0]} ({c[1]})" for c in top_coins]) if top_coins else "N/A"
+    # top_coins removed - sistema de alertas eliminado
 
     # --- C. CÁLCULOS DE SERVICIOS (BTC, HBD, VALERTS) ---
 
     # 1. BTC - Sistema eliminado ya, se usa btc_subscribers = 0 (ya asignado antes)
 
     # 2. HBD
-    hbd_subscribers = sum(1 for u in usuarios.values() if u.get("hbd_alerts"))
 
     # 3. VALERTS (Volatilidad) - Sistema eliminado, mostrar 0
-    valerts_active_symbols_count = 0
-    valerts_total_users = 0
 
     # --- D. CÁLCULOS DE RECURSOS (RAM, CPU, Uptime) ---
     # BUG-5 FIX: Eliminar doble instanciación de psutil.Process — reusar proc_global
@@ -626,9 +576,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     size_file_esc = _clean_markdown(f"{size['file_size']:.2f}")
     total_usage_today_esc = _clean_markdown(total_usage_today)
     usage_ver_esc = _clean_markdown(usage_breakdown["ver"])
-    usage_tasa_esc = _clean_markdown(usage_breakdown["tasa"])
     usage_ta_esc = _clean_markdown(usage_breakdown["ta"])
-    total_alerts_active_esc = _clean_markdown(total_alerts_active)
     top_cmds_str_esc = _clean_markdown(top_cmds_str)
     total_users_esc = _clean_markdown(total_users)
     lang_es_esc = _clean_markdown(lang_es)
@@ -650,21 +598,9 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     daily_joins_esc = _clean_markdown(daily_events["joins_today"])
     daily_commands_esc = _clean_markdown(daily_events["commands_today"])
     cmd_avg_esc = _clean_markdown(cmd_stats["avg_per_user"])
-    daily_alerts_esc = _clean_markdown(daily_events["alerts_today"])
-    vip_watchlist_esc = _clean_markdown(vip_stats["watchlist_bundle"])
-    vip_tasa_esc = _clean_markdown(vip_stats["tasa_vip"])
-    vip_ta_esc = _clean_markdown(vip_stats["ta_vip"])
-    vip_coins_esc = _clean_markdown(vip_stats["coins_extra_users"])
-    vip_alerts_esc = _clean_markdown(vip_stats["alerts_extra_users"])
-    subs_expiring_esc = _clean_markdown(subs_expiring_soon)
-    btc_subscribers_esc = _clean_markdown(btc_subscribers)
-    hbd_subscribers_esc = _clean_markdown(hbd_subscribers)
-    valerts_total_users_esc = _clean_markdown(valerts_total_users)
-    valerts_symbols_esc = _clean_markdown(valerts_active_symbols_count)
-    top_coins_str_esc = _clean_markdown(top_coins_str)
     version_esc = _clean_markdown(VERSION)
-    now_str_esc = _clean_markdown(now.strftime("%d/%m/%Y %H:%M"))
-
+    now_str_esc = _clean_markdown(now.strftime("%Y-%m-%d %H:%M"))
+    top_coins_str_esc = _clean_markdown("")  # Sin datos de alertas
     dashboard = (
         f"👮‍♂️ *PANEL DE CONTROL* v{version_esc}\n"
         f"📅 {now_str_esc}\n"
@@ -677,8 +613,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"└ *DATA:* `{size_file_esc} MB`\n\n"
         f"⚙️ *CARGA DEL SISTEMA (Hoy)*\n"
         f"├ Comandos Procesados: `{total_usage_today_esc}`\n"
-        f"├ /ver: `{usage_ver_esc}` | /tasa: `{usage_tasa_esc}` | /ta: `{usage_ta_esc}`\n"
-        f"├ Alertas Cruce Vigilando: `{total_alerts_active_esc}`\n"
+        f"├ /ver: `{usage_ver_esc}` | /ta: `{usage_ta_esc}`\n"
         f"└ Top Comandos:\n{top_cmds_str_esc}\n\n"
         f"👥 *USUARIOS*\n"
         f"├ Totales: `{total_users_esc}` | 🇪🇸 {lang_es_esc} | 🇺🇸 {lang_en_esc}\n"
@@ -694,20 +629,9 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📈 *EVENTOS HOY*\n"
         f"├ Nuevos: `{daily_joins_esc}`\n"
         f"├ Comandos: `{daily_commands_esc}`\n"
-        f"├ Promedio/cmd: `{cmd_avg_esc}`\n"
-        f"└ Alertas: `{daily_alerts_esc}`\n\n"
-        f"💎 *NEGOCIO (Suscripciones Activas)*\n"
-        f"├ 📦 Pack Control Total: `{vip_watchlist_esc}`\n"
-        f"├ 💱 Tasa VIP: `{vip_tasa_esc}`\n"
-        f"├ 📈 TA Pro: `{vip_ta_esc}`\n"
-        f"├ ➕ Extras: `{vip_coins_esc}` Coins | `{vip_alerts_esc}` Alertas\n"
-        f"└ ⚠️ Próximas a vencer (7d): `{subs_expiring_esc}`\n\n"
-        f"📢 *SERVICIOS DE NOTIFICACIÓN*\n"
-        f"├ 🦁 Monitor BTC: `{btc_subscribers_esc}` usuarios\n"
-        f"├ 🐝 Monitor HBD: `{hbd_subscribers_esc}` usuarios\n"
-        f"└ 🚀 Valerts: `{valerts_total_users_esc}` usuarios en `{valerts_symbols_esc}` monedas\n\n"
+        f"└ Promedio/cmd: `{cmd_avg_esc}`\n\n"
         f"🏆 *TENDENCIAS DE MERCADO*\n"
-        f"🔥 Top Monedas Vigiladas:\n"
+        f"🔥 Top Monedas:\n"
         f"`{top_coins_str_esc}`\n"
     )
 
@@ -856,11 +780,19 @@ async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         str(ultima_actualizacion).replace("_", " ").replace("*", " ").replace("`", " ")
     )
 
+    # Get container and repository
+    container = context.bot_data["container"]
+    user_repo = container.user_repo
+
+    # Get user count from PostgreSQL
+    usuarios = await user_repo.get_all()
+    num_usuarios = len(usuarios)
+
     mensaje = mensaje_template.format(
         version=safe_version,
         pid=safe_pid,
         python_version=safe_python_version,
-        num_usuarios=len(cargar_usuarios()),
+        num_usuarios=num_usuarios,
         estado=safe_estado,
         ultima_actualizacion=safe_ultima_actualizacion,
         num_lineas=len(log_data_n_lines),

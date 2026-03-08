@@ -1,0 +1,13 @@
+LICENSE
+README.md
+pyproject.toml
+sipsignal.egg-info/PKG-INFO
+sipsignal.egg-info/SOURCES.txt
+sipsignal.egg-info/dependency_links.txt
+sipsignal.egg-info/requires.txt
+sipsignal.egg-info/top_level.txt
+tests/test_atr.py
+tests/test_drawdown_manager.py
+tests/test_example.py
+tests/test_signal_builder.py
+tests/test_strategy_engine.py

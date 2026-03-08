@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 import asyncpg
 
@@ -237,3 +237,176 @@ class PostgreSQLUserRepository(UserRepository):
             user_id,
         )
         return result.startswith("UPDATE") and int(result.split()[-1]) > 0
+
+
+class PostgreSQLUserWatchlistRepository:
+    """Repository for user watchlists (crypto coins)."""
+
+    async def get_coins(self, user_id: int) -> list[str]:
+        """Get user's watchlist coins."""
+        record = await database.fetchrow(
+            "SELECT coins FROM user_watchlists WHERE user_id = $1",
+            user_id,
+        )
+        return record["coins"] if record and record["coins"] else []
+
+    async def set_coins(self, user_id: int, coins: list[str]) -> None:
+        """Set user's watchlist coins."""
+        await database.execute(
+            """
+            INSERT INTO user_watchlists (user_id, coins, updated_at)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id) DO UPDATE SET
+                coins = EXCLUDED.coins,
+                updated_at = EXCLUDED.updated_at
+            """,
+            user_id,
+            coins,
+            datetime.now(UTC),
+        )
+
+    async def add_coin(self, user_id: int, coin: str) -> None:
+        """Add a coin to user's watchlist."""
+        current = await self.get_coins(user_id)
+        if coin not in current:
+            current.append(coin)
+            await self.set_coins(user_id, current)
+
+    async def remove_coin(self, user_id: int, coin: str) -> None:
+        """Remove a coin from user's watchlist."""
+        current = await self.get_coins(user_id)
+        if coin in current:
+            current.remove(coin)
+            await self.set_coins(user_id, current)
+
+
+class PostgreSQLUserPreferenceRepository:
+    """Repository for user preferences."""
+
+    async def get_hbd_alerts(self, user_id: int) -> bool:
+        """Get user's HBD alerts preference."""
+        record = await database.fetchrow(
+            "SELECT hbd_alerts FROM user_preferences WHERE user_id = $1",
+            user_id,
+        )
+        return record["hbd_alerts"] if record else False
+
+    async def set_hbd_alerts(self, user_id: int, enabled: bool) -> None:
+        """Set user's HBD alerts preference."""
+        await database.execute(
+            """
+            INSERT INTO user_preferences (user_id, hbd_alerts, updated_at)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id) DO UPDATE SET
+                hbd_alerts = EXCLUDED.hbd_alerts,
+                updated_at = EXCLUDED.updated_at
+            """,
+            user_id,
+            enabled,
+            datetime.now(UTC),
+        )
+
+    async def get_alert_interval(self, user_id: int) -> float:
+        """Get user's alert interval in hours."""
+        record = await database.fetchrow(
+            "SELECT alerta_interval_hours FROM user_preferences WHERE user_id = $1",
+            user_id,
+        )
+        return float(record["alerta_interval_hours"]) if record else 1.0
+
+    async def set_alert_interval(self, user_id: int, hours: float) -> None:
+        """Set user's alert interval in hours."""
+        await database.execute(
+            """
+            INSERT INTO user_preferences (user_id, alerta_interval_hours, updated_at)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id) DO UPDATE SET
+                alerta_interval_hours = EXCLUDED.alerta_interval_hours,
+                updated_at = EXCLUDED.updated_at
+            """,
+            user_id,
+            hours,
+            datetime.now(UTC),
+        )
+
+
+class PostgreSQLUserUsageStatsRepository:
+    """Repository for daily user usage statistics."""
+
+    async def get_today_stats(self, user_id: int) -> dict:
+        """Get today's usage statistics."""
+        today = datetime.now(UTC).date()
+        record = await database.fetchrow(
+            """
+            SELECT ver_count, ta_count, temp_changes_count, btc_count, graf_count
+            FROM user_usage_stats
+            WHERE user_id = $1 AND usage_date = $2
+            """,
+            user_id,
+            today,
+        )
+        if not record:
+            return {
+                "ver": 0,
+                "ta": 0,
+                "temp_changes": 0,
+                "btc": 0,
+                "graf": 0,
+            }
+        return {
+            "ver": record["ver_count"] or 0,
+            "ta": record["ta_count"] or 0,
+            "temp_changes": record["temp_changes_count"] or 0,
+            "btc": record["btc_count"] or 0,
+            "graf": record["graf_count"] or 0,
+        }
+
+    async def increment_stat(self, user_id: int, stat_type: str) -> None:
+        """Increment a specific stat counter for today."""
+        today = datetime.now(UTC).date()
+        column_map = {
+            "ver": "ver_count",
+            "ta": "ta_count",
+            "temp_changes": "temp_changes_count",
+            "btc": "btc_count",
+            "graf": "graf_count",
+        }
+        column = column_map.get(stat_type)
+        if not column:
+            return
+
+        await database.execute(
+            f"""
+            INSERT INTO user_usage_stats (user_id, usage_date, {column})
+            VALUES ($1, $2, 1)
+            ON CONFLICT (user_id, usage_date) DO UPDATE SET
+                {column} = user_usage_stats.{column} + 1,
+                updated_at = NOW()
+            """,
+            user_id,
+            today,
+        )
+
+    async def get_historical_stats(self, user_id: int, days: int = 30) -> list[dict]:
+        """Get historical usage statistics for the last N days."""
+        records = await database.fetch(
+            """
+            SELECT usage_date, ver_count, ta_count, temp_changes_count, btc_count, graf_count
+            FROM user_usage_stats
+            WHERE user_id = $1 AND usage_date >= $2
+            ORDER BY usage_date DESC
+            """,
+            user_id,
+            datetime.now(UTC).date() - __import__("datetime").timedelta(days=days),
+        )
+        return [
+            {
+                "date": r["usage_date"],
+                "ver": r["ver_count"] or 0,
+                "ta": r["ta_count"] or 0,
+                "temp_changes": r["temp_changes_count"] or 0,
+                "btc": r["btc_count"] or 0,
+                "graf": r["graf_count"] or 0,
+            }
+            for r in records
+        ]
