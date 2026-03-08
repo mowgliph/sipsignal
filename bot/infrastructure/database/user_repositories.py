@@ -4,7 +4,7 @@ import asyncpg
 
 from bot.core import database
 from bot.domain.drawdown_state import DrawdownState
-from bot.domain.ports.repositories import DrawdownRepository, UserConfigRepository
+from bot.domain.ports.repositories import DrawdownRepository, UserConfigRepository, UserRepository
 from bot.domain.user_config import UserConfig
 
 
@@ -147,3 +147,93 @@ class PostgreSQLDrawdownRepository(DrawdownRepository):
         if result is None:
             raise RuntimeError("Failed to reset drawdown state")
         return result
+
+
+class PostgreSQLUserRepository(UserRepository):
+    async def get(self, user_id: int) -> dict | None:
+        record = await database.fetchrow(
+            "SELECT * FROM users WHERE user_id = $1",
+            user_id,
+        )
+        return dict(record) if record else None
+
+    async def save(self, user: dict) -> None:
+        now = datetime.now()
+        await database.execute(
+            """
+            INSERT INTO users (user_id, language, registered_at, last_seen, is_active, status)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (user_id) DO UPDATE SET
+                language = EXCLUDED.language,
+                last_seen = EXCLUDED.last_seen,
+                is_active = EXCLUDED.is_active,
+                status = EXCLUDED.status,
+                updated_at = NOW()
+            """,
+            user["user_id"],
+            user.get("language", "es"),
+            user.get("registered_at", now),
+            user.get("last_seen", now),
+            user.get("is_active", True),
+            user.get("status", "non_permitted"),
+        )
+
+    async def get_all(self) -> list[dict]:
+        records = await database.fetch("SELECT * FROM users ORDER BY registered_at DESC")
+        return [dict(r) for r in records]
+
+    async def get_by_status(self, status: str) -> list[dict]:
+        records = await database.fetch(
+            "SELECT * FROM users WHERE status = $1 ORDER BY registered_at DESC",
+            status,
+        )
+        return [dict(r) for r in records]
+
+    async def update_last_seen(self, user_id: int) -> None:
+        await database.execute(
+            "UPDATE users SET last_seen = $1, is_active = TRUE WHERE user_id = $2",
+            datetime.now(),
+            user_id,
+        )
+
+    async def get_user_status(self, user_id: int) -> str | None:
+        record = await database.fetchrow("SELECT status FROM users WHERE user_id = $1", user_id)
+        return record["status"] if record else None
+
+    async def request_access(self, user_id: int) -> bool:
+        now = datetime.now()
+        result = await database.execute(
+            """
+            UPDATE users
+            SET status = 'pending', requested_at = $2
+            WHERE user_id = $1
+            """,
+            user_id,
+            now,
+        )
+        return result.startswith("UPDATE") and int(result.split()[-1]) > 0
+
+    async def approve_user(self, user_id: int) -> bool:
+        result = await database.execute(
+            "UPDATE users SET status = 'approved' WHERE user_id = $1",
+            user_id,
+        )
+        return result.startswith("UPDATE") and int(result.split()[-1]) > 0
+
+    async def deny_user(self, user_id: int) -> bool:
+        result = await database.execute(
+            """
+            UPDATE users
+            SET status = 'non_permitted', requested_at = NULL
+            WHERE user_id = $1
+            """,
+            user_id,
+        )
+        return result.startswith("UPDATE") and int(result.split()[-1]) > 0
+
+    async def make_admin(self, user_id: int) -> bool:
+        result = await database.execute(
+            "UPDATE users SET status = 'admin' WHERE user_id = $1",
+            user_id,
+        )
+        return result.startswith("UPDATE") and int(result.split()[-1]) > 0
