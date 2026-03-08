@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-from trading.technical_analysis import calculate_all, calculate_atr_levels
+
+from bot.trading.technical_analysis import calculate_all, calculate_atr_levels
 
 
 def _create_test_df() -> pd.DataFrame:

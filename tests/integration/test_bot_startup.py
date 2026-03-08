@@ -20,7 +20,7 @@ def test_data_directories():
 
 def test_handler_registration_pattern():
     """Verifica el patrón de registro de handlers."""
-    with open("sipsignal.py") as f:
+    with open("bot/main.py") as f:
         content = f.read()
 
     required_handlers = [
@@ -40,10 +40,10 @@ def test_no_syntax_errors():
     import py_compile
 
     files_to_check = [
-        "sipsignal.py",
-        "handlers/admin.py",
-        "handlers/general.py",
-        "core/config.py",
+        "bot/main.py",
+        "bot/handlers/admin.py",
+        "bot/handlers/general.py",
+        "bot/core/config.py",
     ]
 
     for file_path in files_to_check:
@@ -58,7 +58,7 @@ def test_no_syntax_errors():
 
 def test_bot_initialization_structure():
     """Verifica la estructura de inicialización del bot."""
-    with open("sipsignal.py") as f:
+    with open("bot/main.py") as f:
         content = f.read()
 
     assert "def main():" in content
