@@ -5,13 +5,13 @@ Provides event tracking, user analytics, and historical data storage
 for monitoring bot usage and user engagement.
 """
 
+import asyncio
 import json
 import os
 import time
 from collections import defaultdict
 from contextlib import contextmanager, suppress
 from datetime import datetime, timedelta
-from threading import Lock
 from typing import Any
 
 from bot.core.config import EVENTS_LOG_PATH
@@ -27,7 +27,7 @@ LOCK_TIMEOUT_SECONDS = 5
 VALID_EVENT_TYPES = {"user_joined", "command_used", "alert_triggered", "subscription_started"}
 
 # --- Thread Safety ---
-_file_lock = Lock()
+_file_lock = asyncio.Lock()
 
 
 class TelemetryError(Exception):
