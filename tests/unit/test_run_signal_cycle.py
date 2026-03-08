@@ -154,7 +154,7 @@ async def test_execute_returns_none_when_active_trade_exists():
     use_case = RunSignalCycle(market_data, signal_repo, trade_repo, chart, ai, notifier, admin_ids)
 
     with patch("bot.trading.technical_analysis.calculate_all", mock_calculate_all):
-        result = await use_case.execute(UserConfig(user_id=1, timeframe="1h"))
+        result = await use_case.execute(UserConfig(user_id=1, chat_id=1, timeframe="1h"))
 
     assert result is None
 
@@ -173,7 +173,7 @@ async def test_execute_detects_long_signal():
     use_case = RunSignalCycle(market_data, signal_repo, trade_repo, chart, ai, notifier, admin_ids)
 
     with patch("bot.trading.technical_analysis.calculate_all", mock_calculate_all):
-        result = await use_case.execute(UserConfig(user_id=1, timeframe="1h"))
+        result = await use_case.execute(UserConfig(user_id=1, chat_id=1, timeframe="1h"))
 
     assert result is not None
     assert result.direction == "LONG"
@@ -194,7 +194,7 @@ async def test_execute_detects_short_signal():
     use_case = RunSignalCycle(market_data, signal_repo, trade_repo, chart, ai, notifier, admin_ids)
 
     with patch("bot.trading.technical_analysis.calculate_all", mock_calculate_all):
-        result = await use_case.execute(UserConfig(user_id=1, timeframe="1h"))
+        result = await use_case.execute(UserConfig(user_id=1, chat_id=1, timeframe="1h"))
 
     assert result is not None
     assert result.direction == "SHORT"
@@ -252,7 +252,7 @@ async def test_execute_returns_none_without_signal():
     use_case = RunSignalCycle(market_data, signal_repo, trade_repo, chart, ai, notifier, admin_ids)
 
     with patch("bot.trading.technical_analysis.calculate_all", mock_calculate_all):
-        result = await use_case.execute(UserConfig(user_id=1, timeframe="1h"))
+        result = await use_case.execute(UserConfig(user_id=1, chat_id=1, timeframe="1h"))
 
     assert result is None
 
@@ -271,7 +271,7 @@ async def test_execute_sends_to_all_admins():
     use_case = RunSignalCycle(market_data, signal_repo, trade_repo, chart, ai, notifier, admin_ids)
 
     with patch("bot.trading.technical_analysis.calculate_all", mock_calculate_all):
-        await use_case.execute(UserConfig(user_id=1, timeframe="1h"))
+        await use_case.execute(UserConfig(user_id=1, chat_id=1, timeframe="1h"))
 
     assert len(notifier.sent_signals) == 3
     assert notifier.sent_signals[0]["chat_id"] == 111
@@ -294,7 +294,7 @@ async def test_execute_ai_failure_uses_empty_string():
     use_case = RunSignalCycle(market_data, signal_repo, trade_repo, chart, ai, notifier, admin_ids)
 
     with patch("bot.trading.technical_analysis.calculate_all", mock_calculate_all):
-        result = await use_case.execute(UserConfig(user_id=1, timeframe="1h"))
+        result = await use_case.execute(UserConfig(user_id=1, chat_id=1, timeframe="1h"))
 
     assert result is not None
     assert notifier.sent_signals[0]["ai_context"] == ""
@@ -312,6 +312,6 @@ async def test_execute_returns_none_on_exception():
 
     use_case = RunSignalCycle(market_data, signal_repo, trade_repo, chart, ai, notifier, admin_ids)
 
-    result = await use_case.execute(UserConfig(user_id=1, timeframe="1h"))
+    result = await use_case.execute(UserConfig(user_id=1, chat_id=1, timeframe="1h"))
 
     assert result is None

@@ -1,6 +1,12 @@
+import os
+import sys
+
 import numpy as np
 import pandas as pd
-from trading.technical_analysis import calculate_ash
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from bot.trading.technical_analysis import calculate_ash
 
 
 def _create_sample_df(n_candles: int = 200, start_price: float = 100.0) -> pd.DataFrame:

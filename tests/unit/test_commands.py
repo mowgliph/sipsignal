@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def test_command_status_registered():
     """Verifica que /status está registrado como alias de /logs."""
-    with open("sipsignal.py") as f:
+    with open("bot/main.py") as f:
         content = f.read()
 
     # Buscar la línea exacta
@@ -28,7 +28,7 @@ def test_command_status_registered():
 
 def test_all_basic_commands_exist():
     """Verifica que todos los comandos básicos existen."""
-    with open("sipsignal.py") as f:
+    with open("bot/main.py") as f:
         content = f.read()
 
     basic_commands = ["start", "help", "myid", "ver", "status", "logs"]

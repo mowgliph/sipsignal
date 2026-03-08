@@ -2,10 +2,14 @@
 Tests para journal_handler.py - /journal y /active commands
 """
 
+import os
+import sys
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 class TestJournalEmojiMapping:
@@ -24,7 +28,7 @@ class TestJournalEmojiMapping:
     )
     def test_emoji_mapping(self, result, status, expected_emoji):
         """Verifica que el emoji correcto se asigna según result y status"""
-        from handlers.journal_handler import get_signal_emoji
+        from bot.handlers.journal_handler import get_signal_emoji
 
         emoji = get_signal_emoji(result, status)
         assert emoji == expected_emoji
@@ -35,7 +39,7 @@ class TestJournalStats:
 
     def test_calculate_stats_empty(self):
         """Estadísticas con lista vacía"""
-        from handlers.journal_handler import calculate_journal_stats
+        from bot.handlers.journal_handler import calculate_journal_stats
 
         stats = calculate_journal_stats([])
         assert stats["total"] == 0
@@ -46,7 +50,7 @@ class TestJournalStats:
 
     def test_calculate_stats_with_signals(self):
         """Estadísticas con señales de prueba"""
-        from handlers.journal_handler import calculate_journal_stats
+        from bot.handlers.journal_handler import calculate_journal_stats
 
         signals = [
             {"result": "GANADA", "pnl_usdt": 100},
@@ -68,7 +72,7 @@ class TestJournalStats:
 
     def test_best_worst_streak(self):
         """Cálculo de rachas"""
-        from handlers.journal_handler import calculate_journal_stats
+        from bot.handlers.journal_handler import calculate_journal_stats
 
         # W, W, W, L, L, W, W, L, W
         signals = [
@@ -93,7 +97,7 @@ class TestJournalFormat:
 
     def test_format_signal_line(self):
         """Formatear una línea de señal"""
-        from handlers.journal_handler import format_signal_line
+        from bot.handlers.journal_handler import format_signal_line
 
         signal = {
             "detected_at": datetime(2026, 3, 15, 14, 30, tzinfo=UTC),
@@ -112,7 +116,7 @@ class TestJournalFormat:
 
     def test_format_stats_block(self):
         """Formatear bloque de estadísticas"""
-        from handlers.journal_handler import format_stats_block
+        from bot.handlers.journal_handler import format_stats_block
 
         stats = {
             "total": 10,
@@ -142,7 +146,7 @@ class TestActiveTrades:
     @pytest.mark.asyncio
     async def test_get_active_trades(self):
         """Obtener trades activos"""
-        from handlers.journal_handler import get_active_trades
+        from bot.handlers.journal_handler import get_active_trades
 
         mock_signals = [
             {
@@ -161,10 +165,10 @@ class TestActiveTrades:
             },
         ]
 
-        with patch("handlers.journal_handler.fetch") as mock_fetch:
+        with patch("bot.handlers.journal_handler.fetch") as mock_fetch:
             mock_fetch.return_value = mock_signals
 
-            with patch("handlers.journal_handler.BinanceDataFetcher") as mock_fetcher:
+            with patch("bot.handlers.journal_handler.BinanceDataFetcher") as mock_fetcher:
                 mock_instance = AsyncMock()
                 mock_instance.get_current_price.return_value = 45250.00
                 mock_fetcher.return_value.__aenter__.return_value = mock_instance
@@ -177,7 +181,7 @@ class TestActiveTrades:
     @pytest.mark.asyncio
     async def test_format_active_trade(self):
         """Formatear trade activo con precios"""
-        from handlers.journal_handler import format_active_trade
+        from bot.handlers.journal_handler import format_active_trade
 
         trade = {
             "id": 1,

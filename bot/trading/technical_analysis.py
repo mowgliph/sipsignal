@@ -4,6 +4,7 @@ Supertrend, ASH, ATR — port desde Pine Script.
 
 import numpy as np
 import pandas as pd
+import pandas_ta  # noqa: F401 - Needed for df.ta accessor
 
 
 def _alma(s: pd.Series, length: int, offset: float = 0.85, sigma: float = 6) -> pd.Series:
