@@ -48,7 +48,6 @@ from bot.handlers.signal_response_handler import process_signal_timeout, signal_
 from bot.handlers.ta import ai_analysis_callback, ta_command, ta_switch_callback
 from bot.handlers.trading import mk_command, p_command, refresh_command_callback, ta_quick_callback
 from bot.handlers.user_settings import lang_command, set_language_callback
-from bot.scheduler import SignalScheduler
 from bot.trading.drawdown_manager import update_drawdown
 from bot.trading.price_monitor import get_price_monitor, start_price_monitor
 from bot.utils.file_manager import add_log_line, cargar_usuarios, guardar_usuarios
@@ -213,13 +212,31 @@ async def post_init(app: Application):
     except Exception as e:
         logger.error(f"⚠️ Fallo al enviar notificación de inicio a los admins: {e}")
 
-    # Iniciar SignalScheduler
+    # Ejecutar ciclo de señales via Container
     try:
-        scheduler = SignalScheduler()
-        asyncio.create_task(scheduler.start(app.bot))
-        logger.info("✅ SignalScheduler iniciado")
+        container = app.bot_data.get("container")
+        if container is None:
+            raise RuntimeError("Container not found in bot_data")
+
+        admin_id = settings.admin_chat_ids[0] if settings.admin_chat_ids else None
+        if admin_id is None:
+            logger.warning("No admin_chat_ids configured - skipping signal cycle")
+        else:
+            user_config = await container.user_config_repo.get(admin_id)
+            if user_config is None:
+                from bot.domain.user_config import UserConfig
+
+                user_config = UserConfig(
+                    user_id=admin_id,
+                    chat_id=admin_id,
+                    timeframe="4h",
+                )
+
+            await container.run_signal_cycle.execute(user_config)
+            logger.info("✅ Signal cycle executed via Container")
+
     except Exception as e:
-        logger.error(f"❌ Error al iniciar SignalScheduler: {e}")
+        logger.error(f"❌ Error al ejecutar signal cycle: {e}")
 
     # Iniciar PriceMonitor (WebSocket TP/SL)
     try:
@@ -241,6 +258,11 @@ def main():
 
     builder = ApplicationBuilder().token(settings.token_telegram)
     app = builder.build()
+
+    from bot.container import Container
+
+    container = Container(settings=settings, bot=app.bot)
+    app.bot_data["container"] = container
 
     # 1. FUNCIÓN DE ENVÍO DE MENSAJES
     async def enviar_mensajes(
