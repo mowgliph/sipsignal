@@ -3,13 +3,16 @@ Tests para strategy_engine.
 """
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
 import pytest
 
-from bot.trading.strategy_engine import Database, SignalDTO, UserConfig, run_cycle
+from bot.domain.active_trade import ActiveTrade
+from bot.domain.ports.market_data_port import MarketDataPort
+from bot.domain.ports.repositories import ActiveTradeRepository
+from bot.trading.strategy_engine import SignalDTO, UserConfig, run_cycle
 
 
 def _create_test_df() -> pd.DataFrame:
@@ -61,6 +64,36 @@ def _create_mock_df_with_signals(
     return mock_df
 
 
+class MockActiveTradeRepository(ActiveTradeRepository):
+    """Mock repository for active trades."""
+
+    def __init__(self, active_trade: ActiveTrade | None = None):
+        self._active_trade = active_trade
+
+    async def save(self, trade: ActiveTrade) -> ActiveTrade:
+        self._active_trade = trade
+        return trade
+
+    async def get_active(self) -> ActiveTrade | None:
+        return self._active_trade
+
+    async def update(self, trade: ActiveTrade) -> None:
+        self._active_trade = trade
+
+    async def close(self, trade_id: int, status: str) -> None:
+        self._active_trade = None
+
+
+class MockMarketDataPort(MarketDataPort):
+    """Mock market data port."""
+
+    def __init__(self, df: pd.DataFrame):
+        self._df = df
+
+    async def get_ohlcv(self, symbol: str, timeframe: str, limit: int = 200) -> pd.DataFrame:
+        return self._df
+
+
 class TestReturnsNoneIfActiveTrade:
     """Tests para verificar que no hay señal cuando hay trade activo."""
 
@@ -71,18 +104,23 @@ class TestReturnsNoneIfActiveTrade:
 
         mock_df = _create_test_df()
 
-        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as mock_fetcher:
-            mock_instance = AsyncMock()
-            mock_instance.get_ohlcv = AsyncMock(return_value=mock_df)
-            mock_instance.close = AsyncMock()
-            mock_fetcher.return_value = mock_instance
+        mock_trade = ActiveTrade(
+            id=1,
+            signal_id=1,
+            direction="LONG",
+            entry_price=100.0,
+            tp1_level=105.0,
+            sl_level=97.0,
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        )
 
-            with patch.object(Database, "fetch_active_trade", new_callable=AsyncMock) as mock_db:
-                mock_db.return_value = {"id": 1, "direction": "LONG"}
+        trade_repo = MockActiveTradeRepository(active_trade=mock_trade)
+        market_data = MockMarketDataPort(df=mock_df)
 
-                result = await run_cycle(config)
+        result = await run_cycle(config, trade_repo, market_data)
 
-                assert result is None
+        assert result is None
 
 
 class TestLongSignal:
@@ -97,26 +135,18 @@ class TestLongSignal:
             is_bullish=True, ash_signal=True, rr_ratio=1.5, direction="LONG"
         )
 
-        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as mock_fetcher:
-            mock_instance = AsyncMock()
-            mock_instance.get_ohlcv = AsyncMock(return_value=mock_df)
-            mock_instance.close = AsyncMock()
-            mock_fetcher.return_value = mock_instance
+        trade_repo = MockActiveTradeRepository(active_trade=None)
+        market_data = MockMarketDataPort(df=mock_df)
 
-            with (
-                patch("bot.trading.strategy_engine.calculate_all", return_value=mock_df),
-                patch.object(Database, "fetch_active_trade", new_callable=AsyncMock) as mock_db,
-            ):
-                mock_db.return_value = None
+        with patch("bot.trading.strategy_engine.calculate_all", return_value=mock_df):
+            result = await run_cycle(config, trade_repo, market_data)
 
-                result = await run_cycle(config)
-
-                assert result is not None
-                assert result.direction == "LONG"
-                assert result.entry_price == mock_df["close"].iloc[-1]
-                assert result.tp1_level == mock_df["long_tp"].iloc[-1]
-                assert result.sl_level == mock_df["long_sl"].iloc[-1]
-                assert result.rr_ratio >= 1.0
+            assert result is not None
+            assert result.direction == "LONG"
+            assert result.entry_price == mock_df["close"].iloc[-1]
+            assert result.tp1_level == mock_df["long_tp"].iloc[-1]
+            assert result.sl_level == mock_df["long_sl"].iloc[-1]
+            assert result.rr_ratio >= 1.0
 
 
 class TestRrRatio:
@@ -131,21 +161,13 @@ class TestRrRatio:
             is_bullish=True, ash_signal=True, rr_ratio=0.8, direction="LONG"
         )
 
-        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as mock_fetcher:
-            mock_instance = AsyncMock()
-            mock_instance.get_ohlcv = AsyncMock(return_value=mock_df)
-            mock_instance.close = AsyncMock()
-            mock_fetcher.return_value = mock_instance
+        trade_repo = MockActiveTradeRepository(active_trade=None)
+        market_data = MockMarketDataPort(df=mock_df)
 
-            with (
-                patch("bot.trading.strategy_engine.calculate_all", return_value=mock_df),
-                patch.object(Database, "fetch_active_trade", new_callable=AsyncMock) as mock_db,
-            ):
-                mock_db.return_value = None
+        with patch("bot.trading.strategy_engine.calculate_all", return_value=mock_df):
+            result = await run_cycle(config, trade_repo, market_data)
 
-                result = await run_cycle(config)
-
-                assert result is None
+            assert result is None
 
 
 class TestShortSignal:
@@ -160,25 +182,17 @@ class TestShortSignal:
             is_bullish=False, ash_signal=True, rr_ratio=1.5, direction="SHORT"
         )
 
-        with patch("bot.trading.strategy_engine.BinanceDataFetcher") as mock_fetcher:
-            mock_instance = AsyncMock()
-            mock_instance.get_ohlcv = AsyncMock(return_value=mock_df)
-            mock_instance.close = AsyncMock()
-            mock_fetcher.return_value = mock_instance
+        trade_repo = MockActiveTradeRepository(active_trade=None)
+        market_data = MockMarketDataPort(df=mock_df)
 
-            with (
-                patch("bot.trading.strategy_engine.calculate_all", return_value=mock_df),
-                patch.object(Database, "fetch_active_trade", new_callable=AsyncMock) as mock_db,
-            ):
-                mock_db.return_value = None
+        with patch("bot.trading.strategy_engine.calculate_all", return_value=mock_df):
+            result = await run_cycle(config, trade_repo, market_data)
 
-                result = await run_cycle(config)
-
-                assert result is not None
-                assert result.direction == "SHORT"
-                assert result.entry_price == mock_df["close"].iloc[-1]
-                assert result.tp1_level == mock_df["short_tp"].iloc[-1]
-                assert result.sl_level == mock_df["short_sl"].iloc[-1]
+            assert result is not None
+            assert result.direction == "SHORT"
+            assert result.entry_price == mock_df["close"].iloc[-1]
+            assert result.tp1_level == mock_df["short_tp"].iloc[-1]
+            assert result.sl_level == mock_df["short_sl"].iloc[-1]
 
 
 class TestSignalDTO:
