@@ -72,12 +72,6 @@ def migrate_user_timestamps():
     return {"migrated": migrated, "already_had": already_had, "failed": failed}
 
 
-# === Inicialización de Archivos ===
-def inicializar_archivos():
-    """Crea los archivos si no existen."""
-    pass  # No se necesita inicialización adicional
-
-
 def add_log_line(linea):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     LOG_LINES.append(f"[{timestamp}] | {linea}")
@@ -96,16 +90,6 @@ def load_last_prices_status():
     except (json.JSONDecodeError, FileNotFoundError):
         return {}
 
-
-def save_last_prices_status(data: dict):
-    try:
-        with open(LAST_PRICES_PATH, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4)
-    except Exception as e:
-        logger.error(f"❌ Error guardando last_prices.json: {e}")
-
-
-inicializar_archivos()
 
 # === GESTIÓN DE USUARIOS ===
 
