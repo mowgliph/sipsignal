@@ -13,7 +13,6 @@ from bot.utils.ads_manager import get_random_ad_text
 from bot.utils.file_manager import (
     check_feature_access,
     load_last_prices_status,
-    obtener_datos_usuario,
     obtener_monedas_usuario,
     registrar_uso_comando,
 )
@@ -186,22 +185,26 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
 
-    # 1. Obtener los datos del usuario del JSON
-    datos_usuario = obtener_datos_usuario(user_id)
+    # 1. Get container from context
+    container = context.bot_data["container"]
+    user_repo = container.user_repo
 
-    # 2. Obtener el idioma (por defecto español)
-    # Nota: Asegúrate de usar 'language', que es como se guarda en file_manager.py
-    lang = datos_usuario.get("language", "es")
+    # 2. Obtain user data from repository
+    datos_usuario = await user_repo.get(user_id)
 
-    # 3. Validación extra por seguridad
+    # 3. Obtain language (default Spanish)
+    # Note: Repository uses 'language' field
+    lang = datos_usuario.get("language", "es") if datos_usuario else "es"
+
+    # 4. Extra validation for safety
     if lang not in ["es", "en"]:
         lang = "es"
 
-    # 4. Obtener el texto directamente del diccionario HELP_MSG
-    # Si por alguna razón falla el idioma, usa español como respaldo
+    # 5. Get text directly from HELP_MSG dictionary
+    # If language fails for some reason, use Spanish as fallback
     texto = HELP_MSG.get(lang, HELP_MSG["es"])
 
-    # 5. Enviar mensaje
+    # 6. Send message
     await update.message.reply_text(
         text=texto, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True
     )
