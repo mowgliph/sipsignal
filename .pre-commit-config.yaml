@@ -6,7 +6,7 @@ default_language_version:
 default_stages: [commit]
 
 repos:
-  # Ruff - Linter and formatter
+  # Ruff - Linter y formatter
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.0
     hooks:
@@ -14,7 +14,7 @@ repos:
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
 
-  # Standard pre-commit hooks
+  # Hooks estándar de pre-commit
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -27,12 +27,12 @@ repos:
       - id: check-merge-conflict
       - id: check-case-conflict
 
-  # Custom hook: validate associated tests
+  # Hook custom: validar tests asociados
   - repo: local
     hooks:
       - id: validate-tests
         name: Validate tests associated
-        entry: python hooks/validate_tests.py
+        entry: python bot/hooks/validate_tests.py
         language: system
         pass_filenames: false
         always_run: true

@@ -153,6 +153,37 @@ pytest tests/integration/ -v
 
 ---
 
+## Pre-commit Hooks
+
+SipSignal utiliza pre-commit hooks para asegurar calidad de código antes de cada commit.
+
+### Instalación
+
+```bash
+# Instalar dependencias de desarrollo
+pip install -e ".[dev]"
+
+# Instalar hooks
+pre-commit install
+```
+
+### Hooks configurados
+
+| Hook | Descripción |
+|------|-------------|
+| ruff | Lint con auto-fix |
+| ruff-format | Formato de código |
+| trailing-whitespace | Elimina espacios extra |
+| end-of-file-fixer | Newline al final |
+| check-yaml | Valida YAML |
+| check-added-large-files | Previene archivos >1MB |
+| check-merge-conflict | Detecta conflictos |
+| validate-tests | Valida tests asociados (warning) |
+
+Ver [docs/pre-commit-hooks.md](docs/pre-commit-hooks.md) para más detalles.
+
+---
+
 ## Variables de Entorno
 
 | Variable | Descripción | Requerida |
