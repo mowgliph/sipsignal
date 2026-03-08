@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### 🔴 Critical Fixes
+
+- **Dual Storage Architecture** - Migrated user data from JSON (`file_manager.py`) to PostgreSQL only
+  - Added `UserRepository` protocol to domain ports
+  - Implemented `PostgreSQLUserRepository` with full CRUD operations
+  - Migrated `general.py` handlers to use repository pattern
+  - Fixes race conditions and data inconsistency issues
+
+- **Mock Database in Strategy Engine** - Replaced mock `Database` class with real `ActiveTradeRepository` injection
+  - Removed `Database.fetch_active_trade()` that always returned `None`
+  - Injected `ActiveTradeRepository` via dependency injection
+  - Prevents duplicate signal generation when trade is active
+  - Fixes critical bug causing conflicting trading recommendations
+
+- **BinanceAdapter Code Duplication** - Consolidated duplicate adapters into single implementation
+  - Merged `BinanceDataFetcher` methods into `BinanceAdapter`
+  - Deleted `bot/trading/data_fetcher.py` (duplicate file)
+  - Updated all imports to use single `BinanceAdapter` implementation
+  - Added `get_current_price()` and `fetch_multiple_timeframes()` methods
+
+### Changed
+
+- **Dependency Injection** - All repositories now injected via `Container` class
+  - `user_repo` - User data access
+  - `market_data` - Market data port (BinanceAdapter)
+  - `trade_repo` - Active trade repository
+- **Strategy Engine API** - `run_cycle()` now requires dependency injection:
+  ```python
+  await run_cycle(config, trade_repo, market_data)
+  ```
+- **Circular Import Resolution** - Used `TYPE_CHECKING` for deferred imports in `notifier_port.py`
+
+### Added
+
+- **Unit Tests**:
+  - `test_user_repository.py` - Protocol and implementation tests (13 tests)
+  - `test_strategy_engine.py` - Strategy engine with mock repositories (8 tests)
+  - Updated legacy `test_strategy_engine.py` for new DI API (7 tests)
+
+---
+
 ## [1.2.0] - 2026-03-08
 
 ### 🏗️ Architecture
