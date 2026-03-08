@@ -7,12 +7,9 @@ import contextlib
 
 from loguru import logger
 
-from bot.ai.groq_client import GroqClient
-from bot.core.config import ADMIN_CHAT_IDS
+from bot.container import Container
 from bot.core.database import execute
-from bot.trading.chart_capture import ChartCapture
-from bot.trading.signal_builder import build_signal_message
-from bot.trading.strategy_engine import UserConfig, run_cycle
+from bot.domain.user_config import UserConfig
 
 CYCLE_INTERVALS = {
     "4h": 900,  # 15 minutos
@@ -33,9 +30,9 @@ class SignalScheduler:
         self._running = False
         self._task: asyncio.Task | None = None
         self._config = UserConfig(
+            user_id=0,
+            chat_id=0,
             timeframe=timeframe,
-            enable_long=True,
-            enable_short=True,
         )
 
     async def start(self, bot, config: UserConfig | None = None):
@@ -59,42 +56,48 @@ class SignalScheduler:
         """Internal loop that can be tracked as a task."""
         while self._running:
             try:
-                signal = await run_cycle(self._config)
+                container: Container = bot.bot_data.get("container")
+                if container is None:
+                    logger.error("Container not found in bot_data")
+                    await asyncio.sleep(interval)
+                    continue
+
+                signal = await container.run_signal_cycle.execute(self._config)
 
                 if signal:
                     logger.info(f"📡 Señal detectada: {signal.direction} en {signal.timeframe}")
 
-                    chart_capture = ChartCapture()
+                    chart_capture = container.run_signal_cycle._chart
                     chart_bytes = await chart_capture.capture("BTCUSDT", self._config.timeframe)
-                    await chart_capture.close()
 
                     ai_context = ""
                     try:
-                        groq = GroqClient()
-                        ai_context = await groq.analyze_signal(signal)
+                        ai_client = container.run_signal_cycle._ai
+                        ai_context = await ai_client.analyze_signal(signal)
                     except Exception as e:
-                        logger.warning(f"Groq analysis failed: {e}")
+                        logger.warning(f"AI analysis failed: {e}")
 
-                    text, keyboard = await build_signal_message(
-                        signal, self._config, ai_context, chart_bytes
+                    text, keyboard = await self._build_signal_message(
+                        signal, ai_context, chart_bytes
                     )
 
-                    admin_id = ADMIN_CHAT_IDS[0] if ADMIN_CHAT_IDS else None
+                    admin_id = (
+                        container.run_signal_cycle._admin_chat_ids[0]
+                        if container.run_signal_cycle._admin_chat_ids
+                        else None
+                    )
                     if not admin_id:
-                        logger.warning("ADMIN_CHAT_IDS está vacío - señal descartada")
-                    elif admin_id:
-                        if chart_bytes:
-                            await bot.send_photo(
-                                chat_id=admin_id,
-                                photo=chart_bytes,
-                                caption=text,
-                                reply_markup=keyboard,
-                            )
-                        else:
-                            await bot.send_message(
-                                chat_id=admin_id, text=text, reply_markup=keyboard
-                            )
-                        logger.info(f"✅ Señal enviada al admin {admin_id}")
+                        logger.warning("No admin configured - seal descartada")
+                    elif chart_bytes:
+                        await bot.send_photo(
+                            chat_id=admin_id,
+                            photo=chart_bytes,
+                            caption=text,
+                            reply_markup=keyboard,
+                        )
+                    else:
+                        await bot.send_message(chat_id=admin_id, text=text, reply_markup=keyboard)
+                    logger.info(f"✅ Seal enviada al admin {admin_id}")
 
                     signal_id = await self._save_signal(signal)
                     if signal_id:
@@ -103,7 +106,7 @@ class SignalScheduler:
                     asyncio.create_task(self._signal_timeout(signal, bot))
 
                 else:
-                    logger.debug("No se detectó señal en este ciclo")
+                    logger.debug("No se detect seal en este ciclo")
 
             except Exception as e:
                 logger.error(f"Error en ciclo de scheduler: {e}")
@@ -111,6 +114,12 @@ class SignalScheduler:
             await asyncio.sleep(interval)
 
         logger.info("🛑 SignalScheduler detenido")
+
+    async def _build_signal_message(self, signal, ai_context: str, chart_bytes: bytes | None):
+        """Build signal message text and keyboard."""
+        from bot.trading.signal_builder import build_signal_message
+
+        return await build_signal_message(signal, self._config, ai_context, chart_bytes)
 
     async def _save_signal(self, signal) -> int | None:
         """Guarda la señal en la base de datos."""
