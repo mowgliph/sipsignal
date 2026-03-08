@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 import traceback
+from datetime import UTC, datetime
 
 # --- 1. CONFIGURACIÓN DE RUTAS (Original de logger.py) ---
 # Mantenemos esto idéntico para no romper la estructura de carpetas
@@ -68,6 +69,10 @@ class Logger:
     con la potencia de estructuración del nuevo sistema.
     """
 
+    # Log en memoria para comando /status (máximo 45 líneas)
+    LOG_MAX = 45
+    LOG_LINES: list[str] = []
+
     def __init__(self):
         self.monitoring_handler = None
         self.log_file_path = LOG_FILE_PATH
@@ -75,6 +80,33 @@ class Logger:
         # Configuración inicial
         self._setup_logger()
         sys.excepthook = self._handle_unhandled_exception
+
+    def add_log_line(self, linea: str) -> None:
+        """
+        Agrega una línea a los logs en memoria para el comando /status.
+
+        Args:
+            linea: El mensaje a registrar.
+        """
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"[{timestamp}] | {linea}"
+        self.LOG_LINES.append(log_entry)
+        if len(self.LOG_LINES) > self.LOG_MAX:
+            del self.LOG_LINES[0]
+        print(log_entry)
+        self.info(linea)
+
+    def get_log_lines(self, n_lines: int = 15) -> list[str]:
+        """
+        Obtiene las últimas N líneas de los logs en memoria.
+
+        Args:
+            n_lines: Número de líneas a retornar.
+
+        Returns:
+            Lista de strings con las últimas líneas de log.
+        """
+        return self.LOG_LINES[-n_lines:] if self.LOG_LINES else []
 
     def _setup_logger(self):
         """Configura los handlers (Consola y Archivo)."""
@@ -216,6 +248,38 @@ class Logger:
                 return "".join(all_lines[-lines:])
         except Exception as e:
             return f"❌ Error leyendo logs: {str(e)}"
+
+    def get_log_lines_formatted(self, lines: int = 15) -> list[str]:
+        """
+        Obtiene las últimas líneas de log en memoria con formato para /status.
+
+        Args:
+            lines: Número de líneas a retornar.
+
+        Returns:
+            Lista de strings formateados con emojis según nivel de log.
+        """
+        log_lines = self.get_log_lines(lines)
+        formatted_lines = []
+
+        for line in log_lines:
+            line_upper = line.upper()
+            if "ERROR" in line_upper:
+                emoji = "🔴"
+            elif "WARNING" in line_upper:
+                emoji = "🟡"
+            elif "INFO" in line_upper:
+                emoji = "🟢"
+            elif "DEBUG" in line_upper:
+                emoji = "🔵"
+            elif "CRITICAL" in line_upper:
+                emoji = "🔥"
+            else:
+                emoji = "⚪"
+
+            formatted_lines.append(f"{emoji} {line}")
+
+        return formatted_lines
 
 
 # --- INSTANCIA GLOBAL ---

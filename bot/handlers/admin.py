@@ -26,16 +26,15 @@ from bot.core.config import (
     PYTHON_VERSION,
     STATE,
     TEMPLATE_PATH,
-    USUARIOS_PATH,
     VERSION,
 )
 from bot.utils.ads_manager import add_ad, delete_ad, load_ads
-from bot.utils.file_manager import migrate_user_timestamps
+from bot.utils.logger import logger
 from bot.utils.telemetry import (
-    get_commands_per_user,
-    get_daily_events,
-    get_retention_metrics,
-    get_users_registration_stats,
+    get_commands_per_user_from_repo,
+    get_daily_events_from_repo,
+    get_retention_metrics_from_repo,
+    get_users_registration_stats_from_repo,
 )
 
 
@@ -419,15 +418,11 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         _("⏳ *Analizando Big Data...*", chat_id), parse_mode=ParseMode.MARKDOWN
     )
 
-    # --- MIGRACIÓN DE TIMESTAMPS (retroactiva) ---
-    # Asegura que todos los usuarios tengan registered_at estimado si no existe
-    migrate_user_timestamps()
-
-    # --- NUEVAS MÉTRICAS DE TELEMETRÍA ---
-    retention = get_retention_metrics()
-    cmd_stats = get_commands_per_user()
-    daily_events = get_daily_events()
-    reg_stats = get_users_registration_stats()
+    # --- NUEVAS MÉTRICAS DE TELEMETRÍA (desde PostgreSQL) ---
+    retention = get_retention_metrics_from_repo(user_repo)
+    cmd_stats = get_commands_per_user_from_repo(user_repo, container.user_usage_stats_repo)
+    daily_events = get_daily_events_from_repo(user_repo, container.user_usage_stats_repo)
+    reg_stats = get_users_registration_stats_from_repo(user_repo)
 
     # --- A. CÁLCULOS DE USUARIOS ---
     total_users = len(usuarios)
@@ -531,7 +526,6 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 3. Size file
     size = {"file_size": 0}
     archivos = [
-        USUARIOS_PATH,
         ADS_PATH,
         LAST_PRICES_PATH,
         TEMPLATE_PATH,
@@ -692,10 +686,7 @@ async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Obtener todas las líneas del log
-    log_data_full = _get_logs_data_ref()
-
-    # 1. Obtener argumento opcional: número de líneas (por defecto 10)
+    # Obtener últimas N líneas de log formateadas
     n_lineas_default = 10
     try:
         n_lineas = (
@@ -703,53 +694,20 @@ async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         n_lineas = max(1, min(n_lineas, 100))
     except ValueError:
-        # --- MENSAJE ENVUELTO ---
         await update.message.reply_text(
             _("⚠️ El argumento debe ser un número entero.", current_chat_id)
         )
         return
 
-    # 2. Extraer las últimas N líneas
-    log_data_n_lines = log_data_full[-n_lineas:] if log_data_full else []
-
-    # --- NUEVA LÓGICA VISUAL CON EMOJIS ---
-    log_lines_cleaned = []
-    for line in log_data_n_lines:
-        # Detectar nivel de log y asignar emoji
-        line_upper = line.upper()
-        if "ERROR" in line_upper:
-            emoji = "🔴"
-        elif "WARNING" in line_upper:
-            emoji = "🟡"
-        elif "INFO" in line_upper:
-            emoji = "🟢"
-        elif "DEBUG" in line_upper:
-            emoji = "🔵"
-        elif "CRITICAL" in line_upper:  # Añadido por si acaso
-            emoji = "🔥"
-        else:
-            emoji = "⚪"
-
-        # Limpieza de caracteres para Markdown (Tu lógica original)
-        # Reemplazamos caracteres que rompen el formato MD dentro del bloque de código
-        clean_line = (
-            line.replace("_", " ")
-            .replace("*", "#")
-            .replace("`", "'")
-            .replace("[", "(")
-            .replace("]", ")")
-        )
-
-        # Combinamos emoji + línea limpia
-        log_lines_cleaned.append(f"{emoji} {clean_line}")
-
+    # Get formatted log lines from logger
+    log_lines_cleaned = logger.get_log_lines_formatted(n_lineas)
     log_str = "\n".join(log_lines_cleaned)
 
     # Extraer la marca de tiempo de la última línea del log
     ultima_actualizacion = "N/A"
-    if log_data_full:
+    if log_lines_cleaned:
         try:
-            timestamp_part = log_data_full[-1].split(" | ")[0].strip()
+            timestamp_part = log_lines_cleaned[-1].split(" | ")[0].strip()
             ultima_actualizacion = f"{timestamp_part} UTC"
         except Exception:
             pass
@@ -766,7 +724,7 @@ async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• Estado: {estado} 👌\n"
         "• Última Actualización: {ultima_actualizacion} 🕒 \n"
         "—————————————————\n"
-        "•📜 *Últimas {num_lineas} líneas de {total_lineas} *\n ```{log_str}```\n",
+        "•📜 *Últimas {num_lineas} líneas*\n ```{log_str}```\n",
         current_chat_id,
     )
 
@@ -795,8 +753,7 @@ async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         num_usuarios=num_usuarios,
         estado=safe_estado,
         ultima_actualizacion=safe_ultima_actualizacion,
-        num_lineas=len(log_data_n_lines),
-        total_lineas=len(log_data_full),
+        num_lineas=len(log_lines_cleaned),
         log_str=log_str,
     )
 

@@ -23,6 +23,7 @@ from bot.infrastructure.database.user_repositories import (
     PostgreSQLUserWatchlistRepository,
 )
 from bot.infrastructure.groq.groq_adapter import GroqAdapter
+from bot.infrastructure.price_snapshot import PriceSnapshotRepository
 from bot.infrastructure.telegram.screenshot_adapter import ScreenshotAdapter
 from bot.infrastructure.telegram.telegram_notifier import TelegramNotifier
 
@@ -54,6 +55,7 @@ class Container:
         self.user_watchlist_repo = PostgreSQLUserWatchlistRepository()
         self.user_preference_repo = PostgreSQLUserPreferenceRepository()
         self.user_usage_stats_repo = PostgreSQLUserUsageStatsRepository()
+        self.price_snapshot_repo = PriceSnapshotRepository()
 
         self.run_signal_cycle = RunSignalCycle(
             market_data=self.market_data,

@@ -135,10 +135,6 @@ EVENTS_LOG_PATH = os.path.join(DATA_DIR, "events_log.json")
 PID = os.getpid()
 STATE = "RUNNING"
 
-# --- Configuración de Logs ---
-LOG_MAX = 45
-LOG_LINES = []
-
 # --- Versión ---
 try:
     with open(os.path.join(BASE_DIR, "version.txt")) as f:

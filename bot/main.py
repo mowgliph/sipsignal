@@ -59,7 +59,6 @@ from bot.handlers.trading import mk_command, p_command, refresh_command_callback
 from bot.handlers.user_settings import lang_command, set_language_callback
 from bot.trading.drawdown_manager import update_drawdown
 from bot.trading.price_monitor import get_price_monitor, start_price_monitor
-from bot.utils.file_manager import add_log_line
 from bot.utils.logger import logger
 
 
@@ -452,7 +451,7 @@ def main():
 
     # 5. Iniciar el polling
     print("✅ SipSignal iniciado. Esperando mensajes...")
-    add_log_line("----------- ⚡ SipSignal INICIADO -----------")
+    logger.add_log_line("----------- ⚡ SipSignal INICIADO -----------")
     app.run_polling()
 
 

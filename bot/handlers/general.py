@@ -10,7 +10,6 @@ from bot.core.api_client import obtener_precios_control
 from bot.db.users import register_or_update_user
 from bot.utils import permitted_only
 from bot.utils.ads_manager import get_random_ad_text
-from bot.utils.file_manager import load_last_prices_status
 
 # Mensajes estáticos (sin internacionalización)
 HELP_MSG = {
@@ -103,32 +102,14 @@ async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # 4. Cargar precios anteriores (SOLO LECTURA) para mostrar tendencias
-    # No guardamos nada aquí para no romper la lógica de "cambio desde la última alerta".
-    todos_precios_anteriores = load_last_prices_status()
-    precios_anteriores_usuario = todos_precios_anteriores.get(str(chat_id), {})
-
-    # 5. Construir el mensaje
+    # 4. Construir el mensaje con precios actuales
     mensaje = "📊 *Precios Actuales (Tu Lista):*\n─────────────\n\n"
-
-    tolerancia = 0.0000001
 
     for moneda in monedas:
         p_actual = precios_actuales.get(moneda)
-        p_anterior = precios_anteriores_usuario.get(moneda)
 
         if p_actual is not None:
-            # Calcular indicador visual
-            indicador = ""
-            if p_anterior:
-                if p_actual > p_anterior + tolerancia:
-                    indicador = " 🔺"
-                elif p_actual < p_anterior - tolerancia:
-                    indicador = " 🔻"
-                else:
-                    indicador = " ▫️"
-
-            mensaje += f"*{moneda}/USD*: ${p_actual:,.4f}{indicador}\n"
+            mensaje += f"*{moneda}/USD*: ${p_actual:,.4f}\n"
         else:
             mensaje += f"*{moneda}/USD*: N/A\n"
 
