@@ -6,8 +6,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from trading.signal_builder import build_signal_message
-from trading.strategy_engine import SignalDTO, UserConfig
+from bot.trading.signal_builder import build_signal_message
+from bot.trading.strategy_engine import SignalDTO, UserConfig
 
 
 def create_test_signal(direction: str = "LONG") -> SignalDTO:

@@ -4,93 +4,36 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import CommandHandler, ContextTypes
 
-from bot.core.config import settings
-from bot.trading.chart_capture import ChartCapture
-from bot.trading.data_fetcher import BinanceDataFetcher
-from bot.trading.technical_analysis import calculate_all
-
-DEFAULT_CONFIG = {
-    "supertrend_period": 14,
-    "supertrend_mult": 1.8,
-    "ash_length": 14,
-    "ash_smooth": 4,
-    "tp_period": 14,
-    "sl_period": 14,
-    "tp_mult": 1.5,
-    "sl_mult": 1.5,
-}
-
-CHART_CACHE_TTL = 300
+from bot.utils import admin_only
 
 
+@admin_only
 async def signal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Muestra el estado actual de Supertrend + ASH y señal activa para BTC/USDT 4H."""
-    chat_id = update.effective_chat.id
-
-    if chat_id not in settings.admin_chat_ids:
-        await update.message.reply_text("⛔ Acceso denegado.")
-        return
 
     msg = await update.message.reply_text(
         "⏳ *Analizando mercado...*", parse_mode=ParseMode.MARKDOWN
     )
 
     try:
-        fetcher = BinanceDataFetcher()
-        df = await fetcher.get_ohlcv("BTCUSDT", "4h", limit=200)
-        await fetcher.close()
+        container = context.bot_data["container"]
+        result = await container.get_signal_analysis.execute(timeframe="4h")
 
-        if df is None or len(df) < 50:
-            await msg.edit_text(
-                "⚠️ *Datos insuficientes de Binance.*\nIntenta de nuevo en unos segundos."
-            )
-            return
+        signal = result["signal"]
+        chart_bytes = result["chart_bytes"]
 
-        df = calculate_all(df, DEFAULT_CONFIG)
+        signal_active = signal.direction in ("LONG", "SHORT")
+        is_long = signal.direction == "LONG"
 
-        last = df.iloc[-1]
-        prev = df.iloc[-2]
+        signal_text = "📈 *SEÑAL LARGO*" if is_long else "📉 *SEÑAL CORTO*"
 
-        supertrend_state = "🟢 Alcista" if last["sup_is_bullish"] else "🔴 Bajista"
-
-        if last["ash_bullish"]:
-            ash_state = "🟢 Bullish"
-        elif last["ash_bearish"]:
-            ash_state = "🔴 Bearish"
-        else:
-            ash_state = "⚪ Neutral"
-
-        signal_active = False
-        signal_text = ""
-        entry_price = last["close"]
-        tp_price = None
-        sl_price = None
-        rr_ratio = None
-
-        (last["sup_is_bullish"] and not prev["sup_is_bullish"]) or (
-            not last["sup_is_bullish"] and prev["sup_is_bullish"]
-        )
-        last["ash_bullish_signal"] or last["ash_bearish_signal"]
-
-        if last["sup_is_bullish"] and last["ash_bullish"]:
-            signal_active = True
-            signal_text = "📈 *SEÑAL LARGO*"
-            entry_price = last["close"]
-            tp_price = last["long_tp"]
-            sl_price = last["long_sl"]
-            rr_ratio = last["rr_ratio"]
-        elif not last["sup_is_bullish"] and last["ash_bearish"]:
-            signal_active = True
-            signal_text = "📉 *SEÑAL CORTO*"
-            entry_price = last["close"]
-            tp_price = last["short_tp"]
-            sl_price = last["short_sl"]
-            rr_ratio = last["rr_ratio"]
+        supertrend_state = "🟢 Alcista" if is_long else "🔴 Bajista"
+        ash_state = "🟢 Bullish" if is_long else "🔴 Bearish"
 
         message = (
             f"📊 *BTC/USDT — Análisis 4H*\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"💰 *Precio:* `${last['close']:,.2f}`\n\n"
+            f"💰 *Precio:* `${signal.entry_price:,.2f}`\n\n"
             f"*Indicadores (última vela cerrada):*\n"
             f"• *Supertrend:* {supertrend_state}\n"
             f"• *ASH:* {ash_state}\n"
@@ -99,17 +42,13 @@ async def signal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if signal_active:
             message += (
                 f"\n{signal_text}\n"
-                f"├ Entrada: `${entry_price:,.2f}`\n"
-                f"├ TP: `${tp_price:,.2f}`\n"
-                f"├ SL: `${sl_price:,.2f}`\n"
-                f"└ R:R: `{rr_ratio:.2f}`"
+                f"├ Entrada: `${signal.entry_price:,.2f}`\n"
+                f"├ TP: `${signal.tp1_level:,.2f}`\n"
+                f"├ SL: `${signal.sl_level:,.2f}`\n"
+                f"└ R:R: `{signal.rr_ratio:.2f}`"
             )
         else:
             message += "\n⚪ *Sin señal activa en este momento*"
-
-        chart_capture = ChartCapture()
-        chart_bytes = await chart_capture.capture("BTCUSDT", "4h")
-        await chart_capture.close()
 
         if chart_bytes:
             await msg.delete()

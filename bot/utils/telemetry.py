@@ -7,14 +7,15 @@ for monitoring bot usage and user engagement.
 
 import json
 import os
+import threading
 import time
 from collections import defaultdict
 from contextlib import contextmanager, suppress
 from datetime import datetime, timedelta
-from threading import Lock
 from typing import Any
 
 from bot.core.config import EVENTS_LOG_PATH
+from bot.utils.file_manager import cargar_usuarios
 from bot.utils.logger import logger
 
 # --- Constants ---
@@ -26,7 +27,7 @@ LOCK_TIMEOUT_SECONDS = 5
 VALID_EVENT_TYPES = {"user_joined", "command_used", "alert_triggered", "subscription_started"}
 
 # --- Thread Safety ---
-_file_lock = Lock()
+_file_lock = threading.Lock()
 
 
 class TelemetryError(Exception):
@@ -104,10 +105,10 @@ def _load_events() -> list[dict[str, Any]]:
             return events
     except json.JSONDecodeError as e:
         logger.error(f"Event log file is corrupted: {e}")
-        raise EventLogCorruptedError(f"Failed to parse event log: {e}")
+        raise EventLogCorruptedError(f"Failed to parse event log: {e}") from e
     except OSError as e:
         logger.error(f"Failed to read event log file: {e}")
-        raise TelemetryError(f"Failed to read event log: {e}")
+        raise TelemetryError(f"Failed to read event log: {e}") from e
 
 
 def _save_events(events: list[dict[str, Any]]) -> None:
@@ -119,9 +120,8 @@ def _save_events(events: list[dict[str, Any]]) -> None:
     """
     _ensure_data_dir()
 
-    with _atomic_write(EVENTS_LOG_PATH) as temp_path:
-        with open(temp_path, "w", encoding="utf-8") as f:
-            json.dump(events, f, indent=2, ensure_ascii=False)
+    with _atomic_write(EVENTS_LOG_PATH) as temp_path, open(temp_path, "w", encoding="utf-8") as f:
+        json.dump(events, f, indent=2, ensure_ascii=False)
 
 
 def _rotate_log_file() -> None:
@@ -209,8 +209,8 @@ def log_event(event_type: str, user_id: int | str, metadata: dict[str, Any] | No
 
         _save_events(events)
 
-        # Log to main logger at debug level
-        logger.debug(f"Telemetry event logged: {event_type} for user {user_id}")
+        # Log to main logger at info level
+        logger.info(f"Telemetry event logged: {event_type} for user {user_id}")
         return True
 
     except Exception as e:
@@ -456,8 +456,6 @@ def get_summary() -> dict[str, Any]:
 # ==============================================================================
 # DASHBOARD METRICS FUNCTIONS
 # ==============================================================================
-
-from bot.utils.file_manager import cargar_usuarios
 
 
 def get_retention_metrics() -> dict[str, any]:

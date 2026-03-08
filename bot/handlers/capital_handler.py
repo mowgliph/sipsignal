@@ -11,15 +11,39 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, ContextTypes
 
 from bot.core.database import fetch, fetchrow
-from bot.trading.drawdown_manager import (
-    get_drawdown,
-    is_trading_paused,
-    reset_drawdown,
-    resume_trading,
-)
+from bot.utils import permitted_only
 from bot.utils.logger import logger
 
 
+async def _get_drawdown(user_id: int) -> dict | None:
+    """Obtiene el estado del drawdown del usuario."""
+    return await fetchrow(
+        """
+        SELECT
+            dt.user_id,
+            dt.current_drawdown_usdt,
+            dt.current_drawdown_percent,
+            dt.losses_count,
+            dt.is_paused,
+            dt.last_reset_at,
+            dt.updated_at,
+            uc.capital_total,
+            uc.max_drawdown_percent
+        FROM drawdown_tracker dt
+        LEFT JOIN user_config uc ON dt.user_id = uc.user_id
+        WHERE dt.user_id = $1
+        """,
+        user_id,
+    )
+
+
+async def _is_trading_paused(user_id: int) -> bool:
+    """Verifica si el trading está pausado para el usuario."""
+    dd = await fetchrow("SELECT is_paused FROM drawdown_tracker WHERE user_id = $1", user_id)
+    return bool(dd["is_paused"]) if dd else False
+
+
+@permitted_only
 async def capital_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Muestra el estado actual del capital y drawdown."""
     user_id = update.effective_chat.id
@@ -41,7 +65,7 @@ async def capital_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         max_dd_pct = float(user_config["max_drawdown_percent"])
 
         # Obtener estado del drawdown
-        dd = await get_drawdown(user_id)
+        dd = await _get_drawdown(user_id)
 
         if dd:
             dd_usdt = float(dd.get("current_drawdown_usdt", 0))
@@ -95,13 +119,14 @@ async def capital_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Error al obtener los datos. Intenta de nuevo.")
 
 
+@permitted_only
 async def resume_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Reanuda el trading si está pausado."""
     user_id = update.effective_chat.id
 
     try:
-        # Verificar si está pausado
-        paused = await is_trading_paused(user_id)
+        container = context.bot_data["container"]
+        paused = await _is_trading_paused(user_id)
 
         if not paused:
             await update.message.reply_text(
@@ -109,8 +134,7 @@ async def resume_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        # Reanudar trading
-        await resume_trading(user_id)
+        await container.handle_drawdown.resume(user_id)
 
         await update.message.reply_text(
             "✅ *TRADING REANUDADO*\n\n"
@@ -126,13 +150,14 @@ async def resume_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Error al reanudar. Intenta de nuevo.")
 
 
+@permitted_only
 async def resetdd_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Inicia el proceso de reset de drawdown."""
     user_id = update.effective_chat.id
 
     try:
         # Verificar que hay algo que resetear
-        dd = await get_drawdown(user_id)
+        dd = await _get_drawdown(user_id)
 
         if not dd or float(dd.get("current_drawdown_usdt", 0)) == 0:
             await update.message.reply_text(
@@ -166,6 +191,7 @@ async def resetdd_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Error al procesar. Intenta de nuevo.")
 
 
+@permitted_only
 async def resetdd_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Maneja los callbacks de confirmación de reset."""
     query = update.callback_query
@@ -173,10 +199,11 @@ async def resetdd_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = query.from_user.id
     data = query.data
+    container = context.bot_data["container"]
 
     if data == "resetdd_confirm":
         try:
-            await reset_drawdown(user_id)
+            await container.handle_drawdown.reset(user_id)
 
             await query.edit_message_text(
                 "✅ *DRAWDOWN RESETEADO*\n\n"

@@ -11,7 +11,7 @@ import platform
 import warnings
 from datetime import UTC, datetime
 
-from telegram import Update
+from telegram import Update, filters
 from telegram.constants import ParseMode
 from telegram.error import BadRequest
 from telegram.ext import (
@@ -20,12 +20,20 @@ from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
+    MessageHandler,
 )
 from telegram.warnings import PTBUserWarning
 
+from bot.core.access_manager import AccessManager
 from bot.core.config import PID, VERSION, settings
 from bot.core.database import execute, fetchrow
 from bot.core.loops import get_logs_data
+from bot.handlers.access_admin import (
+    approve_command,
+    deny_command,
+    list_users_command,
+    make_admin_command,
+)
 from bot.handlers.admin import (
     ad_command,
     logs_command,
@@ -42,13 +50,13 @@ from bot.handlers.capital_handler import (
 )
 from bot.handlers.chart_handler import chart_handlers_list
 from bot.handlers.general import help_command, myid, start, ver
+from bot.handlers.scenario_handler import scenario_handlers_list
 from bot.handlers.setup_handler import setup_conversation_handler
 from bot.handlers.signal_handler import signal_handlers_list
 from bot.handlers.signal_response_handler import process_signal_timeout, signal_response_handler
 from bot.handlers.ta import ai_analysis_callback, ta_command, ta_switch_callback
 from bot.handlers.trading import mk_command, p_command, refresh_command_callback, ta_quick_callback
 from bot.handlers.user_settings import lang_command, set_language_callback
-from bot.scheduler import SignalScheduler
 from bot.trading.drawdown_manager import update_drawdown
 from bot.trading.price_monitor import get_price_monitor, start_price_monitor
 from bot.utils.file_manager import add_log_line, cargar_usuarios, guardar_usuarios
@@ -213,13 +221,31 @@ async def post_init(app: Application):
     except Exception as e:
         logger.error(f"⚠️ Fallo al enviar notificación de inicio a los admins: {e}")
 
-    # Iniciar SignalScheduler
+    # Ejecutar ciclo de señales via Container
     try:
-        scheduler = SignalScheduler()
-        asyncio.create_task(scheduler.start(app.bot))
-        logger.info("✅ SignalScheduler iniciado")
+        container = app.bot_data.get("container")
+        if container is None:
+            raise RuntimeError("Container not found in bot_data")
+
+        admin_id = settings.admin_chat_ids[0] if settings.admin_chat_ids else None
+        if admin_id is None:
+            logger.warning("No admin_chat_ids configured - skipping signal cycle")
+        else:
+            user_config = await container.user_config_repo.get(admin_id)
+            if user_config is None:
+                from bot.domain.user_config import UserConfig
+
+                user_config = UserConfig(
+                    user_id=admin_id,
+                    chat_id=admin_id,
+                    timeframe="4h",
+                )
+
+            await container.run_signal_cycle.execute(user_config)
+            logger.info("✅ Signal cycle executed via Container")
+
     except Exception as e:
-        logger.error(f"❌ Error al iniciar SignalScheduler: {e}")
+        logger.error(f"❌ Error al ejecutar signal cycle: {e}")
 
     # Iniciar PriceMonitor (WebSocket TP/SL)
     try:
@@ -241,6 +267,15 @@ def main():
 
     builder = ApplicationBuilder().token(settings.token_telegram)
     app = builder.build()
+
+    from bot.container import Container
+
+    container = Container(settings=settings, bot=app.bot)
+    app.bot_data["container"] = container
+
+    # Create AccessManager instance and store in bot_data
+    access_manager = AccessManager(admin_chat_ids=settings.admin_chat_ids)
+    app.bot_data["access_manager"] = access_manager
 
     # 1. FUNCIÓN DE ENVÍO DE MENSAJES
     async def enviar_mensajes(
@@ -331,6 +366,21 @@ def main():
     # 3. REGISTRO DE HANDLERS
 
     # ============================================
+    # IMPORTANTE: AccessManager PRIMERO (middleware)
+    # ============================================
+
+    # 0️⃣ AccessManager - Middleware de control de acceso (PRIMER HANDLER)
+    async def access_manager_wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Wrapper para AccessManager que intercepta todos los mensajes."""
+        should_continue = await access_manager.handle_update(update, app)
+        if not should_continue:
+            # Detener el procesamiento si el usuario no tiene acceso
+            return
+
+    # Registrar AccessManager como el primer handler (antes que cualquier otro)
+    app.add_handler(MessageHandler(filters.ALL, access_manager_wrapper), group=-100)
+
+    # ============================================
     # IMPORTANTE: Handlers de conversación PRIMERO
     # ============================================
 
@@ -349,6 +399,14 @@ def main():
     # ============================================
     # Comandos de Admin
     # ============================================
+
+    # Access control admin commands (with @admin_only decorator)
+    app.add_handler(CommandHandler("approve", approve_command))
+    app.add_handler(CommandHandler("deny", deny_command))
+    app.add_handler(CommandHandler("make_admin", make_admin_command))
+    app.add_handler(CommandHandler("list_users", list_users_command))
+
+    # Other admin commands
     app.add_handler(CommandHandler("users", users))
     app.add_handler(CommandHandler("logs", logs_command))
     app.add_handler(CommandHandler("status", logs_command))
@@ -370,6 +428,8 @@ def main():
     for handler in signal_handlers_list:
         app.add_handler(handler)
     for handler in chart_handlers_list:
+        app.add_handler(handler)
+    for handler in scenario_handlers_list:
         app.add_handler(handler)
 
     # ============================================

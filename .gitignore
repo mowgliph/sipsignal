@@ -7,6 +7,9 @@ apit.env
 # archivos JSON de usuarios, alertas o historial.
 data/
 
+# Git worktrees
+.worktrees/
+
 # Caché de Python y archivos compilados
 __pycache__/
 *.pyc
@@ -25,3 +28,4 @@ logs/
 # Archivo de versión local (generado automáticamente)
 # Cada entorno (local/VPS) mantiene su propia versión
 version.txt
+.coverage

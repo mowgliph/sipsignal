@@ -12,7 +12,22 @@ from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler
 
 from bot.core.database import fetch
+from bot.domain.signal import Signal
 from bot.trading.data_fetcher import BinanceDataFetcher
+from bot.utils import permitted_only
+
+
+def signal_to_dict(signal: Signal) -> dict[str, Any]:
+    """Convierte un objeto Signal a diccionario para compatibilidad."""
+    return {
+        "id": signal.id,
+        "detected_at": signal.detected_at,
+        "direction": signal.direction,
+        "entry_price": signal.entry_price,
+        "status": signal.status,
+        "result": signal.result,
+        "pnl_usdt": signal.pnl_usdt,
+    }
 
 
 def get_signal_emoji(result: str | None, status: str) -> str:
@@ -148,17 +163,12 @@ def format_stats_block(stats: dict[str, Any], n: int) -> str:
     )
 
 
-async def get_signals_history(limit: int = 10, offset: int = 0) -> list[dict[str, Any]]:
-    """Obtiene el historial de señales de la base de datos."""
-    query = """
-        SELECT id, detected_at, direction, entry_price, status, result, pnl_usdt
-        FROM signals
-        ORDER BY detected_at DESC
-        LIMIT $1 OFFSET $2
-    """
+async def get_signals_history(container, limit: int = 10, offset: int = 0) -> list[dict[str, Any]]:
+    """Obtiene el historial de señales usando el container."""
     try:
-        rows = await fetch(query, limit, offset)
-        return [dict(row) for row in rows]
+        signals = await container.manage_journal.get_recent(limit=limit + offset)
+        signals = signals[offset : offset + limit]
+        return [signal_to_dict(s) for s in signals]
     except Exception as e:
         logger.error(f"Error fetching signals history: {e}")
         return []
@@ -212,9 +222,9 @@ async def format_active_trade(trade: dict[str, Any], current_price: float | None
     return line
 
 
-async def journal_command(limit: int = 10, offset: int = 0) -> str:
+async def journal_command(container, limit: int = 10, offset: int = 0) -> str:
     """Genera el mensaje completo del comando /journal."""
-    signals = await get_signals_history(limit=limit, offset=offset)
+    signals = await get_signals_history(container, limit=limit, offset=offset)
 
     if not signals:
         return "📭 No hay señales en el historial."
@@ -267,8 +277,11 @@ async def active_command() -> str:
 # ============== Telegram Handlers ==============
 
 
+@permitted_only
 async def journal_cmd(update: Update, context: CallbackContext) -> None:
     """Maneja el comando /journal."""
+    container = context.bot_data["container"]
+
     # Parsear argumentos: /journal [N]
     limit = 10
     offset = 0
@@ -280,7 +293,7 @@ async def journal_cmd(update: Update, context: CallbackContext) -> None:
         except ValueError:
             limit = 10
 
-    message = await journal_command(limit=limit, offset=offset)
+    message = await journal_command(container, limit=limit, offset=offset)
 
     # Añadir keyboard con paginación si hay más señales
     # Por ahora solo text, el handler de callback se puede añadir después
@@ -288,6 +301,7 @@ async def journal_cmd(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text(message, parse_mode="Markdown")
 
 
+@permitted_only
 async def active_cmd(update: Update, context: CallbackContext) -> None:
     """Maneja el comando /active."""
     message = await active_command()

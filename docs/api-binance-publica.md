@@ -1,7 +1,7 @@
 # API Binance.US - Documentación de Integración
 
-> **Fecha**: 2026-03-05  
-> **Versión**: 1.0  
+> **Fecha**: 2026-03-05
+> **Versión**: 1.0
 > **Estado**: Pendiente de implementación
 
 ---
@@ -47,7 +47,7 @@ Este documento describe la integración de la API pública de Binance.US para el
 ### Límites de Rate (Público)
 
 - **IP-based**: 1200 request/minuto
-- **Weight por endpoint**: 
+- **Weight por endpoint**:
   - `/api/v3/klines`: 2
   - `/api/v3/ticker/24hr`: 1
   - `/api/v3/ticker/price`: 1

@@ -6,11 +6,11 @@ python-dotenv
 openpyxl
 Pillow
 pytz
-pandas 
+pandas
 tradingview-ta
 chardet
-aiohttp 
-beautifulsoup4 
+aiohttp
+beautifulsoup4
 lxml
 brotli
 psutil

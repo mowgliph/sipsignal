@@ -218,3 +218,5 @@ class UserModel(Base):
     registered_at = Column(DateTime(timezone=True), nullable=False)
     last_seen = Column(DateTime(timezone=True))
     is_active = Column(Boolean, default=True)
+    status = Column(String(20), nullable=False, default="non_permitted")
+    requested_at = Column(DateTime(timezone=True), nullable=True)

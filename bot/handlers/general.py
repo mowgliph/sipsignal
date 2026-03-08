@@ -8,6 +8,7 @@ from telegram.ext import ContextTypes
 
 from bot.core.api_client import obtener_precios_control
 from bot.db.users import register_or_update_user
+from bot.utils import permitted_only
 from bot.utils.ads_manager import get_random_ad_text
 from bot.utils.file_manager import (
     check_feature_access,
@@ -78,7 +79,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(mensaje, parse_mode=ParseMode.MARKDOWN)
 
 
-# COMANDO /ver REFACTORIZADO
+@permitted_only
 async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
 

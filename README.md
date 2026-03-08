@@ -153,6 +153,37 @@ pytest tests/integration/ -v
 
 ---
 
+## Pre-commit Hooks
+
+SipSignal utiliza pre-commit hooks para asegurar calidad de código antes de cada commit.
+
+### Instalación
+
+```bash
+# Instalar dependencias de desarrollo
+pip install -e ".[dev]"
+
+# Instalar hooks
+pre-commit install
+```
+
+### Hooks configurados
+
+| Hook | Descripción |
+|------|-------------|
+| ruff | Lint con auto-fix |
+| ruff-format | Formato de código |
+| trailing-whitespace | Elimina espacios extra |
+| end-of-file-fixer | Newline al final |
+| check-yaml | Valida YAML |
+| check-added-large-files | Previene archivos >1MB |
+| check-merge-conflict | Detecta conflictos |
+| validate-tests | Valida tests asociados (warning) |
+
+Ver [docs/pre-commit-hooks.md](docs/pre-commit-hooks.md) para más detalles.
+
+---
+
 ## Variables de Entorno
 
 | Variable | Descripción | Requerida |
@@ -194,14 +225,14 @@ Para soporte o consultas, contacta a los administradores del bot.
 
 ## 🚀 Estado del Proyecto
 
-**Versión:** 1.0.0 (Production Release)  
-**Última actualización:** Marzo 2026  
-**Estado:** ✅ En Producción  
+**Versión:** 1.0.0 (Production Release)
+**Última actualización:** Marzo 2026
+**Estado:** ✅ En Producción
 **Mantenimiento:** Activo
 
 ---
 
-**© 2026 SipSignal Trading Bot. Todos los derechos reservados.**  
+**© 2026 SipSignal Trading Bot. Todos los derechos reservados.**
 **Desarrollado con ❤️ por [mowgliph](https://github.com/mowgliph)**
 
 *Este proyecto es de código abierto y está disponible bajo la Licencia MIT.*
