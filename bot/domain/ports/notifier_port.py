@@ -1,7 +1,10 @@
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 from bot.domain.signal import Signal
-from bot.trading.strategy_engine import UserConfig
+
+if TYPE_CHECKING:
+    from bot.trading.strategy_engine import UserConfig
 
 
 class NotifierPort(ABC):
@@ -13,7 +16,7 @@ class NotifierPort(ABC):
         signal: Signal,
         chart: bytes | None,
         ai_context: str,
-        user_config: UserConfig,
+        user_config: "UserConfig",
     ) -> None: ...
 
     @abstractmethod
