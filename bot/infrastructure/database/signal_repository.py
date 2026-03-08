@@ -8,6 +8,12 @@ from bot.domain.signal import Signal
 
 
 def _record_to_signal(record: asyncpg.Record) -> Signal:
+    def safe_get(key: str, default=None):
+        try:
+            return record[key]
+        except (KeyError, IndexError):
+            return default
+
     return Signal(
         id=record["id"],
         direction=record["direction"],
@@ -20,6 +26,8 @@ def _record_to_signal(record: asyncpg.Record) -> Signal:
         timeframe=record["timeframe"],
         detected_at=record["detected_at"],
         status=record["status"],
+        result=safe_get("result"),
+        pnl_usdt=float(safe_get("pnl_usdt")) if safe_get("pnl_usdt") else None,
     )
 
 

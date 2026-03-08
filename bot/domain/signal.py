@@ -15,6 +15,8 @@ class Signal:
     timeframe: str
     detected_at: datetime
     status: str = "EMITIDA"
+    result: str | None = None
+    pnl_usdt: float | None = None
 
     def is_valid(self) -> bool:
         if self.direction not in ("LONG", "SHORT"):
