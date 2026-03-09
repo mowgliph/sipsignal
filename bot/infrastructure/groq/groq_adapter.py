@@ -4,6 +4,7 @@ import httpx
 
 from bot.domain.ports import AIAnalysisPort
 from bot.domain.signal import Signal
+from bot.utils.decorators import handle_errors
 
 
 class GroqAdapter(AIAnalysisPort):
@@ -68,6 +69,7 @@ class GroqAdapter(AIAnalysisPort):
 
         return await self._call_groq(prompt)
 
+    @handle_errors(fallback_value="", level="WARNING")
     async def _call_groq(self, prompt: str) -> str:
         """Make API call to Groq and return response text."""
         payload = {
@@ -83,10 +85,7 @@ class GroqAdapter(AIAnalysisPort):
             "max_tokens": self.MAX_TOKENS,
         }
 
-        try:
-            response = await self._client.post(self.ENDPOINT, json=payload)
-            response.raise_for_status()
-            data = response.json()
-            return data["choices"][0]["message"]["content"].strip()
-        except Exception:
-            return ""
+        response = await self._client.post(self.ENDPOINT, json=payload)
+        response.raise_for_status()
+        data = response.json()
+        return data["choices"][0]["message"]["content"].strip()

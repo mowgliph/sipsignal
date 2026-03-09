@@ -1,5 +1,6 @@
 from bot.domain.ports import AIAnalysisPort, MarketDataPort
 from bot.trading.technical_analysis import calculate_all
+from bot.utils.decorators import handle_errors
 
 DEFAULT_ANALYSIS_CONFIG = {
     "supertrend_period": 14,
@@ -22,6 +23,7 @@ class GetScenarioAnalysis:
         self._market_data = market_data
         self._ai = ai
 
+    @handle_errors(fallback_value="Error al generar análisis de escenario.", alert_admin=True)
     async def execute(self) -> str:
         df = await self._market_data.get_ohlcv("BTCUSDT", "1d", 100)
 
