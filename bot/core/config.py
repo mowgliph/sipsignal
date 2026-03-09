@@ -123,7 +123,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
 # --- Rutas de archivos de datos ---
-USUARIOS_PATH = os.path.join(DATA_DIR, "users.json")
+# USUARIOS_PATH eliminado: migrado a PostgreSQL (ver scripts/migrate_json_to_postgres.py)
 LAST_PRICES_PATH = os.path.join(DATA_DIR, "last_prices.json")
 TEMPLATE_PATH = os.path.join(DATA_DIR, "img.jpg")
 ADS_PATH = os.path.join(DATA_DIR, "ads.json")
