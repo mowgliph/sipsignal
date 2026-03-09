@@ -36,12 +36,12 @@ class BinanceAdapter(MarketDataPort):
         session = await self._get_session()
 
         for attempt in range(max_retries):
-            start_time = asyncio.get_event_loop().time()
+            start_time = asyncio.get_running_loop().time()
             try:
                 async with session.get(
                     url, params=params, timeout=aiohttp.ClientTimeout(total=self.timeout)
                 ) as response:
-                    latency_ms = (asyncio.get_event_loop().time() - start_time) * 1000
+                    latency_ms = (asyncio.get_running_loop().time() - start_time) * 1000
                     logger.info(
                         f"GET {url} params={params} - {response.status} - {latency_ms:.2f}ms"
                     )
