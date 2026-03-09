@@ -2,35 +2,39 @@
 Módulo de base de datos PostgreSQL con asyncpg.
 """
 
+import asyncio
 import os
 from typing import Any
 
 import asyncpg
 
 _pool: asyncpg.Pool | None = None
+_lock = asyncio.Lock()
 
 
 async def connect() -> asyncpg.Pool:
-    """Crea y retorna el pool de conexiones a la base de datos."""
+    """Crea y retorna el pool de conexiones a la base de datos de forma segura."""
     global _pool
-    if _pool is None:
-        database_url = os.getenv("DATABASE_URL")
-        if not database_url:
-            raise ValueError("DATABASE_URL no está configurada")
-        _pool = await asyncpg.create_pool(
-            database_url,
-            min_size=2,
-            max_size=10,
-        )
+    async with _lock:
+        if _pool is None:
+            database_url = os.getenv("DATABASE_URL")
+            if not database_url:
+                raise ValueError("DATABASE_URL no está configurada")
+            _pool = await asyncpg.create_pool(
+                database_url,
+                min_size=2,
+                max_size=10,
+            )
     return _pool
 
 
 async def close() -> None:
-    """Cierra el pool de conexiones."""
+    """Cierra el pool de conexiones de forma segura."""
     global _pool
-    if _pool is not None:
-        await _pool.close()
-        _pool = None
+    async with _lock:
+        if _pool is not None:
+            await _pool.close()
+            _pool = None
 
 
 async def execute(

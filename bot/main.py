@@ -24,6 +24,7 @@ from telegram.ext import (
 )
 from telegram.warnings import PTBUserWarning
 
+from bot.core import database
 from bot.core.access_manager import AccessManager
 from bot.core.config import PID, VERSION, settings
 from bot.core.database import execute, fetchrow
@@ -189,8 +190,17 @@ async def check_admin(update: Update) -> bool:
 async def post_init(app: Application):
     """
     Se ejecuta después de que el bot se inicializa.
-    Inicia los bucles de fondo y programa las alertas para todos los usuarios existentes.
+    Inicializa el pool de base de datos y otras tareas de fondo.
     """
+
+    # 0. Inicializar Pool de Base de Datos
+    try:
+        await database.connect()
+        logger.info("✅ Pool de base de datos inicializado")
+    except Exception as e:
+        logger.error(f"❌ Error crítico al inicializar el pool de base de datos: {e}")
+        # En producción, podrías querer abortar aquí
+        raise
 
     logger.info("🤖 Bot inicializado: Iniciando tareas de fondo...")
 
@@ -261,10 +271,27 @@ async def post_init(app: Application):
         logger.error(f"❌ Error al iniciar signal timeout: {e}")
 
 
+async def post_shutdown(app: Application):
+    """
+    Se ejecuta al apagar el bot.
+    Cierra el pool de base de datos de forma limpia.
+    """
+    logger.info("🛑 Bot deteniéndose: Cerrando recursos...")
+    try:
+        await database.close()
+        logger.info("✅ Pool de base de datos cerrado")
+    except Exception as e:
+        logger.error(f"❌ Error al cerrar el pool de base de datos: {e}")
+
+
 def main():
     """Inicia el bot y configura todos los handlers."""
 
     builder = ApplicationBuilder().token(settings.token_telegram)
+    # Registrar hooks de ciclo de vida
+    builder.post_init(post_init)
+    builder.post_shutdown(post_shutdown)
+
     app = builder.build()
 
     from bot.container import Container
@@ -445,9 +472,6 @@ def main():
     app.add_handler(resume_handler)
     app.add_handler(resetdd_handler)
     app.add_handler(resetdd_callback_handler)
-
-    # 4. Asignar la función post_init
-    app.post_init = post_init
 
     # 5. Iniciar el polling
     print("✅ SipSignal iniciado. Esperando mensajes...")
