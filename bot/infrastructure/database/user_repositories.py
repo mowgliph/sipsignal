@@ -44,7 +44,7 @@ class PostgreSQLUserConfigRepository(UserConfigRepository):
         return _record_to_user_config(record)
 
     async def save(self, config: UserConfig) -> UserConfig:
-        now = datetime.now()
+        now = datetime.now(UTC)
         await database.execute(
             """
             INSERT INTO user_config
@@ -158,7 +158,7 @@ class PostgreSQLUserRepository(UserRepository):
         return dict(record) if record else None
 
     async def save(self, user: dict) -> None:
-        now = datetime.now()
+        now = datetime.now(UTC)
         await database.execute(
             """
             INSERT INTO users (user_id, language, registered_at, last_seen, is_active, status)
@@ -192,7 +192,7 @@ class PostgreSQLUserRepository(UserRepository):
     async def update_last_seen(self, user_id: int) -> None:
         await database.execute(
             "UPDATE users SET last_seen = $1, is_active = TRUE WHERE user_id = $2",
-            datetime.now(),
+            datetime.now(UTC),
             user_id,
         )
 
@@ -201,7 +201,7 @@ class PostgreSQLUserRepository(UserRepository):
         return record["status"] if record else None
 
     async def request_access(self, user_id: int) -> bool:
-        now = datetime.now()
+        now = datetime.now(UTC)
         result = await database.execute(
             """
             UPDATE users

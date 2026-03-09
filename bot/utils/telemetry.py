@@ -130,7 +130,7 @@ def _rotate_log_file() -> None:
     """
     try:
         events = _load_events()
-        cutoff = int((datetime.now() - timedelta(days=30)).timestamp())
+        cutoff = int((datetime.now(UTC) - timedelta(days=30)).timestamp())
         recent_events = [e for e in events if e.get("timestamp", 0) > cutoff]
 
         # If still too large, keep only last 1000 events
@@ -153,7 +153,7 @@ def _cleanup_old_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     Returns:
         Filtered list of recent events
     """
-    cutoff_time = int((datetime.now() - timedelta(days=CLEANUP_DAYS)).timestamp())
+    cutoff_time = int((datetime.now(UTC) - timedelta(days=CLEANUP_DAYS)).timestamp())
     cleaned = [e for e in events if e.get("timestamp", 0) > cutoff_time]
 
     removed_count = len(events) - len(cleaned)
@@ -247,7 +247,7 @@ def get_event_stats(days: int = 30) -> dict[str, Any]:
             logger.warning("Event log corrupted, returning empty stats")
             return _empty_stats(days)
 
-        cutoff_time = int((datetime.now() - timedelta(days=days)).timestamp())
+        cutoff_time = int((datetime.now(UTC) - timedelta(days=days)).timestamp())
         recent_events = [e for e in events if e.get("timestamp", 0) > cutoff_time]
 
         if not recent_events:
@@ -264,7 +264,7 @@ def get_event_stats(days: int = 30) -> dict[str, Any]:
 
             # By day
             ts = event.get("timestamp", 0)
-            day_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+            day_str = datetime.fromtimestamp(ts, tz=UTC).strftime("%Y-%m-%d")
             events_by_day[day_str] += 1
 
             # By user
@@ -287,7 +287,7 @@ def get_event_stats(days: int = 30) -> dict[str, Any]:
             if most_active_user
             else None,
             "period_days": days,
-            "period_start": datetime.fromtimestamp(cutoff_time).isoformat(),
+            "period_start": datetime.fromtimestamp(cutoff_time, tz=UTC).isoformat(),
         }
 
     except Exception as e:
@@ -306,7 +306,7 @@ def _empty_stats(days: int) -> dict[str, Any]:
         "events_by_day": {},
         "most_active_user": None,
         "period_days": days,
-        "period_start": (datetime.now() - timedelta(days=days)).isoformat(),
+        "period_start": (datetime.now(UTC) - timedelta(days=days)).isoformat(),
     }
 
 
@@ -333,14 +333,14 @@ def get_user_journey(user_id: int | str, days: int = 30) -> list[dict[str, Any]]
             logger.warning("Event log corrupted, returning empty journey")
             return []
 
-        cutoff_time = int((datetime.now() - timedelta(days=days)).timestamp())
+        cutoff_time = int((datetime.now(UTC) - timedelta(days=days)).timestamp())
         user_id_str = str(user_id)
 
         user_events = [
             {
                 "event_type": e.get("event_type"),
                 "timestamp": e.get("timestamp"),
-                "datetime": datetime.fromtimestamp(e.get("timestamp", 0)).isoformat(),
+                "datetime": datetime.fromtimestamp(e.get("timestamp", 0), tz=UTC).isoformat(),
                 "metadata": e.get("metadata", {}),
             }
             for e in events
@@ -387,9 +387,15 @@ def export_events(
         if not start_date and not end_date:
             return events
 
-        start_ts = datetime.strptime(start_date, "%Y-%m-%d").timestamp() if start_date else 0
+        start_ts = (
+            datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=UTC).timestamp()
+            if start_date
+            else 0
+        )
         end_ts = (
-            (datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)).timestamp()
+            (
+                datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=UTC) + timedelta(days=1)
+            ).timestamp()
             if end_date
             else float("inf")
         )
@@ -440,8 +446,8 @@ def get_summary() -> dict[str, Any]:
 
         return {
             "total_events_all_time": len(events),
-            "first_event": datetime.fromtimestamp(min(timestamps)).isoformat(),
-            "last_event": datetime.fromtimestamp(max(timestamps)).isoformat(),
+            "first_event": datetime.fromtimestamp(min(timestamps), tz=UTC).isoformat(),
+            "last_event": datetime.fromtimestamp(max(timestamps), tz=UTC).isoformat(),
             "file_size_mb": round(file_size, 2),
         }
 

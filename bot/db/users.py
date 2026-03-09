@@ -2,14 +2,14 @@
 Funciones para gestionar usuarios en la base de datos.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from bot.core.database import execute, fetch, fetchrow
 
 
 async def create_user(user_id: int, language: str = "es") -> dict:
     """Crea un nuevo usuario en la base de datos."""
-    now = datetime.now()
+    now = datetime.now(UTC)
     await execute(
         """
         INSERT INTO users (user_id, language, registered_at, last_seen, is_active)
@@ -38,7 +38,7 @@ async def update_last_seen(user_id: int) -> None:
     """Actualiza el campo last_seen del usuario."""
     await execute(
         "UPDATE users SET last_seen = $1, is_active = TRUE WHERE user_id = $2",
-        datetime.now(),
+        datetime.now(UTC),
         user_id,
     )
 
@@ -96,7 +96,7 @@ async def request_access(user_id: int) -> bool:
     Returns:
         True if successful, False if user not found.
     """
-    now = datetime.now()
+    now = datetime.now(UTC)
     result = await execute(
         """
         UPDATE users

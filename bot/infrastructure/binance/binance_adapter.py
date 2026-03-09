@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import aiohttp
 import pandas as pd
@@ -80,7 +80,7 @@ class BinanceAdapter(MarketDataPort):
             return df
 
         last_timestamp = df.index[-1]
-        if last_timestamp + duration > datetime.utcnow():
+        if last_timestamp + duration > datetime.now(UTC):
             logger.info(f"Excluding open candle at {last_timestamp}")
             return df.iloc[:-1]
 

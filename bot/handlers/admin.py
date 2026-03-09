@@ -3,7 +3,7 @@
 import os
 import time
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import psutil
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -441,7 +441,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total_usage_today = 0
     usage_breakdown = Counter()
 
-    now = datetime.now()
+    now = datetime.now(UTC)
     cutoff_24h = now - timedelta(hours=24)
     cutoff_7d = now - timedelta(days=7)
     cutoff_30d = now - timedelta(days=30)
@@ -452,7 +452,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         last_seen_str = u.get("last_seen") or u.get("last_alert_timestamp")
         if last_seen_str:
             try:
-                last_dt = datetime.strptime(last_seen_str, "%Y-%m-%d %H:%M:%S")
+                last_dt = datetime.strptime(last_seen_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
                 delta = now - last_dt
                 # BUG-1 FIX: .days < 1 solo cuenta días completos; total_seconds es exacto
                 if delta.total_seconds() < 86400:
@@ -468,7 +468,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reg_str = u.get("registered_at")
         if reg_str:
             try:
-                reg_dt = datetime.strptime(reg_str, "%Y-%m-%d %H:%M:%S")
+                reg_dt = datetime.strptime(reg_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
                 if reg_dt >= cutoff_24h:
                     new_today += 1
                 if reg_dt >= cutoff_7d:

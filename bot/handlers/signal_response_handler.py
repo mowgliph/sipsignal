@@ -63,9 +63,9 @@ async def _handle_taken(update: Update, context: ContextTypes.DEFAULT_TYPE, time
     query = update.callback_query
 
     try:
-        from datetime import datetime
+        from datetime import UTC, datetime
 
-        detected_dt = datetime.fromtimestamp(timestamp)
+        detected_dt = datetime.fromtimestamp(timestamp, tz=UTC)
 
         container = context.bot_data["container"]
 
@@ -134,9 +134,9 @@ async def _handle_skipped(update: Update, context: ContextTypes.DEFAULT_TYPE, ti
     query = update.callback_query
 
     try:
-        from datetime import datetime
+        from datetime import UTC, datetime
 
-        detected_dt = datetime.fromtimestamp(timestamp)
+        detected_dt = datetime.fromtimestamp(timestamp, tz=UTC)
 
         container = context.bot_data["container"]
 
@@ -181,9 +181,9 @@ async def _handle_detail(update: Update, context: ContextTypes.DEFAULT_TYPE, tim
     query = update.callback_query
 
     try:
-        from datetime import datetime
+        from datetime import UTC, datetime
 
-        detected_dt = datetime.fromtimestamp(timestamp)
+        detected_dt = datetime.fromtimestamp(timestamp, tz=UTC)
 
         container = context.bot_data["container"]
 
