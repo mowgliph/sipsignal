@@ -176,8 +176,19 @@ def handle_errors(
                     logger.debug(log_msg)
 
                 if alert_admin:
-                    # TODO: Implement alert_admin in Task 2
-                    pass
+                    try:
+                        from bot.container import get_container
+
+                        container = get_container()
+                        if container and hasattr(container, "notifier"):
+                            admin_msg = (
+                                f"🚨 *TECHNICAL ALERT*\n"
+                                f"Function: `{func.__name__}`\n"
+                                f"Error: `{type(e).__name__}: {str(e)}`"
+                            )
+                            await container.notifier.send_message_to_admin(admin_msg)
+                    except Exception as inner_e:
+                        logger.error(f"Failed to alert admin in handle_errors: {inner_e}")
 
                 return fallback_value
 

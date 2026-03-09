@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock, patch
+
 import pytest
 
 from bot.utils.decorators import handle_errors
@@ -22,6 +24,21 @@ async def unhandled_exception():
 
 
 @pytest.mark.asyncio
-async def test_handle_errors_does_not_catch_other_exceptions():
-    with pytest.raises(ValueError):
-        await unhandled_exception()
+async def test_handle_errors_alerts_admin():
+    mock_notifier = AsyncMock()
+    mock_container = AsyncMock()
+    mock_container.notifier = mock_notifier
+
+    # Mockear get_container() para que devuelva el contenedor mock
+    with patch("bot.container.get_container", return_value=mock_container):
+
+        @handle_errors(exceptions=(ValueError,), alert_admin=True)
+        async def fail_with_alert():
+            raise ValueError("Alert this")
+
+        await fail_with_alert()
+        # Verificar que se llamó al método de envío de mensajes al admin
+        mock_notifier.send_message_to_admin.assert_called_once()
+        args, _ = mock_notifier.send_message_to_admin.call_args
+        assert "fail_with_alert" in args[0]
+        assert "ValueError" in args[0]

@@ -27,6 +27,13 @@ from bot.infrastructure.price_snapshot import PriceSnapshotRepository
 from bot.infrastructure.telegram.screenshot_adapter import ScreenshotAdapter
 from bot.infrastructure.telegram.telegram_notifier import TelegramNotifier
 
+_container = None
+
+
+def get_container():
+    """Get the global container instance."""
+    return _container
+
 
 class Container:
     """Dependency injection container that wires all components."""
@@ -39,6 +46,7 @@ class Container:
             settings: Application settings from bot.core.config
             bot: Telegram bot instance
         """
+        global _container
         self._settings = settings
         self._bot = bot
 
@@ -46,6 +54,9 @@ class Container:
         self.chart = ScreenshotAdapter(api_key=settings.screenshot_api_key)
         self.ai = GroqAdapter(api_key=settings.groq_api_key)
         self.notifier = TelegramNotifier()
+
+        # ... rest of init ...
+        _container = self
 
         self.signal_repo = PostgreSQLSignalRepository()
         self.trade_repo = PostgreSQLActiveTradeRepository()
