@@ -5,10 +5,7 @@ Motor de detección de señales TZ.
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from loguru import logger
-
-from bot.domain.ports.market_data_port import MarketDataPort
-from bot.domain.ports.repositories import ActiveTradeRepository
+from bot.domain.ports import ActiveTradeRepository, MarketDataPort
 from bot.trading.technical_analysis import calculate_all
 
 
@@ -58,64 +55,67 @@ async def run_cycle(
     Returns:
         SignalDTO si hay señal, None otherwise
     """
-    df = await market_data.get_ohlcv("BTCUSDT", config.timeframe, 200)
+    try:
+        df = await market_data.get_ohlcv("BTCUSDT", config.timeframe, 200)
 
-    config_dict = {
-        "supertrend_period": config.supertrend_period,
-        "supertrend_mult": config.supertrend_mult,
-        "ash_length": config.ash_length,
-        "ash_smooth": config.ash_smooth,
-        "tp_period": config.tp_period,
-        "sl_period": config.sl_period,
-        "tp_mult": config.tp_mult,
-        "sl_mult": config.sl_mult,
-    }
+        config_dict = {
+            "supertrend_period": config.supertrend_period,
+            "supertrend_mult": config.supertrend_mult,
+            "ash_length": config.ash_length,
+            "ash_smooth": config.ash_smooth,
+            "tp_period": config.tp_period,
+            "sl_period": config.sl_period,
+            "tp_mult": config.tp_mult,
+            "sl_mult": config.sl_mult,
+        }
 
-    df = calculate_all(df, config_dict)
+        df = calculate_all(df, config_dict)
 
-    last = df.iloc[-1]
+        last = df.iloc[-1]
 
-    active_trade = await trade_repo.get_active()
-    if active_trade:
-        logger.info(f"Active trade exists: {active_trade.id}")
+        active = await trade_repo.get_active()
+        if active:
+            return None
+
+        if (
+            config.enable_long
+            and last["sup_is_bullish"]
+            and last["ash_bullish_signal"]
+            and last["rr_ratio"] >= 1.0
+        ):
+            atr_col = f"ATRr_{config.tp_period}"
+            return SignalDTO(
+                direction="LONG",
+                entry_price=float(last["close"]),
+                tp1_level=float(last["long_tp"]),
+                sl_level=float(last["long_sl"]),
+                rr_ratio=float(last["rr_ratio"]),
+                atr_value=float(last[atr_col]),
+                supertrend_line=float(last["supertrend_line"]),
+                timeframe=config.timeframe,
+                detected_at=datetime.now(UTC),
+            )
+
+        if (
+            config.enable_short
+            and not last["sup_is_bullish"]
+            and last["ash_bearish_signal"]
+            and last["rr_ratio"] >= 1.0
+        ):
+            atr_col = f"ATRr_{config.tp_period}"
+            return SignalDTO(
+                direction="SHORT",
+                entry_price=float(last["close"]),
+                tp1_level=float(last["short_tp"]),
+                sl_level=float(last["short_sl"]),
+                rr_ratio=float(last["rr_ratio"]),
+                atr_value=float(last[atr_col]),
+                supertrend_line=float(last["supertrend_line"]),
+                timeframe=config.timeframe,
+                detected_at=datetime.now(UTC),
+            )
+
         return None
 
-    if (
-        config.enable_long
-        and last["sup_is_bullish"]
-        and last["ash_bullish_signal"]
-        and last["rr_ratio"] >= 1.0
-    ):
-        atr_col = f"ATRr_{config.tp_period}"
-        return SignalDTO(
-            direction="LONG",
-            entry_price=float(last["close"]),
-            tp1_level=float(last["long_tp"]),
-            sl_level=float(last["long_sl"]),
-            rr_ratio=float(last["rr_ratio"]),
-            atr_value=float(last[atr_col]),
-            supertrend_line=float(last["supertrend_line"]),
-            timeframe=config.timeframe,
-            detected_at=datetime.now(UTC),
-        )
-
-    if (
-        config.enable_short
-        and not last["sup_is_bullish"]
-        and last["ash_bearish_signal"]
-        and last["rr_ratio"] >= 1.0
-    ):
-        atr_col = f"ATRr_{config.tp_period}"
-        return SignalDTO(
-            direction="SHORT",
-            entry_price=float(last["close"]),
-            tp1_level=float(last["short_tp"]),
-            sl_level=float(last["short_sl"]),
-            rr_ratio=float(last["rr_ratio"]),
-            atr_value=float(last[atr_col]),
-            supertrend_line=float(last["supertrend_line"]),
-            timeframe=config.timeframe,
-            detected_at=datetime.now(UTC),
-        )
-
-    return None
+    except Exception:
+        return None

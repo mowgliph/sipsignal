@@ -138,7 +138,6 @@ class TestLongSignal:
         trade_repo = MockActiveTradeRepository(active_trade=None)
         market_data = MockMarketDataPort(df=mock_df)
 
-        # Mock calculate_all to return the pre-configured DataFrame
         with patch("bot.trading.strategy_engine.calculate_all", return_value=mock_df):
             result = await run_cycle(config, trade_repo, market_data)
 
