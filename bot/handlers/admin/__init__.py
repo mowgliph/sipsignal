@@ -14,6 +14,7 @@ from .mass_messaging import (
     receive_additional_text,
     send_broadcast,
 )
+from .user_management import users
 from .utils import _clean_markdown, set_admin_util, set_logs_util
 
 __all__ = [
@@ -31,5 +32,6 @@ __all__ = [
     "send_broadcast",
     "set_admin_util",
     "set_logs_util",
+    "users",
     "_clean_markdown",
 ]
