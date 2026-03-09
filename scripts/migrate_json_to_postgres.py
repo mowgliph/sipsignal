@@ -85,7 +85,9 @@ async def migrate_user_data():
                 date_str = daily_usage.get("date")
                 if date_str:
                     try:
-                        usage_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                        usage_date = (
+                            datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=UTC).date()
+                        )
                         today = datetime.now(UTC).date()
 
                         # Solo migrar si es del día actual o reciente (últimos 90 días)
