@@ -24,6 +24,7 @@ from telegram.ext import (
 )
 from telegram.warnings import PTBUserWarning
 
+from bot.core import database
 from bot.core.access_manager import AccessManager
 from bot.core.config import PID, VERSION, settings
 from bot.core.database import execute, fetchrow
@@ -59,7 +60,6 @@ from bot.handlers.trading import mk_command, p_command, refresh_command_callback
 from bot.handlers.user_settings import lang_command, set_language_callback
 from bot.trading.drawdown_manager import update_drawdown
 from bot.trading.price_monitor import get_price_monitor, start_price_monitor
-from bot.utils.file_manager import add_log_line, cargar_usuarios, guardar_usuarios
 from bot.utils.logger import logger
 
 
@@ -190,8 +190,17 @@ async def check_admin(update: Update) -> bool:
 async def post_init(app: Application):
     """
     Se ejecuta después de que el bot se inicializa.
-    Inicia los bucles de fondo y programa las alertas para todos los usuarios existentes.
+    Inicializa el pool de base de datos y otras tareas de fondo.
     """
+
+    # 0. Inicializar Pool de Base de Datos
+    try:
+        await database.connect()
+        logger.info("✅ Pool de base de datos inicializado")
+    except Exception as e:
+        logger.error(f"❌ Error crítico al inicializar el pool de base de datos: {e}")
+        # En producción, podrías querer abortar aquí
+        raise
 
     logger.info("🤖 Bot inicializado: Iniciando tareas de fondo...")
 
@@ -262,10 +271,27 @@ async def post_init(app: Application):
         logger.error(f"❌ Error al iniciar signal timeout: {e}")
 
 
+async def post_shutdown(app: Application):
+    """
+    Se ejecuta al apagar el bot.
+    Cierra el pool de base de datos de forma limpia.
+    """
+    logger.info("🛑 Bot deteniéndose: Cerrando recursos...")
+    try:
+        await database.close()
+        logger.info("✅ Pool de base de datos cerrado")
+    except Exception as e:
+        logger.error(f"❌ Error al cerrar el pool de base de datos: {e}")
+
+
 def main():
     """Inicia el bot y configura todos los handlers."""
 
     builder = ApplicationBuilder().token(settings.token_telegram)
+    # Registrar hooks de ciclo de vida
+    builder.post_init(post_init)
+    builder.post_shutdown(post_shutdown)
+
     app = builder.build()
 
     from bot.container import Container
@@ -285,7 +311,6 @@ def main():
         Envía mensaje a lista de chat_ids. Si falla el Markdown, reintenta en texto plano.
         """
         fallidos = {}
-        usuarios_actualizados = None
 
         for chat_id in chat_ids:
             try:
@@ -345,17 +370,8 @@ def main():
                 fallidos[chat_id] = error_str
                 logger.error(f"❌ Fallo al enviar a {chat_id}: {error_str}")
 
-                if "Chat not found" in error_str or "bot was blocked" in error_str:
-                    if usuarios_actualizados is None:
-                        usuarios_actualizados = cargar_usuarios()
-                    if chat_id in usuarios_actualizados:
-                        del usuarios_actualizados[chat_id]
-                        logger.info(
-                            f"🗑️ Usuario {chat_id} ha bloqueado el bot. Eliminado de la lista."
-                        )
-
-        if usuarios_actualizados is not None:
-            guardar_usuarios(usuarios_actualizados)
+                # Note: User deletion on block is now handled by checking status in repository
+                # Legacy JSON removal code removed - users are managed in PostgreSQL
 
         return fallidos
 
@@ -457,12 +473,9 @@ def main():
     app.add_handler(resetdd_handler)
     app.add_handler(resetdd_callback_handler)
 
-    # 4. Asignar la función post_init
-    app.post_init = post_init
-
     # 5. Iniciar el polling
     print("✅ SipSignal iniciado. Esperando mensajes...")
-    add_log_line("----------- ⚡ SipSignal INICIADO -----------")
+    logger.add_log_line("----------- ⚡ SipSignal INICIADO -----------")
     app.run_polling()
 
 

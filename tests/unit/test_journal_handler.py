@@ -168,7 +168,7 @@ class TestActiveTrades:
         with patch("bot.handlers.journal_handler.fetch") as mock_fetch:
             mock_fetch.return_value = mock_signals
 
-            with patch("bot.handlers.journal_handler.BinanceDataFetcher") as mock_fetcher:
+            with patch("bot.handlers.journal_handler.BinanceAdapter") as mock_fetcher:
                 mock_instance = AsyncMock()
                 mock_instance.get_current_price.return_value = 45250.00
                 mock_fetcher.return_value.__aenter__.return_value = mock_instance

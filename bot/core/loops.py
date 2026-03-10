@@ -1,8 +1,8 @@
 # core/loops.py
 
-from bot.core.config import LOG_LINES
+from bot.utils.logger import logger
 
 
-def get_logs_data():
+def get_logs_data() -> list[str]:
     """Devuelve las líneas de log REALES que están en memoria."""
-    return LOG_LINES
+    return logger.get_log_lines()

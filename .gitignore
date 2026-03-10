@@ -29,3 +29,8 @@ logs/
 # Cada entorno (local/VPS) mantiene su propia versión
 version.txt
 .coverage
+
+# Build artifacts and caches
+sipsignal.egg-info/
+.ruff_cache/
+.pytest_cache/

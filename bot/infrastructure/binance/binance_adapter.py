@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import aiohttp
 import pandas as pd
@@ -36,12 +36,12 @@ class BinanceAdapter(MarketDataPort):
         session = await self._get_session()
 
         for attempt in range(max_retries):
-            start_time = asyncio.get_event_loop().time()
+            start_time = asyncio.get_running_loop().time()
             try:
                 async with session.get(
                     url, params=params, timeout=aiohttp.ClientTimeout(total=self.timeout)
                 ) as response:
-                    latency_ms = (asyncio.get_event_loop().time() - start_time) * 1000
+                    latency_ms = (asyncio.get_running_loop().time() - start_time) * 1000
                     logger.info(
                         f"GET {url} params={params} - {response.status} - {latency_ms:.2f}ms"
                     )
@@ -80,7 +80,7 @@ class BinanceAdapter(MarketDataPort):
             return df
 
         last_timestamp = df.index[-1]
-        if last_timestamp + duration > datetime.utcnow():
+        if last_timestamp + duration > datetime.now(UTC):
             logger.info(f"Excluding open candle at {last_timestamp}")
             return df.iloc[:-1]
 
@@ -131,3 +131,40 @@ class BinanceAdapter(MarketDataPort):
         df = self._exclude_open_candle(df, timeframe)
 
         return df
+
+    async def get_current_price(self, symbol: str) -> float:
+        """Get current price for symbol."""
+        url = f"{BINANCE_BASE_URL}/ticker/24hr"
+        params = {"symbol": symbol.upper()}
+
+        data = await self._request_with_retry(url, params)
+
+        bid = float(data["bidPrice"])
+        ask = float(data["askPrice"])
+        return (bid + ask) / 2
+
+    async def fetch_multiple_timeframes(
+        self, symbol: str, intervals: list[str] | None = None
+    ) -> dict[str, pd.DataFrame]:
+        """Fetch OHLCV for multiple timeframes."""
+        if intervals is None:
+            intervals = ["15m", "1h", "4h"]
+
+        tasks = [self.get_ohlcv(symbol, interval) for interval in intervals]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        data = {}
+        for interval, result in zip(intervals, results, strict=False):
+            if isinstance(result, Exception):
+                logger.error(f"Failed to fetch {interval}: {result}")
+                data[interval] = pd.DataFrame()
+            else:
+                data[interval] = result
+
+        return data
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()

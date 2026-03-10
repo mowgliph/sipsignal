@@ -117,5 +117,21 @@ async def run_cycle(
 
         return None
 
-    except Exception:
+    except Exception as e:
+        from bot.container import get_container
+        from bot.utils.logger import logger
+
+        logger.error(f"Critical error in strategy execution: {e}")
+
+        # Intentar alertar al admin de forma manual para asegurar visibilidad en este punto crítico
+        try:
+            container = get_container()
+            if container and hasattr(container, "notifier"):
+                admin_msg = f"🚨 *STRATEGY ENGINE FAIL*\nError: `{type(e).__name__}: {str(e)}`"
+                # No podemos usar await aquí si estamos en un contexto donde no queremos bloquear
+                # pero como run_cycle es async, podemos hacerlo.
+                await container.notifier.send_message_to_admin(admin_msg)
+        except Exception as inner_e:
+            logger.error(f"Failed to alert admin in strategy_engine: {inner_e}")
+
         return None

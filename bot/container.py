@@ -8,6 +8,7 @@ from bot.application.handle_drawdown import HandleDrawdown
 from bot.application.manage_journal import ManageJournal
 from bot.application.run_signal_cycle import RunSignalCycle
 from bot.core.config import Settings
+from bot.domain.ports.market_data_port import MarketDataPort
 from bot.infrastructure.binance.binance_adapter import BinanceAdapter
 from bot.infrastructure.database.active_trade_repository import (
     PostgreSQLActiveTradeRepository,
@@ -16,10 +17,22 @@ from bot.infrastructure.database.signal_repository import PostgreSQLSignalReposi
 from bot.infrastructure.database.user_repositories import (
     PostgreSQLDrawdownRepository,
     PostgreSQLUserConfigRepository,
+    PostgreSQLUserPreferenceRepository,
+    PostgreSQLUserRepository,
+    PostgreSQLUserUsageStatsRepository,
+    PostgreSQLUserWatchlistRepository,
 )
 from bot.infrastructure.groq.groq_adapter import GroqAdapter
+from bot.infrastructure.price_snapshot import PriceSnapshotRepository
 from bot.infrastructure.telegram.screenshot_adapter import ScreenshotAdapter
 from bot.infrastructure.telegram.telegram_notifier import TelegramNotifier
+
+_container = None
+
+
+def get_container():
+    """Get the global container instance."""
+    return _container
 
 
 class Container:
@@ -33,18 +46,27 @@ class Container:
             settings: Application settings from bot.core.config
             bot: Telegram bot instance
         """
+        global _container
         self._settings = settings
         self._bot = bot
 
-        self.market_data = BinanceAdapter()
+        self.market_data: MarketDataPort = BinanceAdapter()
         self.chart = ScreenshotAdapter(api_key=settings.screenshot_api_key)
         self.ai = GroqAdapter(api_key=settings.groq_api_key)
         self.notifier = TelegramNotifier()
+
+        # ... rest of init ...
+        _container = self
 
         self.signal_repo = PostgreSQLSignalRepository()
         self.trade_repo = PostgreSQLActiveTradeRepository()
         self.user_config_repo = PostgreSQLUserConfigRepository()
         self.drawdown_repo = PostgreSQLDrawdownRepository()
+        self.user_repo = PostgreSQLUserRepository()
+        self.user_watchlist_repo = PostgreSQLUserWatchlistRepository()
+        self.user_preference_repo = PostgreSQLUserPreferenceRepository()
+        self.user_usage_stats_repo = PostgreSQLUserUsageStatsRepository()
+        self.price_snapshot_repo = PriceSnapshotRepository()
 
         self.run_signal_cycle = RunSignalCycle(
             market_data=self.market_data,

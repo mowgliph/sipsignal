@@ -14,6 +14,7 @@ Example usage:
         await update.message.reply_text("Protected command executed")
 """
 
+import asyncio
 import contextlib
 import functools
 from collections.abc import Callable
@@ -131,3 +132,66 @@ def permitted_only(func: Callable) -> Callable:
             return None
 
     return wrapper
+
+
+def handle_errors(
+    exceptions: tuple[type[Exception], ...] = (Exception,),
+    fallback_value: Any = None,
+    alert_admin: bool = False,
+    level: str = "ERROR",
+) -> Callable:
+    """
+    Decorator to catch specific exceptions, log them, and optionally alert the admin.
+
+    Args:
+        exceptions: Tuple of exception types to catch.
+        fallback_value: Value to return if an exception occurs.
+        alert_admin: Whether to send a notification to the bot admin.
+        level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+
+    Returns:
+        The wrapped function with error handling logic.
+    """
+
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                if asyncio.iscoroutinefunction(func):
+                    return await func(*args, **kwargs)
+                return func(*args, **kwargs)
+            except exceptions as e:
+                log_msg = f"Error in {func.__name__}: {str(e)}"
+                log_level = level.upper()
+
+                if log_level == "ERROR":
+                    logger.error(log_msg)
+                elif log_level == "WARNING":
+                    logger.warning(log_msg)
+                elif log_level == "INFO":
+                    logger.info(log_msg)
+                elif log_level == "CRITICAL":
+                    logger.critical(log_msg)
+                else:
+                    logger.debug(log_msg)
+
+                if alert_admin:
+                    try:
+                        from bot.container import get_container
+
+                        container = get_container()
+                        if container and hasattr(container, "notifier"):
+                            admin_msg = (
+                                f"🚨 *TECHNICAL ALERT*\n"
+                                f"Function: `{func.__name__}`\n"
+                                f"Error: `{type(e).__name__}: {str(e)}`"
+                            )
+                            await container.notifier.send_message_to_admin(admin_msg)
+                    except Exception as inner_e:
+                        logger.error(f"Failed to alert admin in handle_errors: {inner_e}")
+
+                return fallback_value
+
+        return wrapper
+
+    return decorator

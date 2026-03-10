@@ -13,7 +13,7 @@ def test_environment_variables():
 
 def test_data_directories():
     """Verifica directorios de datos necesarios."""
-    required_dirs = ["logs", "data-example"]
+    required_dirs = ["logs", "bot/data"]
     for dir_name in required_dirs:
         assert os.path.exists(dir_name), f"Directorio {dir_name} no encontrado"
 

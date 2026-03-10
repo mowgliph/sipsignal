@@ -2,7 +2,7 @@
 Funciones para gestionar la configuración de usuario en la base de datos.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from bot.core.database import execute, fetch, fetchrow
@@ -26,7 +26,7 @@ async def create_or_update_user_config(
     Crea o actualiza la configuración de un usuario.
     Usa ON CONFLICT para hacer upsert.
     """
-    now = datetime.now()
+    now = datetime.now(UTC)
     await execute(
         """
         INSERT INTO user_config

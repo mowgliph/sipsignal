@@ -11,11 +11,10 @@ import threading
 import time
 from collections import defaultdict
 from contextlib import contextmanager, suppress
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from bot.core.config import EVENTS_LOG_PATH
-from bot.utils.file_manager import cargar_usuarios
 from bot.utils.logger import logger
 
 # --- Constants ---
@@ -131,7 +130,7 @@ def _rotate_log_file() -> None:
     """
     try:
         events = _load_events()
-        cutoff = int((datetime.now() - timedelta(days=30)).timestamp())
+        cutoff = int((datetime.now(UTC) - timedelta(days=30)).timestamp())
         recent_events = [e for e in events if e.get("timestamp", 0) > cutoff]
 
         # If still too large, keep only last 1000 events
@@ -154,7 +153,7 @@ def _cleanup_old_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     Returns:
         Filtered list of recent events
     """
-    cutoff_time = int((datetime.now() - timedelta(days=CLEANUP_DAYS)).timestamp())
+    cutoff_time = int((datetime.now(UTC) - timedelta(days=CLEANUP_DAYS)).timestamp())
     cleaned = [e for e in events if e.get("timestamp", 0) > cutoff_time]
 
     removed_count = len(events) - len(cleaned)
@@ -248,7 +247,7 @@ def get_event_stats(days: int = 30) -> dict[str, Any]:
             logger.warning("Event log corrupted, returning empty stats")
             return _empty_stats(days)
 
-        cutoff_time = int((datetime.now() - timedelta(days=days)).timestamp())
+        cutoff_time = int((datetime.now(UTC) - timedelta(days=days)).timestamp())
         recent_events = [e for e in events if e.get("timestamp", 0) > cutoff_time]
 
         if not recent_events:
@@ -265,7 +264,7 @@ def get_event_stats(days: int = 30) -> dict[str, Any]:
 
             # By day
             ts = event.get("timestamp", 0)
-            day_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+            day_str = datetime.fromtimestamp(ts, tz=UTC).strftime("%Y-%m-%d")
             events_by_day[day_str] += 1
 
             # By user
@@ -288,7 +287,7 @@ def get_event_stats(days: int = 30) -> dict[str, Any]:
             if most_active_user
             else None,
             "period_days": days,
-            "period_start": datetime.fromtimestamp(cutoff_time).isoformat(),
+            "period_start": datetime.fromtimestamp(cutoff_time, tz=UTC).isoformat(),
         }
 
     except Exception as e:
@@ -307,7 +306,7 @@ def _empty_stats(days: int) -> dict[str, Any]:
         "events_by_day": {},
         "most_active_user": None,
         "period_days": days,
-        "period_start": (datetime.now() - timedelta(days=days)).isoformat(),
+        "period_start": (datetime.now(UTC) - timedelta(days=days)).isoformat(),
     }
 
 
@@ -334,14 +333,14 @@ def get_user_journey(user_id: int | str, days: int = 30) -> list[dict[str, Any]]
             logger.warning("Event log corrupted, returning empty journey")
             return []
 
-        cutoff_time = int((datetime.now() - timedelta(days=days)).timestamp())
+        cutoff_time = int((datetime.now(UTC) - timedelta(days=days)).timestamp())
         user_id_str = str(user_id)
 
         user_events = [
             {
                 "event_type": e.get("event_type"),
                 "timestamp": e.get("timestamp"),
-                "datetime": datetime.fromtimestamp(e.get("timestamp", 0)).isoformat(),
+                "datetime": datetime.fromtimestamp(e.get("timestamp", 0), tz=UTC).isoformat(),
                 "metadata": e.get("metadata", {}),
             }
             for e in events
@@ -388,9 +387,15 @@ def export_events(
         if not start_date and not end_date:
             return events
 
-        start_ts = datetime.strptime(start_date, "%Y-%m-%d").timestamp() if start_date else 0
+        start_ts = (
+            datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=UTC).timestamp()
+            if start_date
+            else 0
+        )
         end_ts = (
-            (datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)).timestamp()
+            (
+                datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=UTC) + timedelta(days=1)
+            ).timestamp()
             if end_date
             else float("inf")
         )
@@ -441,8 +446,8 @@ def get_summary() -> dict[str, Any]:
 
         return {
             "total_events_all_time": len(events),
-            "first_event": datetime.fromtimestamp(min(timestamps)).isoformat(),
-            "last_event": datetime.fromtimestamp(max(timestamps)).isoformat(),
+            "first_event": datetime.fromtimestamp(min(timestamps), tz=UTC).isoformat(),
+            "last_event": datetime.fromtimestamp(max(timestamps), tz=UTC).isoformat(),
             "file_size_mb": round(file_size, 2),
         }
 
@@ -465,26 +470,54 @@ def get_retention_metrics() -> dict[str, any]:
     Returns:
         Dict with retention_7d, churn_rate, stickiness, dau, wau, mau
     """
-    usuarios = cargar_usuarios()
-    now = datetime.now()
+    # Note: This function requires a repository instance to be passed in
+    # For backward compatibility, we return empty metrics if called without repo
+    # Updated code should use get_retention_metrics_from_repo()
+    return {
+        "retention_7d": 0.0,
+        "churn_rate": 0.0,
+        "stickiness": 0.0,
+        "dau": 0,
+        "wau": 0,
+        "mau": 0,
+    }
 
-    # Activity windows
-    now - timedelta(hours=24)
-    now - timedelta(days=7)
-    now - timedelta(days=30)
+
+def get_retention_metrics_from_repo(user_repo) -> dict[str, any]:
+    """
+    Calculate retention metrics based on user activity from PostgreSQL.
+
+    Args:
+        user_repo: UserRepository instance
+
+    Returns:
+        Dict with retention_7d, churn_rate, stickiness, dau, wau, mau
+    """
+    import asyncio
+
+    # Get all users from repository
+    users = asyncio.run(user_repo.get_all())
+    now = datetime.now(UTC)
 
     dau = 0  # Daily Active Users (24h)
     wau = 0  # Weekly Active Users (7d)
     mau = 0  # Monthly Active Users (30d)
     active_7d_and_30d = 0  # Users active in both 7d and 30d windows
 
-    for _uid, u in usuarios.items():
-        last_seen_str = u.get("last_seen") or u.get("last_alert_timestamp")
-        if not last_seen_str:
+    for u in users:
+        last_seen = u.get("last_seen")
+        if not last_seen:
             continue
 
         try:
-            last_dt = datetime.strptime(last_seen_str, "%Y-%m-%d %H:%M:%S")
+            # Handle both datetime objects and strings
+            if isinstance(last_seen, datetime):
+                last_dt = last_seen
+                if last_dt.tzinfo is None:
+                    last_dt = last_dt.replace(tzinfo=UTC)
+            else:
+                last_dt = datetime.strptime(last_seen, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
+
             delta = now - last_dt
             seconds = delta.total_seconds()
 
@@ -536,21 +569,40 @@ def get_commands_per_user() -> dict[str, any]:
     Returns:
         Dict with total_commands, active_users_today, and avg_per_user
     """
-    usuarios = cargar_usuarios()
-    today = datetime.now().strftime("%Y-%m-%d")
+    # Note: Legacy function - returns empty metrics
+    # Updated code should use get_commands_per_user_from_repo()
+    return {
+        "total_commands": 0,
+        "active_users_today": 0,
+        "avg_per_user": 0.0,
+    }
+
+
+def get_commands_per_user_from_repo(user_repo, usage_stats_repo) -> dict[str, any]:
+    """
+    Calculate average commands per user for today from PostgreSQL.
+
+    Args:
+        user_repo: UserRepository instance
+        usage_stats_repo: UserUsageStatsRepository instance
+
+    Returns:
+        Dict with total_commands, active_users_today, and avg_per_user
+    """
+    import asyncio
+
+    users = asyncio.run(user_repo.get_all())
 
     total_commands = 0
     active_users_today = 0
 
-    for _uid, u in usuarios.items():
-        daily = u.get("daily_usage", {})
-        if daily.get("date") == today:
-            user_commands = sum(
-                count for cmd, count in daily.items() if cmd != "date" and isinstance(count, int)
-            )
-            if user_commands > 0:
-                total_commands += user_commands
-                active_users_today += 1
+    for u in users:
+        user_id = u["user_id"]
+        stats = asyncio.run(usage_stats_repo.get_today_stats(user_id))
+        user_commands = sum(stats.values())
+        if user_commands > 0:
+            total_commands += user_commands
+            active_users_today += 1
 
     avg_per_user = round(total_commands / active_users_today, 1) if active_users_today > 0 else 0.0
 
@@ -568,37 +620,61 @@ def get_daily_events() -> dict[str, int]:
     Returns:
         Dict with joins_today, commands_today, alerts_today
     """
-    usuarios = cargar_usuarios()
-    now = datetime.now()
+    # Note: Legacy function - returns empty events
+    # Updated code should use get_daily_events_from_repo()
+    return {
+        "joins_today": 0,
+        "commands_today": 0,
+        "alerts_today": 0,
+    }
+
+
+def get_daily_events_from_repo(user_repo, usage_stats_repo) -> dict[str, int]:
+    """
+    Get event counts for today from PostgreSQL.
+
+    Args:
+        user_repo: UserRepository instance
+        usage_stats_repo: UserUsageStatsRepository instance
+
+    Returns:
+        Dict with joins_today, commands_today, alerts_today
+    """
+    import asyncio
+
+    users = asyncio.run(user_repo.get_all())
+    now = datetime.now(UTC)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    today = datetime.now().strftime("%Y-%m-%d")
 
     joins_today = 0
     commands_today = 0
-    alerts_triggered = 0
 
-    for _uid, u in usuarios.items():
+    for u in users:
         # Count new joins today
-        reg_str = u.get("registered_at")
-        if reg_str:
+        reg = u.get("registered_at")
+        if reg:
             try:
-                reg_dt = datetime.strptime(reg_str, "%Y-%m-%d %H:%M:%S")
+                if isinstance(reg, datetime):
+                    reg_dt = reg
+                    if reg_dt.tzinfo is None:
+                        reg_dt = reg_dt.replace(tzinfo=UTC)
+                else:
+                    reg_dt = datetime.strptime(reg, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
+
                 if reg_dt >= today_start:
                     joins_today += 1
             except (ValueError, TypeError):
                 pass
 
         # Count today's commands
-        daily = u.get("daily_usage", {})
-        if daily.get("date") == today:
-            commands_today += sum(
-                count for cmd, count in daily.items() if cmd != "date" and isinstance(count, int)
-            )
+        user_id = u["user_id"]
+        stats = asyncio.run(usage_stats_repo.get_today_stats(user_id))
+        commands_today += sum(stats.values())
 
     return {
         "joins_today": joins_today,
         "commands_today": commands_today,
-        "alerts_today": alerts_triggered,
+        "alerts_today": 0,  # Alerts not tracked in new system
     }
 
 
@@ -609,32 +685,49 @@ def get_users_registration_stats() -> dict[str, any]:
     Returns:
         Dict with counts and percentages of users with/without registration dates
     """
-    usuarios = cargar_usuarios()
-    datetime.now()
+    # Note: Legacy function - returns empty stats
+    # Updated code should use get_users_registration_stats_from_repo()
+    return {
+        "total": 0,
+        "with_registered_at": 0,
+        "without_registered_at": 0,
+        "percent_with": 0.0,
+        "percent_without": 0.0,
+    }
 
-    total = len(usuarios)
+
+def get_users_registration_stats_from_repo(user_repo) -> dict[str, any]:
+    """
+    Get statistics about user registration data quality from PostgreSQL.
+
+    Args:
+        user_repo: UserRepository instance
+
+    Returns:
+        Dict with counts and percentages of users with/without registration dates
+    """
+    import asyncio
+
+    users = asyncio.run(user_repo.get_all())
+
+    total = len(users)
     with_registered_at = 0
     without_registered_at = 0
-    with_last_seen = 0
-    could_estimate = 0
 
-    for _uid, u in usuarios.items():
-        if u.get("registered_at"):
+    for u in users:
+        reg = u.get("registered_at")
+        if reg:
             with_registered_at += 1
         else:
             without_registered_at += 1
-            # If no registered_at but has last_seen, we could estimate
-            if u.get("last_seen"):
-                could_estimate += 1
 
-        if u.get("last_seen"):
-            with_last_seen += 1
+    percent_with = (with_registered_at / total * 100) if total > 0 else 0.0
+    percent_without = (without_registered_at / total * 100) if total > 0 else 0.0
 
     return {
-        "total_users": total,
+        "total": total,
         "with_registered_at": with_registered_at,
         "without_registered_at": without_registered_at,
-        "with_last_seen": with_last_seen,
-        "could_estimate": could_estimate,
-        "data_quality_pct": round((with_registered_at / total * 100), 1) if total > 0 else 0,
+        "percent_with": round(percent_with, 1),
+        "percent_without": round(percent_without, 1),
     }

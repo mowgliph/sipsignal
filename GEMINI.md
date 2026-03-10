@@ -1,91 +1,83 @@
-# SipSignal Trading Bot - GEMINI Context
+# SipSignal Trading Bot - Instructional Context
+
+This document serves as the primary instructional context for Gemini CLI when working on the `sipsignal` project. It outlines the project's architecture, technology stack, development standards, and key workflows.
 
 ## Project Overview
-SipSignal is a specialized Telegram bot for automated Bitcoin (BTC) technical analysis and trading signals. It operates 24/7 on a VPS, providing high-precision entry, take-profit (TP), and stop-loss (SL) levels.
+SipSignal is a specialized Telegram bot designed for automated Bitcoin (BTC/USDT) technical analysis and trading signal generation. It follows a **Hexagonal (Clean) Architecture** to ensure modularity, testability, and maintainability.
 
-- **Main Goal:** Automate BTC trading signals with real-time monitoring and AI-enhanced market context.
+- **Core Purpose:** 24/7 market monitoring, technical analysis (TA), and real-time signal notification via Telegram.
 - **Key Features:**
-    - Technical Analysis (RSI, MACD, Bollinger Bands, EMA, Supertrend, ASH).
-    - Real-time TP/SL monitoring via WebSockets (PriceMonitor).
-    - AI Market Context using Groq (Llama 3).
-    - Capital Management and Drawdown control.
-    - Multi-language support (ES/EN).
-    - Interactive Telegram UI with callback buttons and charts.
+    - **Automated TA:** RSI, MACD, Bollinger Bands, EMA, Supertrend, ATR.
+    - **AI Analysis:** Contextual market analysis using Groq AI (Llama 3).
+    - **Signal Generation:** Entry opportunities with dynamic TP/SL and Risk:Reward ratios.
+    - **Real-time Monitoring:** WebSocket-based monitoring for Take Profit (TP) and Stop Loss (SL) events.
+    - **Drawdown Management:** Capital protection and performance tracking.
 
-### Tech Stack
+## Technology Stack
 - **Language:** Python 3.13+
-- **Framework:** `python-telegram-bot` (Asynchronous)
-- **Database:** PostgreSQL with SQLAlchemy ORM and Alembic migrations.
-- **Data Science:** `pandas`, `pandas-ta`, `numba` (for performance).
-- **AI Integration:** `groq` API.
-- **Infrastructure:** Hexagonal Architecture (Domain/Infrastructure/Application/Handlers).
-- **Dependency Injection:** Centralized `Container` in `bot/container.py`.
+- **Database:** PostgreSQL (SQLAlchemy ORM, Alembic for migrations)
+- **APIs:**
+    - **Telegram:** `python-telegram-bot` (v20+)
+    - **Market Data:** Binance API (via `python-binance` and `httpx`)
+    - **AI:** Groq Cloud API (Llama 3)
+- **Data Analysis:** `pandas`, `pandas_ta`
+- **Testing:** `pytest`, `pytest-asyncio`, `pytest-cov`
+- **Quality Assurance:** `ruff` (linting/formatting), `pre-commit` hooks
 
-## Building and Running
-
-### Prerequisites
-- Python 3.13+
-- PostgreSQL database
-- Environment variables configured (see `.env`)
-
-### Key Commands
-- **Environment Setup:**
-    ```bash
-    python3.13 -m venv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
-    ```
-- **Database Migrations:**
-    ```bash
-    alembic upgrade head
-    ```
-- **Run the Bot (Development):**
-    ```bash
-    python bot/main.py
-    ```
-- **Run Tests:**
-    ```bash
-    pytest tests/
-    ```
-- **Management Script (`botctl.sh`):**
-    The project includes a comprehensive management script:
-    - `./botctl.sh start`: Start the bot service.
-    - `./botctl.sh stop`: Stop the bot service.
-    - `./botctl.sh status`: Show service status and PID.
-    - `./botctl.sh logs`: View real-time logs.
-    - `./botctl.sh health`: Run a full system health check.
-
-## Development Conventions
-
-### Architecture
-The project follows a **Hexagonal / Clean Architecture** pattern:
-- `bot/domain/`: Core business logic and entities (e.g., `Signal`, `UserConfig`).
-- `bot/domain/ports/`: Interfaces for repositories and external services.
-- `bot/infrastructure/`: Concrete implementations (Adapters) of ports (e.g., `BinanceAdapter`, `PostgreSQLSignalRepository`).
-- `bot/application/`: Use cases that orchestrate domain logic (e.g., `RunSignalCycle`).
+## Project Structure & Architecture
+The project strictly adheres to Hexagonal Architecture:
+- `bot/domain/`: Business entities (`signal.py`, `user_config.py`) and Ports (interfaces in `ports/`).
+- `bot/application/`: Use cases that orchestrate business logic (`run_signal_cycle.py`, `get_signal_analysis.py`).
+- `bot/infrastructure/`: Concrete implementations of ports (adapters for Binance, Groq, Telegram, and Database).
 - `bot/handlers/`: Telegram command and callback handlers.
-- `bot/core/`: Central configuration and shared utilities.
+- `bot/trading/`: Core trading logic (Technical Analysis, Strategy Engine, Price Monitor).
+- `bot/container.py`: Centralized Dependency Injection (DI) container.
+- `bot/main.py`: Entry point for the Telegram application.
 
-### Coding Style
-- **Type Hinting:** Strictly required for all new code.
-- **Asynchronous:** Most operations are `async/await`.
-- **Dependency Injection:** Use the `Container` provided in `bot_data` for accessing services and repositories.
-- **Linting:** `Ruff` is used for linting and formatting. Rules are defined in `pyproject.toml`.
-- **Logging:** Use `loguru` for logging. Avoid `print()` statements.
+## Development Standards & Mandates
+### 1. Architectural Integrity
+- **Ports & Adapters:** Always define an interface (Port) in `bot/domain/ports/` before implementing a new external service (Adapter) in `bot/infrastructure/`.
+- **Dependency Injection:** Use the `Container` in `bot/container.py` for injecting dependencies. Avoid direct instantiation of infrastructure classes in application or handler layers.
+- **Use Cases:** Business logic must reside in the `application` layer. Handlers should only delegate to use cases.
 
-### Testing
-- **Unit Tests:** Located in `tests/unit/`. Focus on isolated logic.
-- **Integration Tests:** Located in `tests/integration/`. Focus on database and API interactions.
-- **E2E Tests:** Located in `tests/e2e/`.
+### 2. Coding Style
+- **Linter/Formatter:** `ruff` is the source of truth. Run `ruff check .` and `ruff format .` before finishing tasks.
+- **Type Safety:** Use Python type hints throughout the codebase. Use Pydantic models (in `bot/db/models.py`) for data validation.
+- **Async/Await:** The project is fully asynchronous. Use `async/await` and non-blocking libraries (e.g., `httpx`, `aiohttp`, `asyncpg`).
 
-### Database
-- Models are defined using SQLAlchemy in `bot/db/models.py`.
-- Pydantic models in the same file are used for data validation and DTOs.
-- Always use Alembic for schema changes.
+### 3. Testing Protocol
+- **Location:** All tests reside in the `tests/` directory, categorized into `unit/`, `integration/`, and `e2e/`.
+- **Mandate:** Every new feature or bug fix **must** include corresponding tests.
+- **Execution:** Run `pytest tests/` to verify changes.
 
-## Important Files
-- `bot/main.py`: Main entry point.
-- `bot/container.py`: DI Container wiring.
-- `bot/core/config.py`: Configuration loading from `.env`.
-- `botctl.sh`: VPS management script.
-- `bot/application/run_signal_cycle.py`: The heart of the signal detection logic.
+### 4. Database Migrations
+- Use Alembic for any schema changes.
+- **Commands:**
+    - `alembic revision --autogenerate -m "description"` to create a migration.
+    - `alembic upgrade head` to apply migrations.
+
+## Key Workflows
+### Autonomous Signal Cycle
+Triggered by `bot/scheduler.py` or `bot/main.py`'s `post_init`:
+1. `MarketDataPort` fetches OHLCV data.
+2. `TechnicalAnalysis` calculates indicators.
+3. `StrategyEngine` evaluates entry/exit conditions.
+4. `GroqAdapter` provides AI context.
+5. `TelegramNotifier` sends the alert with a chart.
+
+### Interactive Commands
+- `/signal`: Instant technical analysis.
+- `/ta <symbol>`: Full technical analysis for any coin.
+- `/chart [tf]`: Fetch TradingView chart for BTC.
+- `/capital`: Manage drawdown and capital settings.
+- `/journal`: Review signal history.
+
+## Common Development Commands
+- **Install Dependencies:** `pip install -e ".[dev]"`
+- **Run Bot:** `python bot/main.py`
+- **Run Tests:** `pytest tests/`
+- **Lint/Format:** `ruff check . --fix` and `ruff format .`
+- **Database Status:** `alembic current`
+
+## Contextual Precedence
+The instructions in this `GEMINI.md` take absolute precedence over general defaults. Always refer to the hexagonal architecture boundaries when proposing or implementing changes.

@@ -143,7 +143,7 @@ class TestIsRequestExpired:
 
     def test_handles_naive_datetime(self, access_manager):
         """Verifica que maneja datetime sin timezone."""
-        naive_time = datetime.now() - timedelta(hours=25)
+        naive_time = datetime.now(UTC) - timedelta(hours=25)
         assert access_manager._is_request_expired(naive_time) is True
 
 

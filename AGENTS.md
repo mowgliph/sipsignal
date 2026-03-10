@@ -26,9 +26,9 @@ Brainstorm → Issue → Rama → Código → Tests → Lint → Merge → Push 
 4. Presenta el diseño y obtén aprobación del usuario
 5. Escribe el diseño en `docs/plans/YYYY-MM-DD-<topic>-design.md`
 6. Invoca la skill `writing-plans` para crear el plan de implementación
-```
 
 **NUNCA escribas código antes de completar el brainstorm y obtener aprobación.**
+```
 
 ### 2. Issue
 
@@ -96,8 +96,6 @@ git push -u origin feat/nombre-descriptivo
 
 ---
 
-## Git Branch Protection
-
 ## Build, Lint, and Test Commands
 
 > **IMPORTANT:** Always activate the virtual environment before running commands below:
@@ -131,19 +129,25 @@ pytest -k "test_signal"
 
 # Run tests in a specific directory
 pytest tests/unit/
+
+# Run async tests
+pytest tests/ -k "async"
 ```
 
 ### Linting and Formatting
 
 ```bash
-# Run ruff linter
-ruff check .
+# Run ruff linter and auto-fix
+ruff check . --fix
+
+# Format code
+ruff format .
 
 # Check formatting without modifying
 ruff format --check .
 
-# Auto-fix linting issues
-ruff check . --fix
+# Run pre-commit hooks (includes ruff)
+pre-commit run --all-files
 ```
 
 ### Security Checks
@@ -174,8 +178,9 @@ pip install dist/*.whl
 
 - **Python 3.13+** - Use modern syntax (type unions with `|`, dataclasses, etc.)
 - **Async/Await** - Use for all I/O operations (Telegram API, HTTP, database)
-- **Line length** - Maximum 100 characters
+- **Line length** - Maximum 100 characters (enforced by ruff)
 - **No comments** - Avoid unless explaining complex logic or business rules
+- **Docstrings** - Use triple quotes for module and class docstrings
 
 ### Imports
 
@@ -190,17 +195,18 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import CommandHandler
 
-# Local (absolute imports, alphabetical by module)
-from core.config import settings
-from handlers.signal_handler import signal_command
-from trading.data_fetcher import BinanceDataFetcher
+# Local (absolute imports from bot/, alphabetical)
+from bot.core.config import settings
+from bot.handlers.signal_handler import signal_command
+from bot.trading.data_fetcher import BinanceDataFetcher
 ```
 
 **Rules:**
-- Group imports: stdlib, third-party, local
+- Group imports: stdlib, third-party, local (from bot/)
 - Use absolute imports (not relative `..`)
 - Separate groups with a blank line
 - Alphabetical within groups
+- Known first-party: `ai`, `core`, `db`, `handlers`, `utils` (configured in ruff)
 
 ### Naming Conventions
 
@@ -212,6 +218,8 @@ from trading.data_fetcher import BinanceDataFetcher
 | Constants | UPPER_SNAKE_CASE | `DEFAULT_CONFIG`, `LOG_MAX` |
 | Files | snake_case | `signal_handler.py`, `config.py` |
 | Dataclasses | PascalCase | `@dataclass class Settings:` |
+| Test files | test_*.py | `test_signal_builder.py` |
+| Test functions | test_* | `test_calculate_signal` |
 
 ### Type Annotations
 
@@ -313,7 +321,7 @@ class User(Base):
 
 ### Configuration
 
-- Store all config in `core/config.py`
+- Store all config in `bot/core/config.py`
 - Use environment variables (via `.env`)
 - Validate required variables at startup
 - Export constants at module level
@@ -321,16 +329,23 @@ class User(Base):
 ### Testing Patterns
 
 ```python
-"""Module docstring."""
+"""
+Tests para signal_builder.
+"""
 
-import os
-import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import pytest
 
-def test_function_name():
-    """Test description in Spanish."""
-    # Test implementation
-    assert expected == actual
+from bot.trading.signal_builder import build_signal_message
+
+
+def test_signal_message_long():
+    """Test signal message generation for LONG signals."""
+    signal = create_test_signal("LONG")
+    config = create_test_config()
+
+    result = build_signal_message(signal, config)
+    assert "LONG" in result
+    assert "50000.0" in result
 ```
 
 ### Ruff Configuration
@@ -343,6 +358,7 @@ The project uses ruff with these rules:
 - B - flake8-bugbear
 - C4 - flake8-comprehensions
 - SIM - flake8-simplify
+- DTZ - flake8-datetimez (timezone awareness)
 
 Ignore E501 (line too long) - handled by formatter.
 
@@ -352,17 +368,22 @@ Ignore E501 (line too long) - handled by formatter.
 
 ```
 sipsignal/
-├── ai/              # AI clients and prompts
-├── core/            # Core functionality (config, database, loops)
-├── db/              # Database models and migrations
-├── handlers/        # Telegram command handlers
-├── trading/         # Trading logic and analysis
-├── utils/           # Utility functions
-├── tests/           # Test suite
-│   ├── unit/        # Unit tests
-│   ├── integration/ # Integration tests
-│   └── e2e/         # End-to-end tests
-└── pyproject.toml   # Project configuration
+├── bot/                    # Main application code
+│   ├── ai/                 # AI clients and prompts
+│   ├── core/               # Core functionality (config, database, loops)
+│   ├── db/                 # Database models and migrations
+│   ├── handlers/           # Telegram command handlers
+│   ├── trading/            # Trading logic and analysis
+│   ├── utils/              # Utility functions
+│   └── main.py             # Application entry point
+├── tests/                  # Test suite
+│   ├── unit/               # Unit tests
+│   ├── integration/        # Integration tests
+│   └── e2e/                # End-to-end tests
+├── scripts/                # Deployment and utility scripts
+├── docs/                   # Documentation
+├── .github/workflows/      # CI/CD workflows
+└── pyproject.toml         # Project configuration
 ```
 
 ---
@@ -377,9 +398,9 @@ cp env.example .env
 # Edit .env with your tokens
 
 # Run the bot
-python sipsignal.py
+python bot/main.py
 # Or use botctl.sh
-./botctl.sh run
+./bot/botctl.sh run
 ```
 
 ### Creating a database migration
@@ -388,3 +409,11 @@ python sipsignal.py
 alembic revision --autogenerate -m "description"
 alembic upgrade head
 ```
+
+### CI/CD Workflow
+
+- **Pre-commit**: Runs ruff, formatting, and custom validation hooks
+- **Lint**: Code quality checks with ruff
+- **Test**: Runs pytest with coverage
+- **Security**: Bandit and safety scans
+- **Build**: Package building for releases

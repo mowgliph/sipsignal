@@ -8,13 +8,14 @@ Sistema inteligente de señales BTC con análisis técnico automatizado 24/7 y m
 
 ## Características
 
-- 📊 **Análisis Técnico Automatizado** - RSI, MACD, Bollinger Bands, EMA y más
+- 📊 **Análisis Técnico Automatizado** - RSI, MACD, Bollinger Bands, EMA, Supertrend
 - 🎯 **Señales de Trading** - Oportunidades de entrada con ratio riesgo:beneficio
 - 📡 **Monitoreo TP/SL** - WebSocket para seguimiento de take profit y stop loss en tiempo real
 - 📈 **Gráficos** - Visualización de datos de mercado con análisis técnico
-- 🧠 **IA Integrada** - Contexto de mercado con Groq AI
+- 🧠 **IA Integrada** - Contexto de mercado con Groq AI (Llama 3)
 - 🌐 **Multi-idioma** - Soporte para Español e Inglés
 - 💰 **Gestión de Capital** - Control de drawdown y seguimiento de rendimiento
+- 🏗️ **Arquitectura Hexagonal** - Código modular y mantenible
 
 ---
 
@@ -56,6 +57,7 @@ Sistema inteligente de señales BTC con análisis técnico automatizado 24/7 y m
 
 ### Requisitos
 - Python 3.13+
+- PostgreSQL
 - pip
 - Git
 
@@ -75,7 +77,7 @@ source venv/bin/activate
 
 3. **Instalar dependencias:**
 ```bash
-pip install -r requirements.txt
+pip install -e ".[dev]"
 ```
 
 4. **Configurar variables de entorno:**
@@ -84,9 +86,14 @@ cp env.example .env
 # Editar .env con tus credenciales
 ```
 
-5. **Ejecutar el bot:**
+5. **Ejecutar migraciones de base de datos:**
 ```bash
-python sipsignal.py
+alembic upgrade head
+```
+
+6. **Ejecutar el bot:**
+```bash
+python bot/main.py
 ```
 
 ---
@@ -95,45 +102,67 @@ python sipsignal.py
 
 ```
 sipsignal/
-├── sipsignal.py          # Punto de entrada principal
-├── requirements.txt      # Dependencias
-├── env.example           # Variables de entorno de ejemplo
-├── venv/                 # Entorno virtual (ignorado en git)
-├── core/                 # Lógica principal
-│   ├── config.py         # Configuración
-│   ├── loops.py          # Utilidades de logs
-│   ├── api_client.py     # Cliente API (CoinMarketCap, etc.)
-│   ├── database.py       # Base de datos PostgreSQL
-│   ├── scheduler.py      # Programador de señales
-│   └── btc_advanced_analysis.py  # Análisis avanzado de BTC
-├── handlers/             # Manejadores de comandos
-│   ├── general.py        # Comandos básicos (/start, /help, etc.)
-│   ├── admin.py          # Comandos de admin
-│   ├── trading.py        # Comandos de trading (/p, /mk, /ta)
-│   ├── signal_handler.py # Manejador de señales
-│   ├── chart_handler.py  # Generación de gráficos
-│   ├── capital_handler.py# Gestión de capital y drawdown
-│   ├── journal_handler.py# Historial de señales
-│   └── user_settings.py  # Configuración de usuario (/lang)
-├── trading/              # Módulos de trading
-│   ├── signal_builder.py # Constructor de mensajes de señales
-│   ├── strategy_engine.py# Motor de estrategias
-│   ├── price_monitor.py  # Monitor WebSocket TP/SL
-│   ├── drawdown_manager.py# Control de drawdown
-│   └── technical_analysis.py # Análisis técnico
-├── ai/                   # Integración con IA (Groq)
-├── utils/                # Utilidades
-│   ├── logger.py         # Logging
-│   ├── file_manager.py   # Gestión de archivos JSON
-│   └── ads_manager.py    # Gestión de anuncios
-├── scheduler.py          # Programador de señales autónomas
-├── db/                   # Migraciones y modelos de BD
-├── tests/                # Tests
+├── bot/                        # Código principal del bot
+│   ├── main.py                 # Punto de entrada
+│   ├── container.py            # Inyección de dependencias
+│   ├── scheduler.py            # Programador de señales
+│   ├── application/            # Casos de uso
+│   │   ├── run_signal_cycle.py
+│   │   ├── get_signal_analysis.py
+│   │   ├── handle_drawdown.py
+│   │   └── manage_journal.py
+│   ├── domain/                 # Entidades de negocio
+│   │   ├── ports/              # Interfaces (repositories, services)
+│   │   ├── signal.py
+│   │   ├── user_config.py
+│   │   └── drawdown_state.py
+│   ├── infrastructure/         # Adaptadores externos
+│   │   ├── binance/            # Binance API
+│   │   ├── groq/               # Groq AI
+│   │   ├── telegram/           # Telegram Bot
+│   │   └── database/           # Repositorios PostgreSQL
+│   ├── handlers/               # Manejadores de comandos
+│   │   ├── general.py
+│   │   ├── admin.py
+│   │   ├── trading.py
+│   │   ├── signal_handler.py
+│   │   └── capital_handler.py
+│   ├── trading/                # Lógica de trading
+│   │   ├── technical_analysis.py
+│   │   ├── strategy_engine.py
+│   │   ├── price_monitor.py
+│   │   └── drawdown_manager.py
+│   ├── ai/                     # Integración con IA
+│   ├── core/                   # Configuración y utilidades
+│   ├── db/                     # Modelos y migraciones
+│   └── utils/                  # Utilidades generales
+├── tests/                      # Tests
 │   ├── unit/
 │   ├── integration/
 │   └── e2e/
-└── docs/                 # Documentación
+├── docs/                       # Documentación
+├── scripts/                    # Scripts de utilidad
+├── pyproject.toml              # Configuración del proyecto
+├── requirements.txt            # Dependencias
+├── alembic.ini                 # Migraciones de BD
+└── env.example                 # Variables de entorno
 ```
+
+---
+
+## Arquitectura
+
+El proyecto sigue una **Arquitectura Hexagonal (Clean Architecture)**:
+
+- **Domain Layer** (`bot/domain/`): Entidades de negocio y puertos (interfaces)
+- **Application Layer** (`bot/application/`): Casos de uso que orquestan la lógica
+- **Infrastructure Layer** (`bot/infrastructure/`): Implementaciones concretas de puertos
+- **Handlers Layer** (`bot/handlers/`): Manejadores de comandos de Telegram
+- **Trading Layer** (`bot/trading/`): Lógica específica de trading
+
+### Inyección de Dependencias
+
+El contenedor DI está centralizado en `bot/container.py`, facilitando el testing y la mantenibilidad.
 
 ---
 
@@ -189,18 +218,45 @@ Ver [docs/pre-commit-hooks.md](docs/pre-commit-hooks.md) para más detalles.
 | Variable | Descripción | Requerida |
 |----------|-------------|-----------|
 | `TELEGRAM_BOT_TOKEN` | Token del bot de Telegram | ✅ |
-| `ADMIN_CHAT_IDS` | IDs de administradores separados por coma | ✅ |
+| `ADMIN_CHAT_IDS` | IDs de administradores (comma-separated) | ✅ |
+| `DATABASE_URL` | Connection string de PostgreSQL | ✅ |
 | `GROQ_API_KEY` | API Key para análisis con IA | ❌ |
+
+---
+
+## Gestión del Bot
+
+El proyecto incluye un script de gestión `bot/botctl.sh`:
+
+```bash
+./bot/botctl.sh start    # Iniciar el bot
+./bot/botctl.sh stop     # Detener el bot
+./bot/botctl.sh status   # Ver estado
+./bot/botctl.sh logs     # Ver logs en tiempo real
+./bot/botctl.sh health   # Chequeo completo del sistema
+```
+
+---
+
+## Migraciones de Base de Datos
+
+```bash
+# Generar nueva migración
+alembic revision --autogenerate -m "descripción"
+
+# Aplicar migraciones
+alembic upgrade head
+```
 
 ---
 
 ## Política de Uso
 
-Al usar este bot, aceptas los términos descritos en [POLITICA_DE_USO.md](docs/POLITICA_DE_USO.md).
+Al usar este bot, aceptas los términos descritos en [docs/POLITICA_DE_USO.md](docs/POLITICA_DE_USO.md).
 
 ---
 
-##Soporte
+## Soporte
 
 Para soporte o consultas, contacta a los administradores del bot.
 
@@ -216,7 +272,7 @@ Para soporte o consultas, contacta a los administradores del bot.
 
 - **⭐ Estrellas en GitHub:** [![GitHub stars](https://img.shields.io/github/stars/mowgliph/sipsignal)](https://github.com/mowgliph/sipsignal)
 - **🍴 Forks:** [![GitHub forks](https://img.shields.io/github/forks/mowgliph/sipsignal)](https://github.com/mowgliph/sipsignal)
-- **📦 Versión:** ![Version](https://img.shields.io/badge/version-1.0.0-green)
+- **📦 Versión:** ![Version](https://img.shields.io/badge/version-1.1.0-green)
 - **🐍 Python:** [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 - **✅ Tests:** ![Tests](https://img.shields.io/badge/tests-67%2F67-green)
 - **📄 Licencia:** [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -225,7 +281,7 @@ Para soporte o consultas, contacta a los administradores del bot.
 
 ## 🚀 Estado del Proyecto
 
-**Versión:** 1.0.0 (Production Release)
+**Versión:** 1.1.0 (Production Release)
 **Última actualización:** Marzo 2026
 **Estado:** ✅ En Producción
 **Mantenimiento:** Activo

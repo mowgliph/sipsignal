@@ -1,6 +1,6 @@
 # handlers/general.py
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from telegram import Update
 from telegram.constants import ParseMode
@@ -10,13 +10,6 @@ from bot.core.api_client import obtener_precios_control
 from bot.db.users import register_or_update_user
 from bot.utils import permitted_only
 from bot.utils.ads_manager import get_random_ad_text
-from bot.utils.file_manager import (
-    check_feature_access,
-    load_last_prices_status,
-    obtener_datos_usuario,
-    obtener_monedas_usuario,
-    registrar_uso_comando,
-)
 
 # Mensajes estáticos (sin internacionalización)
 HELP_MSG = {
@@ -83,20 +76,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
 
-    # === GUARDIA DE PAGO ===
-    # 1. Verificar acceso
-    acceso, mensaje = check_feature_access(chat_id, "ver_limit")
-    if not acceso:
-        # Si no tiene acceso, enviamos el mensaje de error (que contiene la info de venta) y paramos.
-        await update.message.reply_text(mensaje, parse_mode=ParseMode.MARKDOWN)
-        return
+    # Get container and repository
+    container = context.bot_data["container"]
+    watchlist_repo = container.user_watchlist_repo
 
-    # 2. Registrar el uso (se descuenta 1 del contador)
-    registrar_uso_comando(chat_id, "ver")
-    # =======================
-    # === LÓGICA DEL COMANDO /ver ====
-    # 1. Obtener las monedas configuradas por el usuario
-    monedas = obtener_monedas_usuario(chat_id)
+    # Get user's watchlist coins from PostgreSQL
+    monedas = await watchlist_repo.get_coins(chat_id)
 
     if not monedas:
         await update.message.reply_text(
@@ -117,37 +102,19 @@ async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # 4. Cargar precios anteriores (SOLO LECTURA) para mostrar tendencias
-    # No guardamos nada aquí para no romper la lógica de "cambio desde la última alerta".
-    todos_precios_anteriores = load_last_prices_status()
-    precios_anteriores_usuario = todos_precios_anteriores.get(str(chat_id), {})
-
-    # 5. Construir el mensaje
+    # 4. Construir el mensaje con precios actuales
     mensaje = "📊 *Precios Actuales (Tu Lista):*\n─────────────\n\n"
-
-    tolerancia = 0.0000001
 
     for moneda in monedas:
         p_actual = precios_actuales.get(moneda)
-        p_anterior = precios_anteriores_usuario.get(moneda)
 
         if p_actual is not None:
-            # Calcular indicador visual
-            indicador = ""
-            if p_anterior:
-                if p_actual > p_anterior + tolerancia:
-                    indicador = " 🔺"
-                elif p_actual < p_anterior - tolerancia:
-                    indicador = " 🔻"
-                else:
-                    indicador = " ▫️"
-
-            mensaje += f"*{moneda}/USD*: ${p_actual:,.4f}{indicador}\n"
+            mensaje += f"*{moneda}/USD*: ${p_actual:,.4f}\n"
         else:
             mensaje += f"*{moneda}/USD*: N/A\n"
 
-    # Añadir fecha
-    fecha_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Añadir fecha con UTC
+    fecha_actual = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
     mensaje += f"\n─────────────\n_📅 Consulta: {fecha_actual}_"
 
     mensaje += get_random_ad_text()
@@ -186,22 +153,26 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
 
-    # 1. Obtener los datos del usuario del JSON
-    datos_usuario = obtener_datos_usuario(user_id)
+    # Get container from context
+    container = context.bot_data["container"]
+    user_repo = container.user_repo
 
-    # 2. Obtener el idioma (por defecto español)
-    # Nota: Asegúrate de usar 'language', que es como se guarda en file_manager.py
-    lang = datos_usuario.get("language", "es")
+    # Obtain user data from repository
+    datos_usuario = await user_repo.get(user_id)
 
-    # 3. Validación extra por seguridad
+    # Obtain language (default Spanish)
+    # Repository uses 'language' field
+    lang = datos_usuario.get("language", "es") if datos_usuario else "es"
+
+    # Extra validation for safety
     if lang not in ["es", "en"]:
         lang = "es"
 
-    # 4. Obtener el texto directamente del diccionario HELP_MSG
-    # Si por alguna razón falla el idioma, usa español como respaldo
+    # Get text directly from HELP_MSG dictionary
+    # If language fails for some reason, use Spanish as fallback
     texto = HELP_MSG.get(lang, HELP_MSG["es"])
 
-    # 5. Enviar mensaje
+    # Send message
     await update.message.reply_text(
         text=texto, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True
     )

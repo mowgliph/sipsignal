@@ -1,7 +1,7 @@
 """Tests para los puertos de servicios externos."""
 
 from abc import ABC
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 
@@ -113,7 +113,7 @@ class TestConcreteImplementations:
             atr_value=500.0,
             supertrend_line=49500.0,
             timeframe="15m",
-            detected_at=datetime.now(),
+            detected_at=datetime.now(UTC),
         )
         result = await port.analyze_signal(signal)
         assert result == "analisis"
@@ -134,9 +134,9 @@ class TestConcreteImplementations:
             atr_value=500.0,
             supertrend_line=49500.0,
             timeframe="15m",
-            detected_at=datetime.now(),
+            detected_at=datetime.now(UTC),
         )
-        user_config = UserConfig(user_id=123, capital_total=1000.0)
+        user_config = UserConfig(user_id=123, chat_id=123, capital_total=1000.0)
 
         await port.send_signal(123, signal, b"chart", "context", user_config)
         await port.send_message(123, "mensaje")

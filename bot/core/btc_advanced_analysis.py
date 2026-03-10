@@ -4,6 +4,8 @@
 import pandas as pd
 import pandas_ta as ta
 
+from bot.utils.logger import logger
+
 
 class BTCAdvancedAnalyzer:
     """
@@ -99,7 +101,8 @@ class BTCAdvancedAnalyzer:
         for k, v in last_row.items():
             try:
                 clean_dict[k] = float(v)
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Error converting {k} to float: {e}")
                 clean_dict[k] = 0.0
         return clean_dict
 
@@ -242,7 +245,7 @@ class BTCAdvancedAnalyzer:
             close = float(subset.iloc[-1]["close"])
 
         except Exception as e:
-            print(f"⚠️ Error cálculo 100-candles pivot: {e}. Usando vela anterior.")
+            logger.warning(f"Error cálculo 100-candles pivot: {e}. Usando vela anterior.")
             prev = self.df.iloc[-2]
             high, low, close = float(prev["high"]), float(prev["low"]), float(prev["close"])
 

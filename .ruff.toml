@@ -12,6 +12,7 @@ select = [
     "B",     # flake8-bugbear
     "C4",    # flake8-comprehensions
     "SIM",   # flake8-simplify
+    "DTZ",   # flake8-datetimez (detecta datetime.now() sin timezone)
 ]
 ignore = ["E501"]
 

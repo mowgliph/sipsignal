@@ -14,7 +14,7 @@ from bot.core.ai_logic import get_groq_crypto_analysis
 from bot.core.btc_advanced_analysis import BTCAdvancedAnalyzer
 from bot.utils import permitted_only
 from bot.utils.ads_manager import get_random_ad_text
-from bot.utils.file_manager import registrar_uso_comando
+from bot.utils.telemetry import log_event
 
 
 # Función identidad para reemplazar i18n (textos ya están en español)
@@ -182,7 +182,7 @@ async def ta_command(
     # BUG-4 FIX: Registrar uso del comando /ta para estadísticas del dashboard
     # Solo registramos en invocaciones directas (no en callbacks de switch de fuente)
     if not is_callback:
-        registrar_uso_comando(user_id, "ta")
+        log_event("command_used", user_id, {"command": "ta"})
 
     # === ARGUMENT PARSING ===
     if is_callback and override_args:

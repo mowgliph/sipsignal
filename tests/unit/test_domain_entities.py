@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from bot.domain.drawdown_state import DrawdownState
 from bot.domain.signal import Signal
@@ -17,7 +17,7 @@ def test_signal_is_valid_long():
         atr_value=500.0,
         supertrend_line=49000.0,
         timeframe="15m",
-        detected_at=datetime.now(),
+        detected_at=datetime.now(UTC),
     )
     assert signal.is_valid() is True
 
@@ -33,7 +33,7 @@ def test_signal_invalid_direction():
         atr_value=500.0,
         supertrend_line=49000.0,
         timeframe="15m",
-        detected_at=datetime.now(),
+        detected_at=datetime.now(UTC),
     )
     assert signal.is_valid() is False
 
@@ -49,7 +49,7 @@ def test_signal_risk_amount():
         atr_value=500.0,
         supertrend_line=49000.0,
         timeframe="15m",
-        detected_at=datetime.now(),
+        detected_at=datetime.now(UTC),
     )
     # 1.0% of 10000 is 100.0
     assert signal.risk_amount(10000, 1.0) == 100.0
@@ -66,7 +66,7 @@ def test_signal_position_size():
         atr_value=5.0,
         supertrend_line=85.0,
         timeframe="15m",
-        detected_at=datetime.now(),
+        detected_at=datetime.now(UTC),
     )
     # Risk = 1% of 1000 = 10
     # Stop distance = 100 - 90 = 10

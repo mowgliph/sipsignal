@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from loguru import logger
 
 from bot.core.config import SCREENSHOT_API_KEY
-from bot.trading.data_fetcher import BinanceDataFetcher
+from bot.infrastructure.binance.binance_adapter import BinanceAdapter
 
 matplotlib.use("Agg")
 
@@ -36,7 +36,7 @@ COLOR_TEXT = "#d1d4dc"
 
 class ChartCapture:
     def __init__(self):
-        self.data_fetcher = BinanceDataFetcher()
+        self.data_fetcher = BinanceAdapter()
         self.session: aiohttp.ClientSession | None = None
 
     async def _get_session(self) -> aiohttp.ClientSession:
