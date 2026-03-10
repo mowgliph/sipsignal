@@ -7,46 +7,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.3.0] - 2026-03-10
 
-### 🔴 Critical Fixes
+### 🏗️ Architecture
 
-- **Dual Storage Architecture** - Migrated user data from JSON (`file_manager.py`) to PostgreSQL only
+- **Repository Pattern Completion** - Migrated user data from JSON (`file_manager.py`) to PostgreSQL
   - Added `UserRepository` protocol to domain ports
   - Implemented `PostgreSQLUserRepository` with full CRUD operations
   - Migrated `general.py` handlers to use repository pattern
   - Fixes race conditions and data inconsistency issues
 
-- **Mock Database in Strategy Engine** - Replaced mock `Database` class with real `ActiveTradeRepository` injection
-  - Removed `Database.fetch_active_trade()` that always returned `None`
-  - Injected `ActiveTradeRepository` via dependency injection
-  - Prevents duplicate signal generation when trade is active
-  - Fixes critical bug causing conflicting trading recommendations
+- **Dependency Injection Enhancement**
+  - All repositories now injected via `Container` class
+  - Strategy Engine uses real `ActiveTradeRepository` (not mock)
+  - Fixes critical bug: duplicate signal generation when trade is active
 
-- **BinanceAdapter Code Duplication** - Consolidated duplicate adapters into single implementation
-  - Merged `BinanceDataFetcher` methods into `BinanceAdapter`
-  - Deleted `bot/trading/data_fetcher.py` (duplicate file)
-  - Updated all imports to use single `BinanceAdapter` implementation
-  - Added `get_current_price()` and `fetch_multiple_timeframes()` methods
+- **Code Duplication Elimination**
+  - Consolidated `BinanceDataFetcher` methods into `BinanceAdapter`
+  - Deleted duplicate `bot/trading/data_fetcher.py`
+  - Single source of truth for market data
 
-### Changed
+### 🎨 Handler Modularization
 
-- **Dependency Injection** - All repositories now injected via `Container` class
-  - `user_repo` - User data access
-  - `market_data` - Market data port (BinanceAdapter)
-  - `trade_repo` - Active trade repository
-- **Strategy Engine API** - `run_cycle()` now requires dependency injection:
-  ```python
-  await run_cycle(config, trade_repo, market_data)
-  ```
-- **Circular Import Resolution** - Used `TYPE_CHECKING` for deferred imports in `notifier_port.py`
+- Extracted admin handlers to separate modules:
+  - `admin/ad_manager.py` - Advertisement management
+  - `admin/log_viewer.py` - System log viewing
+  - `admin/mass_messaging.py` - Bulk messaging to users
+  - `admin/user_management.py` - User administration
+  - `admin/utils.py` - Shared admin utilities
+- Improved maintainability and separation of concerns
 
-### Added
+### 🔧 Critical Fixes
 
-- **Unit Tests**:
-  - `test_user_repository.py` - Protocol and implementation tests (13 tests)
-  - `test_strategy_engine.py` - Strategy engine with mock repositories (8 tests)
-  - Updated legacy `test_strategy_engine.py` for new DI API (7 tests)
+- **Error Handling Decorator** - Centralized error management with admin alerts
+  - New `handle_errors` decorator for consistent exception handling
+  - Automatic admin notifications on critical errors
+  - Improved logging throughout the system
+
+- **Timezone Fixes** - Replaced 20+ naive datetimes with UTC-aware for PostgreSQL
+  - Fixed DTZ005 and DTZ007 warnings
+  - All timestamps now properly timezone-aware
+
+- **Async Improvements**
+  - Replaced deprecated `asyncio.get_event_loop()` with `get_running_loop()`
+  - Fixed race condition in database pool initialization
+  - Proper async resource lifecycle management
+
+- **Database Migration**
+  - Added `user_price_snapshots` table for price tracking
+  - Alembic migration scripts included
+
+### 📚 Documentation
+
+- Added `GEMINI.md` for AI assistant context
+- Design docs for issue #68 (error handling)
+- Updated GitHub issues documentation
+- Comprehensive development workflow guides
+
+### 🧪 Testing
+
+- **211 tests passing**
+- New test suites:
+  - `test_user_repository.py` - Protocol and implementation tests
+  - `test_decorators.py` - Error handling decorator tests
+  - Admin handler tests (ad_manager, log_viewer, mass_messaging, user_management)
+- Updated strategy engine tests for new DI API
+
+### 📊 Statistics
+
+- **76 files changed**
+- **3,971 insertions(+)**
+- **7,433 deletions(-)**
+- **Net: -3,462 lines** (code cleanup and consolidation)
 
 ---
 
