@@ -80,7 +80,8 @@ class BinanceAdapter(MarketDataPort):
             return df
 
         last_timestamp = df.index[-1]
-        if last_timestamp + duration > datetime.now(UTC):
+        # Convert to naive datetime for comparison (timestamp is naive)
+        if last_timestamp + duration > datetime.now(UTC).replace(tzinfo=None):
             logger.info(f"Excluding open candle at {last_timestamp}")
             return df.iloc[:-1]
 
