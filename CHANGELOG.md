@@ -9,6 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-03-11
+
+### 🎉 New Features
+
+- **Interactive Charts with Inline Buttons** - Transform `/chart` command into interactive experience
+  - Clean charts by default (only candles + volume, no indicators)
+  - Inline keyboard with timeframe buttons: 1D, 4H, 1H, 15M, 30M
+  - Toggle indicators: EMA, Bollinger Bands, RSI, Pivots
+  - Refresh button to regenerate chart with current settings
+  - Stateless design - all state encoded in callback data
+  - Files changed: `chart_generator.py`, `chart_capture.py`, `chart_handler.py`, `main.py`
+
+### 📊 Chart Improvements
+
+- **Optional Indicators** - All indicators disabled by default for clean price action
+  - EMA 20/50/200 (toggleable)
+  - Bollinger Bands (toggleable)
+  - RSI panel (toggleable)
+  - Pivot levels (toggleable)
+- **Async Executor** - Chart generation runs in thread pool to avoid blocking asyncio
+- **Enhanced Cache** - Cache key includes indicator state for proper invalidation
+
+### 🧪 Testing
+
+- **17 new tests** for interactive chart feature
+  - Unit tests: chart_generator, chart_capture, chart_handler
+  - Integration tests: full interaction flow, multiple symbols/timeframes
+  - Manual test script: `scripts/test_chart_interactive.sh`
+
+### 📚 Documentation
+
+- **README.md** - Added comprehensive `/chart` command documentation
+  - Usage examples
+  - Interaction flow
+  - Available indicators table
+
 ## [1.5.0] - 2026-03-11
 
 ### ⚠️ Breaking Changes
