@@ -1,14 +1,13 @@
 """
-Captura de gráficos TradingView.
+Captura de gráficos con indicadores opcionales.
 """
 
-import io
+import asyncio
 import time
+from functools import partial
 
 import aiohttp
 import matplotlib
-import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
 
 from bot.core.config import SCREENSHOT_API_KEY
 from bot.infrastructure.binance.binance_adapter import BinanceAdapter
@@ -49,95 +48,122 @@ class ChartCapture:
             await self.session.close()
         await self.data_fetcher.close()
 
-    def _get_cache_key(self, symbol: str, timeframe: str) -> str:
-        return f"{symbol}_{timeframe}"
+    def _get_cache_key(
+        self,
+        symbol: str,
+        timeframe: str,
+        show_ema: bool,
+        show_bb: bool,
+        show_rsi: bool,
+        show_pivots: bool,
+    ) -> str:
+        """Generate cache key including indicator state."""
+        ema = "T" if show_ema else "F"
+        bb = "T" if show_bb else "F"
+        rsi = "T" if show_rsi else "F"
+        piv = "T" if show_pivots else "F"
+        return f"{symbol}_{timeframe}_ema:{ema}_bb:{bb}_rsi:{rsi}_piv:{piv}"
 
-    def _get_from_cache(self, symbol: str, timeframe: str) -> bytes | None:
-        key = self._get_cache_key(symbol, timeframe)
+    def _get_from_cache(
+        self,
+        symbol: str,
+        timeframe: str,
+        show_ema: bool,
+        show_bb: bool,
+        show_rsi: bool,
+        show_pivots: bool,
+    ) -> bytes | None:
+        key = self._get_cache_key(symbol, timeframe, show_ema, show_bb, show_rsi, show_pivots)
         entry = _cache.get(key)
         if entry and (time.time() - entry["timestamp"]) < CACHE_TTL:
             return entry["data"]
         return None
 
-    def _set_cache(self, symbol: str, timeframe: str, data: bytes):
-        key = self._get_cache_key(symbol, timeframe)
+    def _set_cache(
+        self,
+        symbol: str,
+        timeframe: str,
+        show_ema: bool,
+        show_bb: bool,
+        show_rsi: bool,
+        show_pivots: bool,
+        data: bytes,
+    ):
+        key = self._get_cache_key(symbol, timeframe, show_ema, show_bb, show_rsi, show_pivots)
         _cache[key] = {"data": data, "timestamp": time.time()}
 
-    def _generate_candlestick_chart(self, df) -> bytes:
-        fig, (ax_price, ax_volume) = plt.subplots(
-            2, 1, figsize=(12, 8), height_ratios=[3, 1], facecolor=COLOR_BG, edgecolor=COLOR_BG
+    def _generate_candlestick_chart(
+        self,
+        df,
+        symbol: str = "BTCUSDT",
+        timeframe: str = "4h",
+        show_ema: bool = False,
+        show_bb: bool = False,
+        show_rsi: bool = False,
+        show_pivots: bool = False,
+    ) -> bytes | None:
+        """Generate chart using local chart generator."""
+        from bot.utils.chart_generator import generate_ohlcv_chart
+
+        buf = generate_ohlcv_chart(
+            df=df,
+            symbol=symbol,
+            timeframe=timeframe,
+            show_ema=show_ema,
+            show_bb=show_bb,
+            show_rsi=show_rsi,
+            show_pivots=show_pivots,
+            candles=80,
         )
-        fig.subplots_adjust(hspace=0.1)
-
-        for ax in [ax_price, ax_volume]:
-            ax.set_facecolor(COLOR_BG)
-            ax.tick_params(colors=COLOR_TEXT)
-            ax.spines["bottom"].set_color(COLOR_GRID)
-            ax.spines["top"].set_color(COLOR_BG)
-            ax.spines["left"].set_color(COLOR_GRID)
-            ax.spines["right"].set_color(COLOR_BG)
-            ax.xaxis.label.set_color(COLOR_TEXT)
-            ax.yaxis.label.set_color(COLOR_TEXT)
-            ax.grid(True, color=COLOR_GRID, alpha=0.3)
-
-        dates = mdates.date2num(df.index.to_pydatetime())
-        opens = df["open"].values
-        highs = df["high"].values
-        lows = df["low"].values
-        closes = df["close"].values
-        volumes = df["volume"].values
-
-        for _i, (date, o, h, low_price, c, v) in enumerate(
-            zip(dates, opens, highs, lows, closes, volumes, strict=False)
-        ):
-            color = COLOR_UP if c >= o else COLOR_DOWN
-
-            ax_price.plot([date, date], [low_price, h], color=color, linewidth=0.8)
-            ax_price.plot([date - 0.3, date + 0.3], [o, o], color=color, linewidth=0.8)
-            ax_price.plot([date - 0.3, date + 0.3], [c, c], color=color, linewidth=0.8)
-
-            ax_volume.bar(date, v, width=0.6, color=color, alpha=0.7)
-
-        ax_price.set_ylabel("Price", color=COLOR_TEXT)
-        ax_price.set_xlabel("")
-        ax_price.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))
-        ax_price.tick_params(axis="x", rotation=45)
-
-        ax_volume.set_ylabel("Volume", color=COLOR_TEXT)
-        ax_volume.set_xlabel("Date", color=COLOR_TEXT)
-        ax_volume.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))
-        ax_volume.tick_params(axis="x", rotation=45)
-
-        plt.tight_layout()
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png", facecolor=COLOR_BG, dpi=100)
-        plt.close(fig)
-        buf.seek(0)
+        if buf is None:
+            return None
         return buf.getvalue()
 
-    async def _capture_with_matplotlib(self, symbol: str, timeframe: str) -> bytes | None:
+    async def _capture_with_matplotlib(
+        self,
+        symbol: str,
+        timeframe: str,
+        show_ema: bool,
+        show_bb: bool,
+        show_rsi: bool,
+        show_pivots: bool,
+    ) -> bytes | None:
+        """Capture chart using matplotlib with async executor."""
         try:
             df = await self.data_fetcher.get_ohlcv(symbol, timeframe, limit=100)
             if df is None or df.empty:
                 logger.warning(f"No se pudieron obtener datos OHLCV para {symbol}")
                 return None
 
-            return self._generate_candlestick_chart(df)
+            # Execute chart generation in thread pool to avoid blocking asyncio
+            loop = asyncio.get_event_loop()
+            data = await loop.run_in_executor(
+                None,
+                partial(
+                    self._generate_candlestick_chart,
+                    df,
+                    symbol,
+                    timeframe,
+                    show_ema,
+                    show_bb,
+                    show_rsi,
+                    show_pivots,
+                ),
+            )
+            return data
 
         except Exception as e:
             logger.warning(f"Error generando gráfico con matplotlib: {e}")
             return None
 
     async def _capture_with_api(self, symbol: str, timeframe: str) -> bytes | None:
+        """Fallback to screenshot API (deprecated)."""
         if not SCREENSHOT_API_KEY:
             logger.warning("SCREENSHOT_API_KEY no configurada")
             return None
 
         try:
             tv_interval = TF_MAP.get(timeframe, timeframe)
-            import time
-
             cache_buster = str(int(time.time() * 1000))
             chart_url = f"https://www.tradingview.com/chart/?symbol=BINANCE:{symbol}&interval={tv_interval}&__cb={cache_buster}"
 
@@ -188,16 +214,37 @@ class ChartCapture:
             logger.warning(f"Error en screenshot API: {e}")
             return None
 
-    async def capture(self, symbol: str, timeframe: str) -> bytes | None:
-        cached = self._get_from_cache(symbol, timeframe)
+    async def capture(
+        self,
+        symbol: str,
+        timeframe: str,
+        show_ema: bool = False,
+        show_bb: bool = False,
+        show_rsi: bool = False,
+        show_pivots: bool = False,
+    ) -> bytes | None:
+        """
+        Capture chart with optional indicators.
+
+        Args:
+            symbol: Trading pair (e.g., "BTCUSDT")
+            timeframe: Timeframe (e.g., "4h")
+            show_ema: Show EMA 20/50/200
+            show_bb: Show Bollinger Bands
+            show_rsi: Show RSI panel
+            show_pivots: Show pivot levels
+        """
+        cached = self._get_from_cache(symbol, timeframe, show_ema, show_bb, show_rsi, show_pivots)
         if cached:
             return cached
 
-        data = await self._capture_with_matplotlib(symbol, timeframe)
+        data = await self._capture_with_matplotlib(
+            symbol, timeframe, show_ema, show_bb, show_rsi, show_pivots
+        )
         if not data:
             data = await self._capture_with_api(symbol, timeframe)
 
         if data:
-            self._set_cache(symbol, timeframe, data)
+            self._set_cache(symbol, timeframe, show_ema, show_bb, show_rsi, show_pivots, data)
 
         return data
