@@ -9,12 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Refactored
-- Unified logging system: all modules now import from `bot.utils.logger` (#71)
-- Added contextvars support for automatic context injection (chat_id, user_id)
-- Export both configured loguru instance and Logger class for different use cases
-- Migrated 10 modules from direct loguru imports to unified logger
-- Added unit tests for logger configuration and context isolation
+## [1.4.0] - 2026-03-10
+
+### 🔧 Critical Fixes
+
+- **Timezone Comparison Bug** - Fixed `can't compare offset-naive and offset-aware datetimes` error
+  - Signal timeout handler now converts UTC datetime to naive before DB comparison
+  - Binance adapter candle filter uses naive datetime for timestamp comparison
+  - Added regression test `test_signal_timeout.py` to prevent future issues
+  - Files changed: `signal_response_handler.py`, `binance_adapter.py`
+
+### 🌐 Infrastructure
+
+- **Binance US WebSocket** - Updated default endpoint to `wss://stream.binance.us:9443/ws`
+  - Better connectivity for users in United States
+  - Reduced latency for North American traders
+
+### 🧪 Testing
+
+- **194 unit tests passing**
+- New test: `test_signal_timeout.py` - Timezone comparison regression test
 
 ## [1.3.0] - 2026-03-10
 
