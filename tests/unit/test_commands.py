@@ -31,6 +31,6 @@ def test_all_basic_commands_exist():
     with open("bot/main.py") as f:
         content = f.read()
 
-    basic_commands = ["start", "help", "myid", "ver", "status", "logs"]
+    basic_commands = ["start", "help", "myid", "status", "logs"]
     for cmd in basic_commands:
         assert f'CommandHandler("{cmd}"' in content, f"Comando /{cmd} no registrado"

@@ -28,7 +28,6 @@ def test_handler_registration_pattern():
         'CommandHandler("help"',
         'CommandHandler("status"',
         'CommandHandler("myid"',
-        'CommandHandler("ver"',
     ]
 
     for handler in required_handlers:

@@ -52,7 +52,7 @@ from bot.handlers.capital_handler import (
     resume_handler,
 )
 from bot.handlers.chart_handler import chart_handlers_list
-from bot.handlers.general import help_command, myid, start, ver
+from bot.handlers.general import help_command, myid, start
 from bot.handlers.scenario_handler import scenario_handlers_list
 from bot.handlers.setup_handler import setup_conversation_handler
 from bot.handlers.signal_handler import signal_handlers_list
@@ -138,7 +138,7 @@ async def price_monitor_callback(update: Update, context: ContextTypes.DEFAULT_T
                 )
 
             await query.edit_message_text(
-                "✅ *Trade cerrado*\n\nLa posición ha sido cerrada. Usa /ver para ver el resumen.",
+                "✅ *Trade cerrado*\n\nLa posición ha sido cerrada. Usa /journal para ver el historial.",
                 parse_mode=ParseMode.MARKDOWN,
             )
             logger.info(f"Trade {trade_id} marcado como cerrado - drawdown actualizado")
@@ -160,7 +160,7 @@ async def price_monitor_callback(update: Update, context: ContextTypes.DEFAULT_T
                     f"💵 *Entrada:* ${entry_price:,.2f}\n"
                     f"🛑 *SL:* ${sl_level:,.2f}\n"
                     f"📉 *Pérdida:* -{loss:.2f} USDT ({loss_pct:.1f}%)\n\n"
-                    f"Usa /ver para ver el historial completo."
+                    f"Usa /journal para ver el historial completo."
                 )
                 await query.edit_message_text(summary, parse_mode=ParseMode.MARKDOWN)
                 logger.info(f"Resumen enviado para trade {trade_id}")
@@ -421,7 +421,6 @@ def main():
     # ============================================
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("myid", myid))
-    app.add_handler(CommandHandler("ver", ver))
     app.add_handler(CommandHandler("help", help_command))
 
     # ============================================
