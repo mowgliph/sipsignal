@@ -161,6 +161,8 @@ async def chart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
     parts = data.split("|")
     action = parts[0]
 
+    logger.debug(f"Chart callback received: {data}")
+
     try:
         if action == "chart_tf":
             # Change timeframe: chart_tf|symbol|tf|ema|bb|rsi|pivots
@@ -272,6 +274,8 @@ async def handle_indicator_toggle(
     new_state: bool,
 ):
     """Handle indicator toggle button click."""
+    logger.debug(f"Toggling {indicator} to {new_state} for {symbol} {timeframe}")
+
     # Build indicator kwargs
     kwargs = {
         "show_ema": False,
@@ -289,6 +293,8 @@ async def handle_indicator_toggle(
         kwargs["show_rsi"] = new_state
     elif indicator == "pivots":
         kwargs["show_pivots"] = new_state
+
+    logger.debug(f"Chart capture kwargs: {kwargs}")
 
     try:
         chart_capture = ChartCapture()
