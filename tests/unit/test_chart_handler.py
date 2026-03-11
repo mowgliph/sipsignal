@@ -21,6 +21,20 @@ def test_parse_bool_case_insensitive():
     assert parse_bool("F") is False
 
 
+def test_parse_bool_true_string():
+    """Test 'True' string parses to True boolean."""
+    assert parse_bool("True") is True
+    assert parse_bool("true") is True
+    assert parse_bool("TRUE") is True
+
+
+def test_parse_bool_false_string():
+    """Test 'False' string parses to False boolean."""
+    assert parse_bool("False") is False
+    assert parse_bool("false") is False
+    assert parse_bool("FALSE") is False
+
+
 def test_build_keyboard_defaults():
     """Test keyboard with default values (no indicators)."""
     keyboard = build_chart_keyboard("BTCUSDT", "4h")

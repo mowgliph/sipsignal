@@ -17,8 +17,9 @@ DEFAULT_SYMBOL = "BTCUSDT"
 
 
 def parse_bool(value: str) -> bool:
-    """Parse T/F string to boolean (case-insensitive)."""
-    return str(value).upper() == "T"
+    """Parse T/F or True/False string to boolean (case-insensitive)."""
+    value = str(value).upper()
+    return value == "T" or value == "TRUE"
 
 
 def build_chart_keyboard(
