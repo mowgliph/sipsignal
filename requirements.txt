@@ -49,10 +49,14 @@ click==8.3.1
     #   pip-tools
     #   safety
     #   typer
+contourpy==1.3.3
+    # via matplotlib
 coverage==7.13.4
     # via pytest-cov
 cryptography==46.0.5
     # via authlib
+cycler==0.12.1
+    # via matplotlib
 distlib==0.4.0
     # via virtualenv
 distro==1.9.0
@@ -66,6 +70,8 @@ filelock==3.25.1
     #   python-discovery
     #   safety
     #   virtualenv
+fonttools==4.62.0
+    # via matplotlib
 frozenlist==1.8.0
     # via
     #   aiohttp
@@ -98,8 +104,12 @@ jinja2==3.1.6
     # via safety
 joblib==1.5.3
     # via nltk
+kiwisolver==1.5.0
+    # via matplotlib
 llvmlite==0.44.0
     # via numba
+loguru==0.7.3
+    # via sipsignal (pyproject.toml)
 mako==1.3.10
     # via alembic
 markdown-it-py==4.0.0
@@ -110,6 +120,8 @@ markupsafe==3.0.3
     #   mako
 marshmallow==4.2.2
     # via safety
+matplotlib==3.10.8
+    # via sipsignal (pyproject.toml)
 mdurl==0.1.2
     # via markdown-it-py
 multidict==6.7.1
@@ -124,6 +136,8 @@ numba==0.61.2
     # via pandas-ta
 numpy==2.2.6
     # via
+    #   contourpy
+    #   matplotlib
     #   numba
     #   pandas
     #   pandas-ta
@@ -131,6 +145,7 @@ packaging==26.0
     # via
     #   build
     #   dparse
+    #   matplotlib
     #   pytest
     #   safety
     #   safety-schemas
@@ -141,6 +156,10 @@ pandas==2.3.3
     #   sipsignal (pyproject.toml)
 pandas-ta==0.4.71b0
     # via sipsignal (pyproject.toml)
+pillow==12.1.1
+    # via
+    #   matplotlib
+    #   sipsignal (pyproject.toml)
 pip-tools==7.5.3
     # via sipsignal (pyproject.toml)
 platformdirs==4.9.4
@@ -157,6 +176,8 @@ propcache==0.4.1
     # via
     #   aiohttp
     #   yarl
+psutil==7.2.2
+    # via sipsignal (pyproject.toml)
 psycopg2-binary==2.9.11
     # via sipsignal (pyproject.toml)
 pycparser==3.0
@@ -173,6 +194,8 @@ pygments==2.19.2
     # via
     #   pytest
     #   rich
+pyparsing==3.3.2
+    # via matplotlib
 pyproject-hooks==1.2.0
     # via
     #   build
@@ -187,7 +210,9 @@ pytest-asyncio==1.3.0
 pytest-cov==7.0.0
     # via sipsignal (pyproject.toml)
 python-dateutil==2.9.0.post0
-    # via pandas
+    # via
+    #   matplotlib
+    #   pandas
 python-discovery==1.1.3
     # via virtualenv
 python-dotenv==1.2.2
@@ -206,6 +231,7 @@ requests==2.32.5
     # via
     #   safety
     #   sipsignal (pyproject.toml)
+    #   tradingview-ta
 rich==14.3.3
     # via
     #   bandit
@@ -240,6 +266,8 @@ tqdm==4.67.3
     # via
     #   nltk
     #   pandas-ta
+tradingview-ta==3.3.0
+    # via sipsignal (pyproject.toml)
 typer==0.24.1
     # via safety
 typing-extensions==4.15.0
