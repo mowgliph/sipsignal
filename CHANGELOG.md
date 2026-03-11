@@ -9,12 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-03-10
+
+### Fixed
+- **aiohttp 3.10+ Compatibility** - Handle removed `ping` parameter from `ClientTimeout`
+  - Added version check for aiohttp 3.10+ compatibility
+  - Using `heartbeat` parameter for WebSocket keepalive instead
+  - Fixes WebSocket connection errors in price monitor
+
 ### Refactored
-- Unified logging system: all modules now import from `bot.utils.logger` (#71)
-- Added contextvars support for automatic context injection (chat_id, user_id)
-- Export both configured loguru instance and Logger class for different use cases
-- Migrated 10 modules from direct loguru imports to unified logger
-- Added unit tests for logger configuration and context isolation
+- **Import Organization** - Follow alphabetical order for telegram.ext imports
+  - Moved `filters` import to correct location in `bot/main.py`
+  - Consistent import style across the codebase
+
+### Changed
+- **Logger Import** - Unified logger import pattern
+  - Use `bot_logger as logger` from `bot.utils.logger`
+  - Consistent logging across all modules
 
 ## [1.3.0] - 2026-03-10
 
