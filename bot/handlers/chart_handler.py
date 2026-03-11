@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
+from telegram.error import BadRequest
 from telegram.ext import CommandHandler, ContextTypes
 
 from bot.trading.chart_capture import ChartCapture
@@ -13,6 +14,11 @@ from bot.utils.logger import logger
 VALID_TIMEFRAMES = ["1d", "4h", "1h", "15m", "30m"]
 DEFAULT_TIMEFRAME = "4h"
 DEFAULT_SYMBOL = "BTCUSDT"
+
+
+def parse_bool(value: str) -> bool:
+    """Parse T/F string to boolean (case-insensitive)."""
+    return str(value).upper() == "T"
 
 
 def build_chart_keyboard(
@@ -163,16 +169,18 @@ async def chart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                 context,
                 symbol,
                 new_tf,
-                ema == "T",
-                bb == "T",
-                rsi == "T",
-                pivots == "T",
+                parse_bool(ema),
+                parse_bool(bb),
+                parse_bool(rsi),
+                parse_bool(pivots),
             )
 
         elif action == "chart_ind":
             # Toggle indicator: chart_ind|symbol|tf|indicator|new_state
             _, symbol, tf, indicator, new_state = parts
-            await handle_indicator_toggle(update, context, symbol, tf, indicator, new_state == "T")
+            await handle_indicator_toggle(
+                update, context, symbol, tf, indicator, parse_bool(new_state)
+            )
 
         elif action == "chart_refresh":
             # Refresh: chart_refresh|symbol|tf|ema|bb|rsi|pivots
@@ -182,10 +190,10 @@ async def chart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                 context,
                 symbol,
                 tf,
-                ema == "T",
-                bb == "T",
-                rsi == "T",
-                pivots == "T",
+                parse_bool(ema),
+                parse_bool(bb),
+                parse_bool(rsi),
+                parse_bool(pivots),
             )
 
     except Exception as e:
@@ -238,10 +246,16 @@ async def handle_timeframe_change(
                 parse_mode=ParseMode.MARKDOWN,
             )
 
-            await update.callback_query.edit_message_media(
-                media=media,
-                reply_markup=keyboard,
-            )
+            try:
+                await update.callback_query.edit_message_media(
+                    media=media,
+                    reply_markup=keyboard,
+                )
+            except BadRequest as e:
+                if "Message is not modified" in str(e):
+                    logger.debug("Message unchanged, skipping")
+                    return
+                raise
 
     except Exception as e:
         logger.warning(f"Error cambiando timeframe: {e}")
@@ -294,10 +308,16 @@ async def handle_indicator_toggle(
                 parse_mode=ParseMode.MARKDOWN,
             )
 
-            await update.callback_query.edit_message_media(
-                media=media,
-                reply_markup=keyboard,
-            )
+            try:
+                await update.callback_query.edit_message_media(
+                    media=media,
+                    reply_markup=keyboard,
+                )
+            except BadRequest as e:
+                if "Message is not modified" in str(e):
+                    logger.debug("Message unchanged, skipping")
+                    return
+                raise
 
     except Exception as e:
         logger.warning(f"Error toggling indicator: {e}")

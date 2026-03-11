@@ -1,6 +1,24 @@
 """Tests for chart inline keyboard builder."""
 
-from bot.handlers.chart_handler import build_chart_keyboard
+from bot.handlers.chart_handler import build_chart_keyboard, parse_bool
+
+
+def test_parse_bool_t_to_true():
+    """Test T string parses to True boolean."""
+    assert parse_bool("T") is True
+
+
+def test_parse_bool_f_to_false():
+    """Test F string parses to False boolean."""
+    assert parse_bool("F") is False
+
+
+def test_parse_bool_case_insensitive():
+    """Test parsing is case insensitive."""
+    assert parse_bool("t") is True
+    assert parse_bool("f") is False
+    assert parse_bool("T") is True
+    assert parse_bool("F") is False
 
 
 def test_build_keyboard_defaults():
