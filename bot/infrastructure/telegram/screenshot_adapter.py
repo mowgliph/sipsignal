@@ -8,11 +8,11 @@ import aiohttp
 import matplotlib
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
-from loguru import logger
 
 from bot.core.config import SCREENSHOT_API_KEY
 from bot.domain.ports.chart_port import ChartPort
 from bot.infrastructure.binance.binance_adapter import BinanceAdapter
+from bot.utils.logger import logger
 
 matplotlib.use("Agg")
 

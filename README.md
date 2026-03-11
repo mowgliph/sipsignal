@@ -98,6 +98,40 @@ python bot/main.py
 
 ---
 
+## Gestión de Dependencias
+
+Este proyecto usa `pyproject.toml` como fuente de verdad para las dependencias. El archivo `requirements.txt` se genera automáticamente con [pip-tools](https://github.com/jazzband/pip-tools).
+
+### Instalación
+
+```bash
+# Desde pyproject.toml (desarrollo)
+pip install -e ".[dev]"
+
+# Desde lockfile (producción)
+pip sync requirements.txt
+```
+
+### Actualizar dependencias
+
+```bash
+# Añadir nueva dependencia a pyproject.toml
+# Luego regenerar lockfile
+pip-compile pyproject.toml --output-file=requirements.txt
+
+# Actualizar todas las dependencias
+pip-compile pyproject.toml --output-file=requirements.txt --upgrade
+```
+
+### Verificar dependencias instaladas
+
+```bash
+pip list
+pip freeze
+```
+
+---
+
 ## Estructura del Proyecto
 
 ```
