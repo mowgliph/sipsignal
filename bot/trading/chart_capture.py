@@ -113,7 +113,7 @@ class ChartCapture:
             show_bb=show_bb,
             show_rsi=show_rsi,
             show_pivots=show_pivots,
-            candles=80,
+            candles=20,
         )
         if buf is None:
             return None

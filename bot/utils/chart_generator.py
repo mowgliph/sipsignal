@@ -182,7 +182,7 @@ def generate_ohlcv_chart(
     show_bb: bool = False,
     show_rsi: bool = False,
     show_pivots: bool = False,
-    candles: int = 80,
+    candles: int = 20,
     signal: str = "NEUTRAL",
     signal_emoji: str = "⚖️",
     pivot: float = 0,
@@ -200,7 +200,7 @@ def generate_ohlcv_chart(
         show_bb: Show Bollinger Bands (default: False)
         show_rsi: Show RSI panel (default: False)
         show_pivots: Show pivot lines (default: False)
-        candles: Number of candles to display (default: 80)
+        candles: Number of candles to display (default: 20)
         signal: Signal text for title (default: "NEUTRAL")
         signal_emoji: Signal emoji for title (default: "⚖️")
         pivot: Pivot level price (default: 0, not shown)
