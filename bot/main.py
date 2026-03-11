@@ -30,7 +30,6 @@ from bot.core.access_manager import AccessManager
 from bot.core.config import PID, VERSION, settings
 from bot.core.database import execute, fetchrow
 from bot.core.loops import get_logs_data
-from bot.db.users import sync_admins_from_config
 from bot.handlers.access_admin import (
     approve_command,
     deny_command,
@@ -203,16 +202,6 @@ async def post_init(app: Application):
         logger.error(f"❌ Error crítico al inicializar el pool de base de datos: {e}")
         # En producción, podrías querer abortar aquí
         raise
-
-    # 0.1. Sincronizar admins desde config a la base de datos
-    try:
-        sync_result = await sync_admins_from_config(settings.admin_chat_ids)
-        logger.info(
-            f"✅ Admins sincronizados: {sync_result['synced']} total, "
-            f"{sync_result['created']} nuevos, {sync_result['updated']} actualizados"
-        )
-    except Exception as e:
-        logger.error(f"⚠️ Error al sincronizar admins: {e}")
 
     logger.info("🤖 Bot inicializado: Iniciando tareas de fondo...")
 
