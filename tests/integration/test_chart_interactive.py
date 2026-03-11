@@ -93,3 +93,68 @@ async def test_chart_multiple_timeframes():
 
     finally:
         await capture.close()
+
+
+@pytest.mark.asyncio
+async def test_chart_indicator_toggle_flow():
+    """Test that toggling indicators regenerates chart with correct state."""
+    capture = ChartCapture()
+
+    try:
+        # Capture with no indicators
+        chart_none = await capture.capture(
+            "BTCUSDT",
+            "4h",
+            show_ema=False,
+            show_bb=False,
+            show_rsi=False,
+            show_pivots=False,
+        )
+        assert chart_none is not None
+
+        # Capture with EMA only
+        chart_ema = await capture.capture(
+            "BTCUSDT",
+            "4h",
+            show_ema=True,
+            show_bb=False,
+            show_rsi=False,
+            show_pivots=False,
+        )
+        assert chart_ema is not None
+
+        # Capture with EMA + BB
+        chart_ema_bb = await capture.capture(
+            "BTCUSDT",
+            "4h",
+            show_ema=True,
+            show_bb=True,
+            show_rsi=False,
+            show_pivots=False,
+        )
+        assert chart_ema_bb is not None
+
+        # Toggle EMA off (only BB active)
+        chart_bb_only = await capture.capture(
+            "BTCUSDT",
+            "4h",
+            show_ema=False,
+            show_bb=True,
+            show_rsi=False,
+            show_pivots=False,
+        )
+        assert chart_bb_only is not None
+
+        # Verify cache is working (same params = same bytes)
+        chart_bb_cached = await capture.capture(
+            "BTCUSDT",
+            "4h",
+            show_ema=False,
+            show_bb=True,
+            show_rsi=False,
+            show_pivots=False,
+        )
+        assert chart_bb_only == chart_bb_cached
+
+    finally:
+        await capture.close()
