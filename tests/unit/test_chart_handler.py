@@ -120,6 +120,34 @@ def test_build_keyboard_all_timeframes():
             assert "✅" not in button.text
 
 
+def test_build_keyboard_timeframe_callback_uses_tf_format():
+    """Test timeframe buttons use T/F format for indicators."""
+    keyboard = build_chart_keyboard(
+        "BTCUSDT",
+        "4h",
+        show_ema=True,
+        show_bb=False,
+        show_rsi=True,
+        show_pivots=False,
+    )
+
+    tf_buttons = keyboard.inline_keyboard[0]
+    for button in tf_buttons:
+        # Should use T/F not True/False
+        assert "|T|" in button.callback_data or "|F|" in button.callback_data
+        assert "True" not in button.callback_data
+        assert "False" not in button.callback_data
+        # Verify format: chart_tf|symbol|tf|ema|bb|rsi|pivots
+        parts = button.callback_data.split("|")
+        assert len(parts) == 7
+        assert parts[0] == "chart_tf"
+        assert parts[1] == "BTCUSDT"
+        assert parts[3] in ["T", "F"]  # ema
+        assert parts[4] in ["T", "F"]  # bb
+        assert parts[5] in ["T", "F"]  # rsi
+        assert parts[6] in ["T", "F"]  # pivots
+
+
 def test_build_keyboard_indicator_toggles():
     """Test indicator buttons toggle correctly."""
     # Test with all indicators off
@@ -143,3 +171,29 @@ def test_build_keyboard_indicator_toggles():
     assert "|bb|F" in ind_buttons[1].callback_data
     assert "|rsi|F" in ind_buttons[2].callback_data
     assert "|pivots|F" in ind_buttons[3].callback_data
+
+
+def test_build_keyboard_refresh_callback_uses_tf_format():
+    """Test refresh button uses T/F format for indicators."""
+    keyboard = build_chart_keyboard(
+        "BTCUSDT",
+        "4h",
+        show_ema=True,
+        show_bb=False,
+        show_rsi=True,
+        show_pivots=False,
+    )
+
+    refresh_button = keyboard.inline_keyboard[2][0]
+    # Should use T/F not True/False
+    assert "True" not in refresh_button.callback_data
+    assert "False" not in refresh_button.callback_data
+    # Verify format: chart_refresh|symbol|tf|ema|bb|rsi|pivots
+    parts = refresh_button.callback_data.split("|")
+    assert len(parts) == 7
+    assert parts[0] == "chart_refresh"
+    assert parts[1] == "BTCUSDT"
+    assert parts[3] in ["T", "F"]  # ema
+    assert parts[4] in ["T", "F"]  # bb
+    assert parts[5] in ["T", "F"]  # rsi
+    assert parts[6] in ["T", "F"]  # pivots

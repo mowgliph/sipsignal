@@ -37,7 +37,7 @@ def build_chart_keyboard(
     tf_buttons = [
         InlineKeyboardButton(
             f"{'✅ ' if tf == timeframe else ''}{tf.upper()}",
-            callback_data=f"chart_tf|{symbol}|{tf}|{show_ema}|{show_bb}|{show_rsi}|{show_pivots}",
+            callback_data=f"chart_tf|{symbol}|{tf}|{'T' if show_ema else 'F'}|{'T' if show_bb else 'F'}|{'T' if show_rsi else 'F'}|{'T' if show_pivots else 'F'}",
         )
         for tf in ["1d", "4h", "1h", "15m", "30m"]
     ]
@@ -69,7 +69,7 @@ def build_chart_keyboard(
         [
             InlineKeyboardButton(
                 "🔄 Refresh",
-                callback_data=f"chart_refresh|{symbol}|{timeframe}|{show_ema}|{show_bb}|{show_rsi}|{show_pivots}",
+                callback_data=f"chart_refresh|{symbol}|{timeframe}|{'T' if show_ema else 'F'}|{'T' if show_bb else 'F'}|{'T' if show_rsi else 'F'}|{'T' if show_pivots else 'F'}",
             )
         ]
     )
