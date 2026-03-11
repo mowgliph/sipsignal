@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Refactored
+- Unified logging system: all modules now import from `bot.utils.logger` (#71)
+- Added contextvars support for automatic context injection (chat_id, user_id)
+- Export both configured loguru instance and Logger class for different use cases
+- Migrated 10 modules from direct loguru imports to unified logger
+- Added unit tests for logger configuration and context isolation
+
 ## [1.3.0] - 2026-03-10
 
 ### 🏗️ Architecture

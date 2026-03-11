@@ -12,11 +12,11 @@ from datetime import UTC, datetime
 from typing import Any
 
 import aiohttp
-from loguru import logger
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from bot.core.config import ADMIN_CHAT_IDS
 from bot.core.database import fetch
+from bot.utils.logger import logger
 
 # URLs de WebSocket de Binance
 BINANCE_WS_URL = "wss://stream.binance.com:9443/ws"

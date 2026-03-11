@@ -4,7 +4,11 @@ import logging
 import os
 import sys
 import traceback
+from contextvars import ContextVar
 from datetime import UTC, datetime
+
+# --- Context Variables for Request/User Scope ---
+user_context: ContextVar[dict | None] = ContextVar("user_context", default=None)
 
 # --- 1. CONFIGURACIÓN DE RUTAS (Original de logger.py) ---
 # Mantenemos esto idéntico para no romper la estructura de carpetas
@@ -77,6 +81,11 @@ class Logger:
         self.monitoring_handler = None
         self.log_file_path = LOG_FILE_PATH
 
+        # Configure context processor
+        _loguru_logger.configure(
+            patcher=lambda record: record.update(extra={"context": user_context.get() or ""})
+        )
+
         # Configuración inicial
         self._setup_logger()
         sys.excepthook = self._handle_unhandled_exception
@@ -108,6 +117,27 @@ class Logger:
         """
         return self.LOG_LINES[-n_lines:] if self.LOG_LINES else []
 
+    def inject_context(self, chat_id: int | None = None, user_id: int | None = None):
+        """
+        Inject context into logger for automatic inclusion in log messages.
+
+        Args:
+            chat_id: Telegram chat ID
+            user_id: User ID
+
+        Returns:
+            Context token for later reset
+        """
+        context_parts = []
+        if chat_id is not None:
+            context_parts.append(f"Chat:{chat_id}")
+        if user_id is not None:
+            context_parts.append(f"User:{user_id}")
+
+        context_str = f"[{', '.join(context_parts)}] " if context_parts else ""
+        token = user_context.set(context_str)
+        return token
+
     def _setup_logger(self):
         """Configura los handlers (Consola y Archivo)."""
         if not HAS_LOGURU:
@@ -115,10 +145,13 @@ class Logger:
 
         _loguru_logger.remove()  # Limpiar handlers por defecto
 
-        # 1. Handler de Consola (Colorizado y limpio)
+        # 1. Handler de Consola (Colorizado y limpio con contexto)
         _loguru_logger.add(
             sys.stdout,
-            format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{function}</cyan> - <level>{message}</level>",
+            format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
+            "<level>{level: <8}</level> | "
+            "<cyan>{name}:{function}:{line}</cyan> | "
+            "{extra[context]}<level>{message}</level>",
             level="INFO",
             colorize=True,
         )
@@ -283,7 +316,15 @@ class Logger:
 
 
 # --- INSTANCIA GLOBAL ---
-logger = Logger()
+# Export configured loguru instance for standard use
+logger = _loguru_logger
+
+# Export Logger class for bot-specific methods
+bot_logger = Logger()
+
+
+# --- EXPORTS ---
+__all__ = ["logger", "Logger", "bot_logger", "user_context"]
 
 
 # --- COMPATIBILIDAD RETROACTIVA (CRUCIAL PARA TU PROYECTO ACTUAL) ---

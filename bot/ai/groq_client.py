@@ -5,10 +5,10 @@ Cliente Groq para análisis de señales.
 import os
 
 from groq import AsyncGroq
-from loguru import logger
 
 from bot.ai.prompts import build_signal_prompt
 from bot.trading.strategy_engine import SignalDTO
+from bot.utils.logger import logger
 
 
 class GroqClient:

@@ -1,7 +1,5 @@
 from datetime import UTC, datetime
 
-from loguru import logger
-
 from bot.domain.ports import (
     ActiveTradeRepository,
     AIAnalysisPort,
@@ -12,6 +10,7 @@ from bot.domain.ports import (
 )
 from bot.domain.signal import Signal
 from bot.domain.user_config import UserConfig
+from bot.utils.logger import logger
 
 DEFAULT_ANALYSIS_CONFIG = {
     "supertrend_period": 14,

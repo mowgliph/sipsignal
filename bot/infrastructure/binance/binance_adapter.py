@@ -3,9 +3,9 @@ from datetime import UTC, datetime, timedelta
 
 import aiohttp
 import pandas as pd
-from loguru import logger
 
 from bot.domain.ports.market_data_port import MarketDataPort
+from bot.utils.logger import logger
 
 BINANCE_BASE_URL = "https://data-api.binance.vision/api/v3"
 
