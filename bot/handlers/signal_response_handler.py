@@ -265,7 +265,10 @@ async def process_signal_timeout():
     while True:
         try:
             # Buscar señales EMITIDAS con más de 60 minutos sin respuesta
-            timeout_threshold = datetime.now(UTC) - timedelta(seconds=SIGNAL_TIMEOUT)
+            # Convert to naive datetime for DB comparison (both sides must be naive)
+            timeout_threshold = datetime.now(UTC).replace(tzinfo=None) - timedelta(
+                seconds=SIGNAL_TIMEOUT
+            )
 
             # Obtener señales que necesitan timeout
             expired_signals = await fetch(
