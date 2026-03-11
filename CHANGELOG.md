@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ⚠️ Breaking Changes
+
+- **Eliminar comando `/ver`** - Removido comando de consulta de precios de watchlist
+  - Los usuarios pueden usar `/p <símbolo>` para consultar precios individuales
+  - Eliminada tabla `user_price_snapshots` de la base de datos
+  - Eliminados `PriceSnapshotRepository` y dependencias asociadas
+
 ## [1.4.0] - 2026-03-10
 
 ### 🔧 Critical Fixes
