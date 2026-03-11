@@ -14,7 +14,7 @@ class TestLoggerContext:
         token = user_context.set("[Chat:123] [User:456] ")
         assert user_context.get() == "[Chat:123] [User:456] "
         user_context.reset(token)
-        assert user_context.get() == ""
+        assert user_context.get() is None
 
     def test_context_isolation(self):
         """Test que el contexto se aísla entre tareas."""
@@ -28,11 +28,11 @@ class TestLoggerContext:
         assert user_context.get() == "[Chat:111] "
 
         user_context.reset(token1)
-        assert user_context.get() == ""
+        assert user_context.get() is None
 
     def test_context_empty_by_default(self):
         """Test que el contexto está vacío por defecto."""
-        assert user_context.get() == ""
+        assert user_context.get() is None
 
 
 class TestLoggerClass:
