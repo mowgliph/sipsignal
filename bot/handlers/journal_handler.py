@@ -7,7 +7,6 @@ import contextlib
 from datetime import datetime
 from typing import Any
 
-from loguru import logger
 from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler
 
@@ -15,6 +14,7 @@ from bot.core.database import fetch
 from bot.domain.signal import Signal
 from bot.infrastructure.binance.binance_adapter import BinanceAdapter
 from bot.utils import permitted_only
+from bot.utils.logger import logger
 
 
 def signal_to_dict(signal: Signal) -> dict[str, Any]:

@@ -5,11 +5,10 @@ Scheduler autónomo de análisis de señales.
 import asyncio
 import contextlib
 
-from loguru import logger
-
 from bot.container import Container
 from bot.core.database import execute
 from bot.domain.user_config import UserConfig
+from bot.utils.logger import logger
 
 CYCLE_INTERVALS = {
     "4h": 900,  # 15 minutos
