@@ -77,6 +77,17 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
 
+      - name: Create test .env file
+        run: |
+          cat > .env << EOF
+          TOKEN_TELEGRAM=test-bot-token
+          ADMIN_CHAT_IDS=123456789
+          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sipsignal_test
+          EOF
+
+      - name: Create data directories
+        run: mkdir -p bot/data logs
+
       - name: Install dependencies
         run: |
           pip install -e ".[dev]"
