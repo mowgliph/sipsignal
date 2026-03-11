@@ -205,7 +205,6 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cpu_percent_esc = _clean_markdown(cpu_percent)
     size_file_esc = _clean_markdown(f"{size['file_size']:.2f}")
     total_usage_today_esc = _clean_markdown(total_usage_today)
-    usage_ver_esc = _clean_markdown(usage_breakdown["ver"])
     usage_ta_esc = _clean_markdown(usage_breakdown["ta"])
     top_cmds_str_esc = _clean_markdown(top_cmds_str)
     total_users_esc = _clean_markdown(total_users)
@@ -244,7 +243,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"└ *DATA:* `{size_file_esc} MB`\n\n"
         f"⚙️ *CARGA DEL SISTEMA (Hoy)*\n"
         f"├ Comandos Procesados: `{total_usage_today_esc}`\n"
-        f"├ /ver: `{usage_ver_esc}` | /ta: `{usage_ta_esc}`\n"
+        f"├ /ta: `{usage_ta_esc}`\n"
         f"└ Top Comandos:\n{top_cmds_str_esc}\n\n"
         f"👥 *USUARIOS*\n"
         f"├ Totales: `{total_users_esc}` | 🇪🇸 {lang_es_esc} | 🇺🇸 {lang_en_esc}\n"

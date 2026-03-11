@@ -38,7 +38,6 @@ Sistema inteligente de señales BTC con análisis técnico automatizado 24/7 y m
 | `/ta <símbolo>` | Análisis técnico completo |
 | `/mk` | Ver datos de mercado |
 | `/p <símbolo>` | Precio de una criptomoneda específica |
-| `/ver` | Ver precios de tus monedas configuradas |
 | `/journal` | Historial de señales emitidas |
 | `/capital` | Gestión de capital y control de drawdown |
 | `/risk [entrada] [sl] [tp]` | Calcular ratio riesgo:beneficio |

@@ -1,15 +1,10 @@
 # handlers/general.py
 
-from datetime import UTC, datetime
-
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
-from bot.core.api_client import obtener_precios_control
 from bot.db.users import register_or_update_user
-from bot.utils import permitted_only
-from bot.utils.ads_manager import get_random_ad_text
 
 # Mensajes estáticos (sin internacionalización)
 HELP_MSG = {
@@ -20,7 +15,6 @@ HELP_MSG = {
 /help - Mostrar esta ayuda
 /status - Ver estado del bot
 /myid - Obtener tu ID
-/ver - Ver precios de tus monedas
 /mk - Datos de mercado
 /p <símbolo> - Precio de cripto
 /ta <símbolo> - Análisis técnico
@@ -70,57 +64,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     await update.message.reply_text(mensaje, parse_mode=ParseMode.MARKDOWN)
-
-
-@permitted_only
-async def ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-
-    # Get container and repository
-    container = context.bot_data["container"]
-    watchlist_repo = container.user_watchlist_repo
-
-    # Get user's watchlist coins from PostgreSQL
-    monedas = await watchlist_repo.get_coins(chat_id)
-
-    if not monedas:
-        await update.message.reply_text(
-            "⚠️ No tienes monedas configuradas. Usa /monedas para añadir algunas.",
-            parse_mode=ParseMode.MARKDOWN,
-        )
-        return
-
-    # 2. Notificar que estamos cargando (ya que la API puede tardar un segundo)
-    mensaje_espera = await update.message.reply_text("⏳ Consultando precios actuales...")
-
-    # 3. Obtener precios en tiempo real
-    precios_actuales = obtener_precios_control(monedas)
-
-    if not precios_actuales:
-        await mensaje_espera.edit_text(
-            "❌ No se pudieron obtener los precios en este momento. Intenta luego."
-        )
-        return
-
-    # 4. Construir el mensaje con precios actuales
-    mensaje = "📊 *Precios Actuales (Tu Lista):*\n─────────────\n\n"
-
-    for moneda in monedas:
-        p_actual = precios_actuales.get(moneda)
-
-        if p_actual is not None:
-            mensaje += f"*{moneda}/USD*: ${p_actual:,.4f}\n"
-        else:
-            mensaje += f"*{moneda}/USD*: N/A\n"
-
-    # Añadir fecha con UTC
-    fecha_actual = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
-    mensaje += f"\n─────────────\n_📅 Consulta: {fecha_actual}_"
-
-    mensaje += get_random_ad_text()
-
-    # 6. Editar el mensaje de espera con el resultado final
-    await mensaje_espera.edit_text(mensaje, parse_mode=ParseMode.MARKDOWN)
 
 
 # ============================================================
