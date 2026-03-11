@@ -305,7 +305,7 @@ Para soporte o consultas, contacta a los administradores del bot.
 
 - **⭐ Estrellas en GitHub:** [![GitHub stars](https://img.shields.io/github/stars/mowgliph/sipsignal)](https://github.com/mowgliph/sipsignal)
 - **🍴 Forks:** [![GitHub forks](https://img.shields.io/github/forks/mowgliph/sipsignal)](https://github.com/mowgliph/sipsignal)
-- **📦 Versión:** ![Version](https://img.shields.io/badge/version-1.1.0-green)
+- **📦 Versión:** ![GitHub release (by tag)](https://img.shields.io/github/v/release/mowgliph/sipsignal?label=version&color=green)
 - **🐍 Python:** [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 - **✅ Tests:** ![Tests](https://img.shields.io/badge/tests-67%2F67-green)
 - **📄 Licencia:** [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -314,7 +314,7 @@ Para soporte o consultas, contacta a los administradores del bot.
 
 ## 🚀 Estado del Proyecto
 
-**Versión:** 1.1.0 (Production Release)
+![GitHub release (by tag)](https://img.shields.io/github/v/release/mowgliph/sipsignal?label=Versión&color=green)
 **Última actualización:** Marzo 2026
 **Estado:** ✅ En Producción
 **Mantenimiento:** Activo
