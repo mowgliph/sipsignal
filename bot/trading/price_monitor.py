@@ -19,7 +19,8 @@ from bot.core.database import fetch
 from bot.utils.logger import logger
 
 # URLs de WebSocket de Binance
-BINANCE_WS_URL = "wss://stream.binance.com:9443/ws"
+# Binance US endpoint para usuarios en Estados Unidos
+BINANCE_WS_URL = "wss://stream.binance.us:9443/ws"
 BINANCE_TICKER_STREAM = "btcusdt@ticker"
 
 # Configuración de reconexión
