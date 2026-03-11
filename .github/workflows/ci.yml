@@ -63,6 +63,10 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    env:
+      TOKEN_TELEGRAM: "test-bot-token"
+      ADMIN_CHAT_IDS: "123456789"
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/sipsignal_test"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
