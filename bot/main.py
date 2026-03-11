@@ -11,7 +11,7 @@ import platform
 import warnings
 from datetime import UTC, datetime
 
-from telegram import Update, filters
+from telegram import Update
 from telegram.constants import ParseMode
 from telegram.error import BadRequest
 from telegram.ext import (
@@ -21,6 +21,7 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
     MessageHandler,
+    filters,
 )
 from telegram.warnings import PTBUserWarning
 
@@ -60,7 +61,7 @@ from bot.handlers.trading import mk_command, p_command, refresh_command_callback
 from bot.handlers.user_settings import lang_command, set_language_callback
 from bot.trading.drawdown_manager import update_drawdown
 from bot.trading.price_monitor import get_price_monitor, start_price_monitor
-from bot.utils.logger import logger
+from bot.utils.logger import bot_logger as logger
 
 
 async def price_monitor_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
