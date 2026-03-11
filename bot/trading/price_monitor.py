@@ -92,9 +92,16 @@ class PriceMonitor:
         self._ws_session = aiohttp.ClientSession()
 
         try:
+            # Note: aiohttp 3.10+ removed 'ping' from ClientTimeout
+            # Using heartbeat parameter for WebSocket keepalive instead
+            timeout = (
+                aiohttp.ClientTimeout(total=None)
+                if aiohttp.__version__.startswith("3.1")
+                else aiohttp.ClientTimeout(total=None, ping=WS_PING_TIMEOUT)
+            )
             self._ws = await self._ws_session.ws_connect(
                 ws_url,
-                timeout=aiohttp.ClientTimeout(total=None, ping=WS_PING_TIMEOUT),
+                timeout=timeout,
                 heartbeat=WS_PING_TIMEOUT,
             )
             self._reconnect_attempts = 0

@@ -13,7 +13,7 @@ def clean_data(data):
     cleaned = {}
     for k, v in data.items():
         # Verificamos si es un número (float o int)
-        if isinstance(v, (float, int)):
+        if isinstance(v, float | int):
             # Si es NaN (ej: fallo de cálculo) o Infinito
             if math.isnan(v) or math.isinf(v):
                 cleaned[k] = "N/A"  # Lo pasamos como texto para que la IA entienda que falta

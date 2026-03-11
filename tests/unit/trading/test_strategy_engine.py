@@ -2,7 +2,7 @@
 
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pandas as pd
@@ -97,8 +97,8 @@ async def test_run_cycle_blocks_signal_when_trade_active():
         entry_price=50000.0,
         tp1_level=51000.0,
         sl_level=49000.0,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.now(tz=UTC),
+        updated_at=datetime.now(tz=UTC),
     )
 
     trade_repo = MockActiveTradeRepository(active_trade=active_trade)
