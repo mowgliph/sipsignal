@@ -51,7 +51,7 @@ from bot.handlers.capital_handler import (
     resetdd_handler,
     resume_handler,
 )
-from bot.handlers.chart_handler import chart_handlers_list
+from bot.handlers.chart_handler import chart_callback_handler, chart_handlers_list
 from bot.handlers.general import help_command, myid, start
 from bot.handlers.scenario_handler import scenario_handlers_list
 from bot.handlers.setup_handler import setup_conversation_handler
@@ -468,6 +468,9 @@ def main():
     app.add_handler(CallbackQueryHandler(ai_analysis_callback, pattern="^ai_analyze\\|"))
     app.add_handler(CallbackQueryHandler(refresh_command_callback, pattern=r"^refresh_"))
     app.add_handler(CallbackQueryHandler(ta_quick_callback, pattern=r"^ta_quick\|"))
+
+    # Callbacks de Gráficos
+    app.add_handler(CallbackQueryHandler(chart_callback_handler, pattern="^chart_"))
 
     # Callbacks de Configuración
     app.add_handler(CallbackQueryHandler(set_language_callback, pattern="^set_lang_"))
