@@ -34,7 +34,7 @@ Sistema inteligente de señales BTC con análisis técnico automatizado 24/7 y m
 | Comando | Descripción |
 |---------|-------------|
 | `/signal` | Análisis técnico instantáneo de BTC |
-| `/chart [tf]` | Ver gráfico (5m, 15m, 1h, 4h, 1D) |
+| `/chart [símbolo] [tf]` | Gráfico interactivo con botones inline |
 | `/ta <símbolo>` | Análisis técnico completo |
 | `/mk` | Ver datos de mercado |
 | `/p <símbolo>` | Precio de una criptomoneda específica |
@@ -49,6 +49,63 @@ Sistema inteligente de señales BTC con análisis técnico automatizado 24/7 y m
 | `/logs` | Ver logs del sistema |
 | `/ms` | Mensaje masivo a usuarios |
 | `/ad` | Gestión de anuncios |
+
+---
+
+## Comando `/chart` - Gráficos Interactivos
+
+El comando `/chart` genera gráficos OHLCV **interactivos** con botones inline para personalizar la visualización.
+
+### Uso
+
+```
+/chart              → BTCUSDT 4h (por defecto)
+/chart 1h           → BTCUSDT 1h
+/chart ETHUSDT      → ETHUSDT 4h
+/chart ETHUSDT 1h   → ETHUSDT 1h
+```
+
+**Timeframes válidos:** `1d`, `4h`, `1h`, `15m`, `30m`
+
+### Características
+
+- ✅ **Gráfico limpio por defecto** - Solo velas y volumen (sin indicadores)
+- ✅ **Botones de timeframe** - Cambia entre 1D, 4H, 1H, 15M, 30M
+- ✅ **Toggle de indicadores** - Activa/desactiva EMA, BB, RSI, Pivots
+- ✅ **Botón Refresh** - Regenera el gráfico con la configuración actual
+- ✅ **Sin APIs externas** - Generación local con matplotlib
+
+### Interacción
+
+```
+Usuario: /chart BTCUSDT 4h
+
+Bot: ⏳ Generando gráfico BTCUSDT 4H...
+     [imagen PNG: gráfico solo con velas y volumen]
+
+     📊 BTCUSDT 4H — 2026-03-11 15:30 UTC
+
+     [ 1D ] [✅4H] [ 1H ] [ 15M ] [ 30M ]
+     [ 📈 EMA ] [ 📊 BB ] [ 📉 RSI ] [ 🎯 Pivots ]
+     [ 🔄 Refresh ]
+
+[Click en "📈 EMA"]
+→ El gráfico se actualiza mostrando EMA 20/50/200
+→ El botón EMA muestra: [ ✅📈 EMA ]
+
+[Click en "📊 BB"]
+→ El gráfico actualiza mostrando Bandas de Bollinger
+→ El botón BB muestra: [ ✅📊 BB ]
+```
+
+### Indicadores Disponibles
+
+| Indicador | Descripción | Parámetros |
+|-----------|-------------|------------|
+| 📈 **EMA** | Medias móviles exponenciales | 20, 50, 200 períodos |
+| 📊 **BB** | Bandas de Bollinger | 20 períodos, 2 desviaciones |
+| 📉 **RSI** | Índice de Fuerza Relativa | 14 períodos (panel inferior) |
+| 🎯 **Pivots** | Niveles de Pivote | Pivot, R1, S1 |
 
 ---
 
