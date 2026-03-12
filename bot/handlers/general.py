@@ -23,6 +23,7 @@ HELP_MSG = {
 /journal - Historial de señales emitidas
 /capital - Gestión de capital y drawdown
 /lang - Cambiar idioma
+/ref - Tu enlace de referido
 
 *Para más información:* Contacta a un administrador.
 """
