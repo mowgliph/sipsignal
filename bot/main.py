@@ -37,6 +37,12 @@ from bot.handlers.access_admin import (
     list_users_command,
     make_admin_command,
 )
+from bot.handlers.access_callbacks import (
+    access_approve_callback,
+    access_deny_callback,
+    role_cancel_callback,
+    role_set_callback,
+)
 from bot.handlers.admin import (
     ad_command,
     logs_command,
@@ -53,6 +59,14 @@ from bot.handlers.capital_handler import (
 )
 from bot.handlers.chart_handler import chart_callback_handler, chart_handlers_list
 from bot.handlers.general import help_command, myid, start
+from bot.handlers.role_change import change_role_command, my_role_command
+from bot.handlers.role_change_callbacks import (
+    my_role_change_request_callback,
+    role_change_approve_callback,
+    role_change_cancel_callback,
+    role_change_deny_callback,
+    role_change_request_callback,
+)
 from bot.handlers.scenario_handler import scenario_handlers_list
 from bot.handlers.setup_handler import setup_conversation_handler
 from bot.handlers.signal_handler import signal_handlers_list
@@ -450,6 +464,8 @@ def main():
     # Comandos de Usuario
     # ============================================
     app.add_handler(CommandHandler("lang", lang_command))
+    app.add_handler(CommandHandler("my_role", my_role_command))
+    app.add_handler(CommandHandler("change_role", change_role_command))
 
     # Handlers de Signal y Chart
     for handler in signal_handlers_list:
@@ -462,6 +478,27 @@ def main():
     # ============================================
     # CallbackQueryHandlers (DEBEN IR AL FINAL)
     # ============================================
+
+    # Access Control Callbacks (inline buttons)
+    app.add_handler(CallbackQueryHandler(access_approve_callback, pattern="^access_approve:"))
+    app.add_handler(CallbackQueryHandler(access_deny_callback, pattern="^access_deny:"))
+    app.add_handler(CallbackQueryHandler(role_set_callback, pattern="^role_set:"))
+    app.add_handler(CallbackQueryHandler(role_cancel_callback, pattern="^role_cancel$"))
+
+    # Role Change Callbacks
+    app.add_handler(
+        CallbackQueryHandler(role_change_request_callback, pattern="^role_change_request:")
+    )
+    app.add_handler(
+        CallbackQueryHandler(role_change_approve_callback, pattern="^role_change_approve:")
+    )
+    app.add_handler(CallbackQueryHandler(role_change_deny_callback, pattern="^role_change_deny:"))
+    app.add_handler(
+        CallbackQueryHandler(role_change_cancel_callback, pattern="^role_change_cancel$")
+    )
+    app.add_handler(
+        CallbackQueryHandler(my_role_change_request_callback, pattern="^my_role_change_request$")
+    )
 
     # Callbacks de Trading
     app.add_handler(CallbackQueryHandler(ta_switch_callback, pattern="^ta_switch\\|"))

@@ -220,3 +220,5 @@ class UserModel(Base):
     is_active = Column(Boolean, default=True)
     status = Column(String(20), nullable=False, default="non_permitted")
     requested_at = Column(DateTime(timezone=True), nullable=True)
+    requested_role = Column(String(20), nullable=True)
+    previous_role = Column(String(20), nullable=True)

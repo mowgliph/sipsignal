@@ -12,7 +12,7 @@ from tradingview_ta import Interval, TA_Handler
 
 from bot.core.ai_logic import get_groq_crypto_analysis
 from bot.core.btc_advanced_analysis import BTCAdvancedAnalyzer
-from bot.utils import permitted_only
+from bot.utils import role_required
 from bot.utils.ads_manager import get_random_ad_text
 from bot.utils.telemetry import log_event
 
@@ -164,7 +164,7 @@ def get_tradingview_analysis_enhanced(symbol_pair, interval_str):
     }
 
 
-@permitted_only
+@role_required(["trader", "admin"])
 async def ta_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -500,7 +500,7 @@ async def ta_command(
         await msg_wait.edit_text(msg, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
 
 
-@permitted_only
+@role_required(["trader", "admin"])
 async def ai_analysis_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Callback del botón IA.
@@ -578,7 +578,7 @@ async def ai_analysis_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 # === HANDLER DEL BOTÓN ===
 
 
-@permitted_only
+@role_required(["trader", "admin"])
 async def ta_switch_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Maneja el clic en el botón de cambio de vista.

@@ -8,7 +8,7 @@ from telegram.error import BadRequest
 from telegram.ext import CommandHandler, ContextTypes
 
 from bot.trading.chart_capture import ChartCapture
-from bot.utils import admin_only
+from bot.utils import role_required
 from bot.utils.logger import logger
 
 VALID_TIMEFRAMES = ["1d", "4h", "1h", "15m", "30m"]
@@ -77,7 +77,7 @@ def build_chart_keyboard(
     return InlineKeyboardMarkup(keyboard)
 
 
-@admin_only
+@role_required(["trader", "admin"])
 async def chart_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Captura y envía el gráfico con botones interactivos."""
 

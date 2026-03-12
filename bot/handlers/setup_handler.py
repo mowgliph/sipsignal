@@ -15,6 +15,7 @@ from telegram.ext import (
 
 from bot.db.user_config import create_or_update_user_config, get_user_config
 from bot.db.users import register_or_update_user
+from bot.utils import role_required
 
 # Estados de la conversación
 (
@@ -27,6 +28,7 @@ from bot.db.users import register_or_update_user
 ) = range(6)
 
 
+@role_required(["trader", "admin"])
 async def setup_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Inicia el proceso de setup / configuración de capital."""
     user_id = update.effective_user.id

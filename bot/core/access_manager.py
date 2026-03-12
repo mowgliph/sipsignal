@@ -15,6 +15,7 @@ from telegram import Bot, Update
 from telegram.ext import Application
 
 from bot.db.users import create_user, get_user, request_access
+from bot.utils.inline_keyboards import build_access_keyboard
 from bot.utils.logger import logger
 from bot.utils.rate_limiter import AdminNotificationRateLimiter
 
@@ -77,7 +78,8 @@ class AccessManager:
         4. Evalúa el estado del usuario:
            - 'non_permitted': Crea solicitud, notifica admins, envía mensaje al usuario, DETIENE
            - 'pending': Envía mensaje de "procesando", DETIENE
-           - 'approved' o 'admin': Permite continuar (retorna True)
+           - 'role_change_pending': Permite solo /help, /change_role, /my_role, DETIENE otros
+           - 'viewer', 'trader', 'admin': Permite continuar (retorna True)
         5. Para solicitudes nuevas o expiradas (>24h), crea nueva solicitud
 
         Args:
@@ -109,6 +111,25 @@ class AccessManager:
         # Obtener el bot de la aplicación
         bot = application.bot
 
+        # Handle role_change_pending status (block most commands)
+        if status == "role_change_pending":
+            # Allow only /help, /change_role, /my_role
+            message_text = update.message.text if update.message else ""
+            allowed_commands = ("/help", "/change_role", "/my_role")
+
+            if message_text in allowed_commands:
+                # Allow these commands to pass through
+                return True
+
+            # Block other commands with informative message
+            await self._send_message(
+                bot,
+                chat_id,
+                "⏳ Tu solicitud de cambio de rol está siendo revisada. "
+                "No puedes usar otros comandos hasta que sea aprobada.",
+            )
+            return False
+
         if status == "non_permitted":
             # Verificar si la solicitud está expirada (>24 horas)
             if self._is_request_expired(requested_at):
@@ -132,7 +153,7 @@ class AccessManager:
             await self._send_message(bot, chat_id, self.MSG_REQUEST_PENDING)
             return False
 
-        elif status in ("approved", "admin"):
+        elif status in ("viewer", "trader", "admin"):
             # Usuario autorizado, permitir continuar
             return True
 
@@ -210,7 +231,7 @@ class AccessManager:
         - Chat ID del usuario solicitante
         - Username (si está disponible)
         - Timestamp de la solicitud
-        - Comandos sugeridos para aprobar/denegar
+        - Botones inline para aprobar/denegar
 
         Args:
             bot: La instancia del bot de Telegram
@@ -250,10 +271,10 @@ class AccessManager:
             f"{user_info}\n"
             f"🕒 Timestamp: {timestamp}\n\n"
             f"─────────────\n"
-            f"Comandos sugeridos:\n"
-            f"`/approve {user_chat_id}` - Aprobar acceso\n"
-            f"`/deny {user_chat_id}` - Denegar acceso"
         )
+
+        # Build inline keyboard with approve/deny buttons
+        keyboard = build_access_keyboard(user_chat_id)
 
         # Enviar notificación a cada administrador
         for admin_id in self._admin_chat_ids:
@@ -262,6 +283,7 @@ class AccessManager:
                     chat_id=admin_id,
                     text=notification,
                     parse_mode="Markdown",
+                    reply_markup=keyboard,
                 )
             except Exception as e:
                 # Logear error pero continuar con los demás admins

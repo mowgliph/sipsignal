@@ -272,3 +272,118 @@ async def sync_admins_from_config(admin_chat_ids: list[int]) -> dict:
             result["synced"] += 1
 
     return result
+
+
+# =============================================================================
+# Role Management Functions
+# =============================================================================
+
+
+async def set_user_role(user_id: int, role: str) -> bool:
+    """
+    Set user's role (status).
+
+    Args:
+        user_id: The Telegram user ID.
+        role: One of 'viewer', 'trader', 'admin'.
+
+    Returns:
+        True if successful, False if user not found.
+    """
+    result = await execute(
+        """
+        UPDATE users
+        SET status = $2
+        WHERE user_id = $1
+        """,
+        user_id,
+        role,
+    )
+    return result.startswith("UPDATE") and int(result.split()[-1]) > 0
+
+
+async def request_role_change(user_id: int, new_role: str) -> bool:
+    """
+    Mark user as role_change_pending with requested role.
+
+    Args:
+        user_id: The Telegram user ID.
+        new_role: Requested role ('viewer', 'trader', 'admin').
+
+    Returns:
+        True if successful, False if user not found.
+    """
+    result = await execute(
+        """
+        UPDATE users
+        SET status = 'role_change_pending',
+            requested_role = $2,
+            previous_role = status
+        WHERE user_id = $1
+        """,
+        user_id,
+        new_role,
+    )
+    return result.startswith("UPDATE") and int(result.split()[-1]) > 0
+
+
+async def approve_role_change(user_id: int, new_role: str) -> bool:
+    """
+    Approve role change and set new role.
+
+    Args:
+        user_id: The Telegram user ID.
+        new_role: New role to assign.
+
+    Returns:
+        True if successful, False if user not found.
+    """
+    result = await execute(
+        """
+        UPDATE users
+        SET status = $2,
+            requested_role = NULL,
+            previous_role = NULL
+        WHERE user_id = $1
+        """,
+        user_id,
+        new_role,
+    )
+    return result.startswith("UPDATE") and int(result.split()[-1]) > 0
+
+
+async def deny_role_change(user_id: int) -> bool:
+    """
+    Deny role change and restore previous role.
+
+    Args:
+        user_id: The Telegram user ID.
+
+    Returns:
+        True if successful, False if user not found.
+    """
+    result = await execute(
+        """
+        UPDATE users
+        SET status = previous_role,
+            requested_role = NULL,
+            previous_role = NULL
+        WHERE user_id = $1
+        """,
+        user_id,
+    )
+    return result.startswith("UPDATE") and int(result.split()[-1]) > 0
+
+
+async def get_user_requested_role(user_id: int) -> str | None:
+    """
+    Get user's requested role (for role change pending users).
+
+    Args:
+        user_id: The Telegram user ID.
+
+    Returns:
+        The requested role string or None if not found.
+    """
+    user = await fetchrow("SELECT requested_role FROM users WHERE user_id = $1", user_id)
+    return user["requested_role"] if user else None

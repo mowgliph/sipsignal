@@ -4,10 +4,10 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import CommandHandler, ContextTypes
 
-from bot.utils import admin_only
+from bot.utils import role_required
 
 
-@admin_only
+@role_required(["trader", "admin"])
 async def signal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Muestra el estado actual de Supertrend + ASH y señal activa para BTC/USDT 4H."""
 

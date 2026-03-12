@@ -3,11 +3,11 @@
 from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
 
-from bot.utils.decorators import admin_only, handle_errors
+from bot.utils.decorators import handle_errors, role_required
 
 
 @handle_errors(level="ERROR")
-@admin_only
+@role_required(["trader", "admin"])
 async def scenario_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Analiza y muestra escenarios de mercado."""
 
