@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-03-12
+
+### 🎉 New Features
+
+- **Referral System** - Comprehensive referral management with `/ref` command.
+  - Invite new users with unique referral codes.
+  - Track referral statistics and performance.
+  - Integration with `/start` command for seamless onboarding.
+  - Dedicated PostgreSQL repository for persistent storage.
+- **Role Management System** - Enhanced access control and user roles.
+  - Interactive role management via inline buttons.
+  - Role change tracking and history.
+  - Refactored access manager for improved security and performance.
+- **Interactive Chart Enhancements** - Major visual and functional upgrade to `/chart`.
+  - New TradingView-inspired style with Japanese candles and 3-panel layout.
+  - Interactive buttons for timeframe (15M, 30M, 1H, 4H, 1D) and indicators (EMA, BB, RSI, Pivots).
+  - Optimized chart readability with reduced candle density.
+  - Persistent state management for chart settings.
+
+### 🐛 Bug Fixes
+
+- **Database** - Added timeout configuration to `asyncpg` connections for better stability.
+- **User Management** - Fixed `/users` command to correctly display user lists.
+- **Logging** - Fixed logger import issues in `/logs` command.
+- **Infrastructure** - Improved dynamic version loading from `pyproject.toml`.
+- **Chart Callbacks** - Fixed boolean serialization and parsing in interactive chart buttons.
+
 ## [1.6.0] - 2026-03-11
 
 ### 🎉 New Features

@@ -23,6 +23,7 @@ HELP_MSG = {
 /journal - Historial de señales emitidas
 /capital - Gestión de capital y drawdown
 /lang - Cambiar idioma
+/ref - Tu enlace de referido
 
 *Para más información:* Contacta a un administrador.
 """
@@ -37,7 +38,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = user.id
     user_lang = user.language_code or "es"
 
-    await register_or_update_user(user_id, user_lang)
+    # Check for referral code in args (from deep link)
+    referral_code = None
+    if context.args and len(context.args) > 0:
+        referral_code = context.args[0].strip()
+
+    # Register user (pass referral code if exists)
+    await register_or_update_user(user_id, user_lang, referral_code)
 
     nombre_usuario = update.effective_user.first_name
 

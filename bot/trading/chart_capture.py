@@ -24,6 +24,17 @@ TF_MAP = {
 
 CACHE_TTL = 300
 
+# Velas a mostrar según timeframe
+_CANDLES_BY_TF: dict[str, int] = {
+    "1m": 120,
+    "5m": 120,
+    "15m": 96,
+    "30m": 96,
+    "1h": 120,
+    "4h": 80,
+    "1d": 60,
+}
+
 _cache: dict[str, dict] = {}
 
 COLOR_UP = "#26a69a"
@@ -105,6 +116,7 @@ class ChartCapture:
         """Generate chart using local chart generator."""
         from bot.utils.chart_generator import generate_ohlcv_chart
 
+        n_candles = _CANDLES_BY_TF.get(timeframe, 80)
         buf = generate_ohlcv_chart(
             df=df,
             symbol=symbol,
@@ -113,7 +125,7 @@ class ChartCapture:
             show_bb=show_bb,
             show_rsi=show_rsi,
             show_pivots=show_pivots,
-            candles=80,
+            candles=n_candles,
         )
         if buf is None:
             return None
@@ -130,7 +142,7 @@ class ChartCapture:
     ) -> bytes | None:
         """Capture chart using matplotlib with async executor."""
         try:
-            df = await self.data_fetcher.get_ohlcv(symbol, timeframe, limit=100)
+            df = await self.data_fetcher.get_ohlcv(symbol, timeframe, limit=200)
             if df is None or df.empty:
                 logger.warning(f"No se pudieron obtener datos OHLCV para {symbol}")
                 return None

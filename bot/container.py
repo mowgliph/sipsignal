@@ -13,6 +13,7 @@ from bot.infrastructure.binance.binance_adapter import BinanceAdapter
 from bot.infrastructure.database.active_trade_repository import (
     PostgreSQLActiveTradeRepository,
 )
+from bot.infrastructure.database.referral_repository import PostgreSQLReferralRepository
 from bot.infrastructure.database.signal_repository import PostgreSQLSignalRepository
 from bot.infrastructure.database.user_repositories import (
     PostgreSQLDrawdownRepository,
@@ -65,6 +66,7 @@ class Container:
         self.user_watchlist_repo = PostgreSQLUserWatchlistRepository()
         self.user_preference_repo = PostgreSQLUserPreferenceRepository()
         self.user_usage_stats_repo = PostgreSQLUserUsageStatsRepository()
+        self.referral_repo = PostgreSQLReferralRepository()
 
         self.run_signal_cycle = RunSignalCycle(
             market_data=self.market_data,

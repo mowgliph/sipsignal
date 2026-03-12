@@ -134,6 +134,62 @@ def permitted_only(func: Callable) -> Callable:
     return wrapper
 
 
+def role_required(allowed_roles: list[str]) -> Callable:
+    """
+    Decorator to restrict command access to specific roles.
+
+    This decorator wraps async command handler functions and checks if the
+    user's status matches one of the allowed roles. If not permitted, an
+    "Access denied" message is sent and the handler returns early.
+
+    Args:
+        allowed_roles: List of allowed roles (e.g., ['trader', 'admin']).
+                       Valid roles: 'viewer', 'trader', 'admin', 'role_change_pending'.
+
+    Returns:
+        The wrapped function with access control logic.
+
+    Example:
+        @role_required(['trader', 'admin'])
+        async def signal_command(update, context):
+            chat_id = update.effective_chat.id
+            await update.message.reply_text(f"Generating signal for user {chat_id}")
+    """
+
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        async def wrapper(
+            update: Update, context: ContextTypes.DEFAULT_TYPE, *args: Any, **kwargs: Any
+        ) -> Any:
+            chat_id = update.effective_chat.id
+
+            try:
+                # Fetch user from database
+                user = await get_user(chat_id)
+
+                # Check if user exists and has an allowed role
+                if not user or user.get("status") not in allowed_roles:
+                    await update.message.reply_text(
+                        "⛔ Acceso denegado. No tienes permisos para usar este comando."
+                    )
+                    return None
+
+                # User has required role, execute the wrapped function
+                return await func(update, context, *args, **kwargs)
+
+            except Exception as e:
+                logger.error(f"Error in role_required decorator for chat {chat_id}: {e}")
+                # Don't crash - allow the handler to potentially handle the error
+                # or fail gracefully
+                with contextlib.suppress(Exception):
+                    await update.message.reply_text("⚠️ Error al verificar permisos.")
+                return None
+
+        return wrapper
+
+    return decorator
+
+
 def handle_errors(
     exceptions: tuple[type[Exception], ...] = (Exception,),
     fallback_value: Any = None,

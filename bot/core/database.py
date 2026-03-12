@@ -24,6 +24,8 @@ async def connect() -> asyncpg.Pool:
                 database_url,
                 min_size=2,
                 max_size=10,
+                timeout=30,
+                command_timeout=60,
             )
     return _pool
 

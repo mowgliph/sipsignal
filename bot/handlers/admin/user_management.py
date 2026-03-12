@@ -107,7 +107,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cutoff_7d = now - timedelta(days=7)
     cutoff_30d = now - timedelta(days=30)
 
-    for _uid, u in usuarios.items():
+    for _uid, u in usuarios_dict.items():
         last_seen_str = u.get("last_seen") or u.get("last_alert_timestamp")
         if last_seen_str:
             try:

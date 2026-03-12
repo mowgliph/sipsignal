@@ -170,3 +170,96 @@ class UserRepository(ABC):
             True if successful, False if user not found.
         """
         ...
+
+
+class ReferralRepository(ABC):
+    """Repository protocol for referral tracking operations."""
+
+    @abstractmethod
+    async def get_referrer_code(self, user_id: int) -> str | None:
+        """
+        Get user's referral code.
+
+        Args:
+            user_id: The Telegram user ID.
+
+        Returns:
+            Referral code string if exists, None otherwise.
+        """
+        ...
+
+    @abstractmethod
+    async def generate_referrer_code(self, user_id: int) -> str:
+        """
+        Generate and save unique referral code for user.
+
+        Args:
+            user_id: The Telegram user ID.
+
+        Returns:
+            Generated referral code.
+        """
+        ...
+
+    @abstractmethod
+    async def get_by_code(self, code: str) -> int | None:
+        """
+        Get user_id from referral code.
+
+        Args:
+            code: Referral code string.
+
+        Returns:
+            User ID if found, None otherwise.
+        """
+        ...
+
+    @abstractmethod
+    async def record_referral(self, referrer_id: int, referred_id: int) -> None:
+        """
+        Record new referral relationship.
+
+        Args:
+            referrer_id: ID of user who made the referral.
+            referred_id: ID of user who was referred.
+        """
+        ...
+
+    @abstractmethod
+    async def get_referrals(self, referrer_id: int) -> list[dict]:
+        """
+        Get list of users referred by this user.
+
+        Args:
+            referrer_id: ID of the referrer.
+
+        Returns:
+            List of referral dictionaries with referred user info.
+        """
+        ...
+
+    @abstractmethod
+    async def get_referral_count(self, referrer_id: int) -> int:
+        """
+        Get total number of referrals for a user.
+
+        Args:
+            referrer_id: ID of the referrer.
+
+        Returns:
+            Count of referrals.
+        """
+        ...
+
+    @abstractmethod
+    async def get_referrer(self, referred_id: int) -> int | None:
+        """
+        Get the ID of who referred this user.
+
+        Args:
+            referred_id: ID of the referred user.
+
+        Returns:
+            Referrer user ID if exists, None otherwise.
+        """
+        ...

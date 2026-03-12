@@ -6,7 +6,34 @@ from datetime import UTC, datetime, timedelta
 import numpy as np
 import pandas as pd
 
-from bot.utils.chart_generator import generate_ohlcv_chart
+from bot.utils.chart_generator import (
+    COLOR_BG,
+    COLOR_BRAND,
+    COLOR_DOWN,
+    COLOR_EMA20,
+    COLOR_RSI,
+    COLOR_UP,
+    COLOR_WATERMARK,
+    generate_ohlcv_chart,
+)
+
+
+def test_new_color_palette():
+    """Test new TradingView-style colors are defined correctly."""
+    # Background color (dark blue TradingView style)
+    assert COLOR_BG == "#131722"
+
+    # Candlestick colors
+    assert COLOR_UP == "#089981"  # TradingView green
+    assert COLOR_DOWN == "#F23645"  # Vibrant red
+
+    # Indicator colors
+    assert COLOR_EMA20 == "#2962FF"  # Bright blue
+    assert COLOR_RSI == "#FF9800"  # Golden orange
+
+    # Branding colors
+    assert COLOR_BRAND == "#2962FF"  # Professional blue
+    assert COLOR_WATERMARK == "#787B86"  # Medium gray
 
 
 def test_generate_chart_no_indicators():

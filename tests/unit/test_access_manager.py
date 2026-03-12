@@ -227,8 +227,10 @@ class TestHandleUpdate:
         self, access_manager, mock_update, mock_application
     ):
         """Verifica que usuarios aprobados pueden continuar."""
+        # Note: "approved" status is now replaced with role-based statuses
+        # Using "trader" as an example of an approved user
         approved_user = {
-            "status": "approved",
+            "status": "trader",
             "requested_at": datetime.now(UTC) - timedelta(hours=1),
         }
 
@@ -300,8 +302,15 @@ class TestNotifyAdmins:
             text = call[1]["text"]
             assert "123456" in text
             assert "@test_user" in text
-            assert "/approve" in text
-            assert "/deny" in text
+            # Note: Inline buttons are now used instead of text commands
+            # Check that keyboard is provided with approve/deny callbacks
+            assert "reply_markup" in call[1]
+            keyboard = call[1]["reply_markup"]
+            # Verify keyboard has approve/deny buttons
+            assert len(keyboard.inline_keyboard) > 0
+            first_row = keyboard.inline_keyboard[0]
+            assert any("access_approve" in btn.callback_data for btn in first_row)
+            assert any("access_deny" in btn.callback_data for btn in first_row)
 
     @pytest.mark.asyncio
     async def test_notify_handles_missing_username(self, access_manager):

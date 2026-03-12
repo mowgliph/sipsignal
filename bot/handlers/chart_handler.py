@@ -4,15 +4,22 @@ from datetime import UTC, datetime
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
+from telegram.error import BadRequest
 from telegram.ext import CommandHandler, ContextTypes
 
 from bot.trading.chart_capture import ChartCapture
-from bot.utils import admin_only
+from bot.utils import role_required
 from bot.utils.logger import logger
 
 VALID_TIMEFRAMES = ["1d", "4h", "1h", "15m", "30m"]
 DEFAULT_TIMEFRAME = "4h"
 DEFAULT_SYMBOL = "BTCUSDT"
+
+
+def parse_bool(value: str) -> bool:
+    """Parse T/F or True/False string to boolean (case-insensitive)."""
+    value = str(value).upper()
+    return value == "T" or value == "TRUE"
 
 
 def build_chart_keyboard(
@@ -30,7 +37,7 @@ def build_chart_keyboard(
     tf_buttons = [
         InlineKeyboardButton(
             f"{'✅ ' if tf == timeframe else ''}{tf.upper()}",
-            callback_data=f"chart_tf|{symbol}|{tf}|{show_ema}|{show_bb}|{show_rsi}|{show_pivots}",
+            callback_data=f"chart_tf|{symbol}|{tf}|{'T' if show_ema else 'F'}|{'T' if show_bb else 'F'}|{'T' if show_rsi else 'F'}|{'T' if show_pivots else 'F'}",
         )
         for tf in ["1d", "4h", "1h", "15m", "30m"]
     ]
@@ -62,7 +69,7 @@ def build_chart_keyboard(
         [
             InlineKeyboardButton(
                 "🔄 Refresh",
-                callback_data=f"chart_refresh|{symbol}|{timeframe}|{show_ema}|{show_bb}|{show_rsi}|{show_pivots}",
+                callback_data=f"chart_refresh|{symbol}|{timeframe}|{'T' if show_ema else 'F'}|{'T' if show_bb else 'F'}|{'T' if show_rsi else 'F'}|{'T' if show_pivots else 'F'}",
             )
         ]
     )
@@ -70,7 +77,7 @@ def build_chart_keyboard(
     return InlineKeyboardMarkup(keyboard)
 
 
-@admin_only
+@role_required(["trader", "admin"])
 async def chart_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Captura y envía el gráfico con botones interactivos."""
 
@@ -154,6 +161,8 @@ async def chart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
     parts = data.split("|")
     action = parts[0]
 
+    logger.debug(f"Chart callback received: {data}")
+
     try:
         if action == "chart_tf":
             # Change timeframe: chart_tf|symbol|tf|ema|bb|rsi|pivots
@@ -163,16 +172,18 @@ async def chart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                 context,
                 symbol,
                 new_tf,
-                ema == "T",
-                bb == "T",
-                rsi == "T",
-                pivots == "T",
+                parse_bool(ema),
+                parse_bool(bb),
+                parse_bool(rsi),
+                parse_bool(pivots),
             )
 
         elif action == "chart_ind":
             # Toggle indicator: chart_ind|symbol|tf|indicator|new_state
             _, symbol, tf, indicator, new_state = parts
-            await handle_indicator_toggle(update, context, symbol, tf, indicator, new_state == "T")
+            await handle_indicator_toggle(
+                update, context, symbol, tf, indicator, parse_bool(new_state)
+            )
 
         elif action == "chart_refresh":
             # Refresh: chart_refresh|symbol|tf|ema|bb|rsi|pivots
@@ -182,10 +193,10 @@ async def chart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                 context,
                 symbol,
                 tf,
-                ema == "T",
-                bb == "T",
-                rsi == "T",
-                pivots == "T",
+                parse_bool(ema),
+                parse_bool(bb),
+                parse_bool(rsi),
+                parse_bool(pivots),
             )
 
     except Exception as e:
@@ -238,10 +249,16 @@ async def handle_timeframe_change(
                 parse_mode=ParseMode.MARKDOWN,
             )
 
-            await update.callback_query.edit_message_media(
-                media=media,
-                reply_markup=keyboard,
-            )
+            try:
+                await update.callback_query.edit_message_media(
+                    media=media,
+                    reply_markup=keyboard,
+                )
+            except BadRequest as e:
+                if "Message is not modified" in str(e):
+                    logger.debug("Message unchanged, skipping")
+                    return
+                raise
 
     except Exception as e:
         logger.warning(f"Error cambiando timeframe: {e}")
@@ -257,6 +274,8 @@ async def handle_indicator_toggle(
     new_state: bool,
 ):
     """Handle indicator toggle button click."""
+    logger.debug(f"Toggling {indicator} to {new_state} for {symbol} {timeframe}")
+
     # Build indicator kwargs
     kwargs = {
         "show_ema": False,
@@ -274,6 +293,8 @@ async def handle_indicator_toggle(
         kwargs["show_rsi"] = new_state
     elif indicator == "pivots":
         kwargs["show_pivots"] = new_state
+
+    logger.debug(f"Chart capture kwargs: {kwargs}")
 
     try:
         chart_capture = ChartCapture()
@@ -294,10 +315,16 @@ async def handle_indicator_toggle(
                 parse_mode=ParseMode.MARKDOWN,
             )
 
-            await update.callback_query.edit_message_media(
-                media=media,
-                reply_markup=keyboard,
-            )
+            try:
+                await update.callback_query.edit_message_media(
+                    media=media,
+                    reply_markup=keyboard,
+                )
+            except BadRequest as e:
+                if "Message is not modified" in str(e):
+                    logger.debug("Message unchanged, skipping")
+                    return
+                raise
 
     except Exception as e:
         logger.warning(f"Error toggling indicator: {e}")

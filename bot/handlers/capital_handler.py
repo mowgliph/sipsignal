@@ -11,7 +11,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, ContextTypes
 
 from bot.core.database import fetch, fetchrow
-from bot.utils import permitted_only
+from bot.utils import role_required
 from bot.utils.logger import logger
 
 
@@ -43,7 +43,7 @@ async def _is_trading_paused(user_id: int) -> bool:
     return bool(dd["is_paused"]) if dd else False
 
 
-@permitted_only
+@role_required(["trader", "admin"])
 async def capital_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Muestra el estado actual del capital y drawdown."""
     user_id = update.effective_chat.id
@@ -119,7 +119,7 @@ async def capital_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Error al obtener los datos. Intenta de nuevo.")
 
 
-@permitted_only
+@role_required(["trader", "admin"])
 async def resume_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Reanuda el trading si está pausado."""
     user_id = update.effective_chat.id
@@ -150,7 +150,7 @@ async def resume_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Error al reanudar. Intenta de nuevo.")
 
 
-@permitted_only
+@role_required(["trader", "admin"])
 async def resetdd_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Inicia el proceso de reset de drawdown."""
     user_id = update.effective_chat.id
@@ -191,7 +191,7 @@ async def resetdd_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Error al procesar. Intenta de nuevo.")
 
 
-@permitted_only
+@role_required(["trader", "admin"])
 async def resetdd_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Maneja los callbacks de confirmación de reset."""
     query = update.callback_query

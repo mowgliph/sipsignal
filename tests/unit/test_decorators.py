@@ -1,44 +1,149 @@
-from unittest.mock import AsyncMock, patch
+"""Tests for role_required decorator."""
+
+import os
+import sys
 
 import pytest
 
-from bot.utils.decorators import handle_errors
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from unittest.mock import AsyncMock, MagicMock, patch
+
+from telegram import Message, Update
+from telegram.ext import ContextTypes
+
+from bot.utils.decorators import role_required
 
 
-@handle_errors(exceptions=(ValueError,), fallback_value="default", alert_admin=False)
-async def risky_func(should_fail=False):
-    if should_fail:
-        raise ValueError("Boom")
-    return "ok"
+def create_mock_update(chat_id=123, message_text="/test"):
+    """Create a mock update object."""
+    update = MagicMock(spec=Update)
+    update.effective_chat = MagicMock()
+    update.effective_chat.id = chat_id
+    update.message = MagicMock(spec=Message)
+    update.message.text = message_text
+    update.message.reply_text = AsyncMock()
+    return update
+
+
+def create_mock_context():
+    """Create a mock context object."""
+    return MagicMock(spec=ContextTypes.DEFAULT_TYPE)
 
 
 @pytest.mark.asyncio
-async def test_handle_errors_decorator_catches():
-    assert await risky_func(should_fail=True) == "default"
-    assert await risky_func(should_fail=False) == "ok"
+async def test_role_required_allows_access():
+    """Test that role_required allows access for users with allowed roles."""
+    # Create mock update and context
+    update = create_mock_update(chat_id=123)
+    context = create_mock_context()
 
+    # Create decorated function
+    @role_required(["trader", "admin"])
+    async def test_handler(update, context):
+        return "allowed"
 
-@handle_errors(exceptions=(TypeError,), fallback_value="fallback", alert_admin=False)
-async def unhandled_exception():
-    raise ValueError("Not a TypeError")
+    # Mock get_user to return a trader
+    with patch("bot.utils.decorators.get_user", new_callable=AsyncMock) as mock_get_user:
+        mock_get_user.return_value = {"status": "trader", "user_id": 123}
+
+        result = await test_handler(update, context)
+
+        assert result == "allowed"
+        update.message.reply_text.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_handle_errors_alerts_admin():
-    mock_notifier = AsyncMock()
-    mock_container = AsyncMock()
-    mock_container.notifier = mock_notifier
+async def test_role_required_denies_access():
+    """Test that role_required denies access for users without allowed roles."""
+    update = create_mock_update(chat_id=123)
+    context = create_mock_context()
 
-    # Mockear get_container() para que devuelva el contenedor mock
-    with patch("bot.container.get_container", return_value=mock_container):
+    @role_required(["trader", "admin"])
+    async def test_handler(update, context):
+        return "allowed"
 
-        @handle_errors(exceptions=(ValueError,), alert_admin=True)
-        async def fail_with_alert():
-            raise ValueError("Alert this")
+    with patch("bot.utils.decorators.get_user", new_callable=AsyncMock) as mock_get_user:
+        mock_get_user.return_value = {"status": "viewer", "user_id": 123}
 
-        await fail_with_alert()
-        # Verificar que se llamó al método de envío de mensajes al admin
-        mock_notifier.send_message_to_admin.assert_called_once()
-        args, _ = mock_notifier.send_message_to_admin.call_args
-        assert "fail_with_alert" in args[0]
-        assert "ValueError" in args[0]
+        result = await test_handler(update, context)
+
+        assert result is None
+        update.message.reply_text.assert_called_once()
+        assert "⛔ Acceso denegado" in update.message.reply_text.call_args[0][0]
+
+
+@pytest.mark.asyncio
+async def test_role_required_user_not_found():
+    """Test that role_required denies access when user is not found."""
+    update = create_mock_update(chat_id=123)
+    context = create_mock_context()
+
+    @role_required(["trader", "admin"])
+    async def test_handler(update, context):
+        return "allowed"
+
+    with patch("bot.utils.decorators.get_user", new_callable=AsyncMock) as mock_get_user:
+        mock_get_user.return_value = None
+
+        result = await test_handler(update, context)
+
+        assert result is None
+        update.message.reply_text.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_role_required_with_admin():
+    """Test that role_required allows access for admin users."""
+    update = create_mock_update(chat_id=123)
+    context = create_mock_context()
+
+    @role_required(["trader", "admin"])
+    async def test_handler(update, context):
+        return "allowed"
+
+    with patch("bot.utils.decorators.get_user", new_callable=AsyncMock) as mock_get_user:
+        mock_get_user.return_value = {"status": "admin", "user_id": 123}
+
+        result = await test_handler(update, context)
+
+        assert result == "allowed"
+        update.message.reply_text.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_role_required_with_viewer():
+    """Test that role_required denies access for viewer users when not in allowed list."""
+    update = create_mock_update(chat_id=123)
+    context = create_mock_context()
+
+    @role_required(["trader", "admin"])
+    async def test_handler(update, context):
+        return "allowed"
+
+    with patch("bot.utils.decorators.get_user", new_callable=AsyncMock) as mock_get_user:
+        mock_get_user.return_value = {"status": "viewer", "user_id": 123}
+
+        result = await test_handler(update, context)
+
+        assert result is None
+        update.message.reply_text.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_role_required_with_role_change_pending():
+    """Test that role_required handles role_change_pending status correctly."""
+    update = create_mock_update(chat_id=123)
+    context = create_mock_context()
+
+    @role_required(["trader", "admin"])
+    async def test_handler(update, context):
+        return "allowed"
+
+    with patch("bot.utils.decorators.get_user", new_callable=AsyncMock) as mock_get_user:
+        mock_get_user.return_value = {"status": "role_change_pending", "user_id": 123}
+
+        result = await test_handler(update, context)
+
+        assert result is None
+        update.message.reply_text.assert_called_once()

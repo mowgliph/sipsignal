@@ -2,23 +2,27 @@
 Funciones para gestionar usuarios en la base de datos.
 """
 
+import logging
 from datetime import UTC, datetime
 
 from bot.core.database import execute, fetch, fetchrow
 
+logger = logging.getLogger(__name__)
 
-async def create_user(user_id: int, language: str = "es") -> dict:
+
+async def create_user(user_id: int, language: str = "es", referred_by: int | None = None) -> dict:
     """Crea un nuevo usuario en la base de datos."""
     now = datetime.now(UTC)
     await execute(
         """
-        INSERT INTO users (user_id, language, registered_at, last_seen, is_active)
-        VALUES ($1, $2, $3, $3, TRUE)
+        INSERT INTO users (user_id, language, registered_at, last_seen, is_active, referred_by)
+        VALUES ($1, $2, $3, $3, TRUE, $4)
         ON CONFLICT (user_id) DO NOTHING
         """,
         user_id,
         language,
         now,
+        referred_by,
     )
     return await get_user(user_id)
 
@@ -43,9 +47,12 @@ async def update_last_seen(user_id: int) -> None:
     )
 
 
-async def register_or_update_user(user_id: int, language: str = "es") -> dict:
+async def register_or_update_user(
+    user_id: int, language: str = "es", referral_code: str | None = None
+) -> dict:
     """
     Registra un nuevo usuario o actualiza last_seen si ya existe.
+    Si hay código de referido válido, lo registra.
     Retorna los datos del usuario.
     """
     existing = await get_user(user_id)
@@ -53,7 +60,31 @@ async def register_or_update_user(user_id: int, language: str = "es") -> dict:
         await update_last_seen(user_id)
         return await get_user(user_id)
     else:
-        return await create_user(user_id, language)
+        # New user - check referral code
+        referrer_id = None
+        if referral_code:
+            from bot.infrastructure.database.referral_repository import PostgreSQLReferralRepository
+
+            repo = PostgreSQLReferralRepository()
+            referrer_id = await repo.get_by_code(referral_code)
+
+            # Prevent self-referral
+            if referrer_id == user_id:
+                referrer_id = None
+                logger.warning(f"User {user_id} attempted self-referral with code {referral_code}")
+
+        # Create user
+        user_data = await create_user(user_id, language, referrer_id)
+
+        # Record referral if valid
+        if referrer_id and referrer_id != user_id:
+            try:
+                await repo.record_referral(referrer_id, user_id)
+                logger.info(f"Recorded referral: user {referrer_id} referred user {user_id}")
+            except Exception as e:
+                logger.error(f"Error recording referral: {e}")
+
+        return user_data
 
 
 async def get_all_users() -> list:
@@ -272,3 +303,118 @@ async def sync_admins_from_config(admin_chat_ids: list[int]) -> dict:
             result["synced"] += 1
 
     return result
+
+
+# =============================================================================
+# Role Management Functions
+# =============================================================================
+
+
+async def set_user_role(user_id: int, role: str) -> bool:
+    """
+    Set user's role (status).
+
+    Args:
+        user_id: The Telegram user ID.
+        role: One of 'viewer', 'trader', 'admin'.
+
+    Returns:
+        True if successful, False if user not found.
+    """
+    result = await execute(
+        """
+        UPDATE users
+        SET status = $2
+        WHERE user_id = $1
+        """,
+        user_id,
+        role,
+    )
+    return result.startswith("UPDATE") and int(result.split()[-1]) > 0
+
+
+async def request_role_change(user_id: int, new_role: str) -> bool:
+    """
+    Mark user as role_change_pending with requested role.
+
+    Args:
+        user_id: The Telegram user ID.
+        new_role: Requested role ('viewer', 'trader', 'admin').
+
+    Returns:
+        True if successful, False if user not found.
+    """
+    result = await execute(
+        """
+        UPDATE users
+        SET status = 'role_change_pending',
+            requested_role = $2,
+            previous_role = status
+        WHERE user_id = $1
+        """,
+        user_id,
+        new_role,
+    )
+    return result.startswith("UPDATE") and int(result.split()[-1]) > 0
+
+
+async def approve_role_change(user_id: int, new_role: str) -> bool:
+    """
+    Approve role change and set new role.
+
+    Args:
+        user_id: The Telegram user ID.
+        new_role: New role to assign.
+
+    Returns:
+        True if successful, False if user not found.
+    """
+    result = await execute(
+        """
+        UPDATE users
+        SET status = $2,
+            requested_role = NULL,
+            previous_role = NULL
+        WHERE user_id = $1
+        """,
+        user_id,
+        new_role,
+    )
+    return result.startswith("UPDATE") and int(result.split()[-1]) > 0
+
+
+async def deny_role_change(user_id: int) -> bool:
+    """
+    Deny role change and restore previous role.
+
+    Args:
+        user_id: The Telegram user ID.
+
+    Returns:
+        True if successful, False if user not found.
+    """
+    result = await execute(
+        """
+        UPDATE users
+        SET status = previous_role,
+            requested_role = NULL,
+            previous_role = NULL
+        WHERE user_id = $1
+        """,
+        user_id,
+    )
+    return result.startswith("UPDATE") and int(result.split()[-1]) > 0
+
+
+async def get_user_requested_role(user_id: int) -> str | None:
+    """
+    Get user's requested role (for role change pending users).
+
+    Args:
+        user_id: The Telegram user ID.
+
+    Returns:
+        The requested role string or None if not found.
+    """
+    user = await fetchrow("SELECT requested_role FROM users WHERE user_id = $1", user_id)
+    return user["requested_role"] if user else None
