@@ -59,6 +59,7 @@ from bot.handlers.capital_handler import (
 )
 from bot.handlers.chart_handler import chart_callback_handler, chart_handlers_list
 from bot.handlers.general import help_command, myid, start
+from bot.handlers.referral_handler import ref_handler
 from bot.handlers.role_change import change_role_command, my_role_command
 from bot.handlers.role_change_callbacks import (
     my_role_change_request_callback,
@@ -466,6 +467,7 @@ def main():
     app.add_handler(CommandHandler("lang", lang_command))
     app.add_handler(CommandHandler("my_role", my_role_command))
     app.add_handler(CommandHandler("change_role", change_role_command))
+    app.add_handler(ref_handler)
 
     # Handlers de Signal y Chart
     for handler in signal_handlers_list:
