@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes
 
 from bot.core.config import ADMIN_CHAT_IDS, PID, PYTHON_VERSION, STATE, VERSION
 from bot.handlers.admin.utils import _
-from bot.utils.logger import logger
+from bot.utils.logger import bot_logger as logger
 
 
 async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
