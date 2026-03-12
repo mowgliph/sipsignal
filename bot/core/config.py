@@ -136,8 +136,16 @@ PID = os.getpid()
 STATE = "RUNNING"
 
 # --- Versión ---
+# Leer versión desde pyproject.toml
 try:
-    with open(os.path.join(BASE_DIR, "version.txt")) as f:
-        VERSION = f.read().strip()
+    import tomllib
+except ImportError:
+    import tomli as tomllib  # type: ignore[import-not-found]
+
+try:
+    pyproject_path = os.path.join(os.path.dirname(BASE_DIR), "pyproject.toml")
+    with open(pyproject_path, "rb") as f:
+        pyproject_data = tomllib.load(f)
+        VERSION = pyproject_data.get("project", {}).get("version", "1.0.0-dev")
 except Exception:
     VERSION = "1.0.0-dev"
