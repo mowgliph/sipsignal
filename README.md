@@ -29,6 +29,8 @@ Sistema inteligente de señales BTC con análisis técnico automatizado 24/7 y m
 | `/status` | Ver estado del bot y último análisis |
 | `/myid` | Obtener tu ID de Telegram |
 | `/lang` | Cambiar idioma (Español/Inglés) |
+| `/ref` | Tu enlace de referido |
+| `/ref stats` | Ver lista de usuarios referidos |
 
 ### Comandos de Trading y Señales
 | Comando | Descripción |
