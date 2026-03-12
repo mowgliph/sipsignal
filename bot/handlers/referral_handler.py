@@ -34,11 +34,16 @@ async def _get_referral_stats(user_id: int) -> dict:
 @role_required(["approved", "trader", "admin"])
 async def ref_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Show user's referral code and link.
+    Show user's referral code and link, or detailed stats.
 
-    Usage: /ref
+    Usage: /ref or /ref stats
     """
     user_id = update.effective_chat.id
+
+    # Check if user requested stats subcommand
+    if context.args and len(context.args) > 0 and context.args[0].lower() == "stats":
+        await _handle_ref_stats(update, user_id)
+        return
 
     try:
         # Get or generate referral code
@@ -83,14 +88,8 @@ async def ref_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Error al procesar. Intenta de nuevo.")
 
 
-async def ref_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Show detailed list of referrals.
-
-    Usage: /ref stats
-    """
-    user_id = update.effective_chat.id
-
+async def _handle_ref_stats(update: Update, user_id: int):
+    """Handle /ref stats subcommand."""
     try:
         from bot.infrastructure.database.referral_repository import PostgreSQLReferralRepository
 
