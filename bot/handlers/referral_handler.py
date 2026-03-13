@@ -1,5 +1,7 @@
 """Handler for /ref command."""
 
+import html
+
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import CommandHandler, ContextTypes
@@ -20,8 +22,9 @@ async def _get_referral_stats(user_id: int) -> dict:
     if referrals:
         last = referrals[0]
         username = last.get("username")
+        user_display = f"@{html.escape(username)}" if username else f"User {last['user_id']}"
         last_referred = {
-            "username": f"@{username}" if username else f"User {last['user_id']}",
+            "username": user_display,
             "date": last.get("referred_at"),
         }
 
@@ -59,15 +62,15 @@ async def ref_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Get stats
         stats = await _get_referral_stats(user_id)
 
-        # Build message
+        # Build message (using HTML)
         message = (
-            f"🔗 *TU ENLACE DE REFERIDO*\n"
-            f"─────────────────────\n\n"
-            f"Tu código: `{code}`\n\n"
+            f"🔗 <b>TU ENLACE DE REFERIDO</b>\n"
+            f"─────────────\n\n"
+            f"Tu código: <code>{code}</code>\n\n"
             f"Enlace directo:\n"
             f"t.me/sipsignal_bot?start={code}\n\n"
             f"Comparte este enlace para invitar amigos a SipSignal.\n\n"
-            f"📊 *Estadísticas:*\n"
+            f"📊 <b>Estadísticas:</b>\n"
             f"• Referidos totales: {stats['count']}\n"
         )
 
@@ -78,10 +81,10 @@ async def ref_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if stats["count"] == 0:
             message += "\n¡Comparte tu enlace para comenzar!\n"
 
-        message += "\n─────────────────────\n"
+        message += "\n─────────────\n"
         message += "Usa /ref stats para ver lista completa"
 
-        await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_text(message, parse_mode=ParseMode.HTML)
 
     except Exception as e:
         logger.error(f"Error en /ref: {e}")
@@ -99,21 +102,21 @@ async def _handle_ref_stats(update: Update, user_id: int):
 
         if count == 0:
             await update.message.reply_text(
-                "📊 *TUS REFERIDOS*\n"
-                "─────────────────────\n\n"
+                "📊 <b>TUS REFERIDOS</b>\n"
+                "─────────────\n\n"
                 "Aún no tienes referidos.\n\n"
                 "¡Comparte tu enlace para comenzar!",
-                parse_mode=ParseMode.MARKDOWN,
+                parse_mode=ParseMode.HTML,
             )
             return
 
         # Build list (max 20 for readability)
-        message = f"📊 *TUS REFERIDOS* ({count})\n"
-        message += "─────────────────────\n\n"
+        message = f"📊 <b>TUS REFERIDOS</b> ({count})\n"
+        message += "─────────────\n\n"
 
         for i, ref in enumerate(referrals[:20], 1):
             username = ref.get("username")
-            user_str = f"@{username}" if username else f"User {ref['user_id']}"
+            user_str = f"@{html.escape(username)}" if username else f"User {ref['user_id']}"
             date_str = (
                 ref.get("referred_at", "").strftime("%d/%m/%Y") if ref.get("referred_at") else "N/A"
             )
@@ -122,10 +125,10 @@ async def _handle_ref_stats(update: Update, user_id: int):
         if count > 20:
             message += f"\n... y {count - 20} más"
 
-        message += "\n\n─────────────────────\n"
+        message += "\n\n─────────────\n"
         message += f"Total: {count} referidos"
 
-        await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_text(message, parse_mode=ParseMode.HTML)
 
     except Exception as e:
         logger.error(f"Error en /ref stats: {e}")

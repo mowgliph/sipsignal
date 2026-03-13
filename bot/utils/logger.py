@@ -74,7 +74,7 @@ class Logger:
     """
 
     # Log en memoria para comando /status (máximo 45 líneas)
-    LOG_MAX = 45
+    LOG_MAX = 100
     LOG_LINES: list[str] = []
 
     def __init__(self):

@@ -26,8 +26,8 @@ readonly COLOR_DIM="\033[2m"
 readonly SERVICE_NAME="sipsignal"
 readonly SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 readonly VENV_DIR="venv"
-readonly BOT_SCRIPT="sipsignal.py"
-readonly WORKING_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly BOT_SCRIPT="bot/main.py"
+readonly WORKING_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly USER_RUNNING="${SUDO_USER:-$USER}"
 
 # Archivos
