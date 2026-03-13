@@ -8,7 +8,7 @@ from contextvars import ContextVar
 from datetime import UTC, datetime
 
 # --- Context Variables for Request/User Scope ---
-user_context: ContextVar[dict | None] = ContextVar("user_context", default=None)
+user_context: ContextVar[dict | None] = ContextVar("user_context", default="")
 
 # --- 1. CONFIGURACIÓN DE RUTAS (Original de logger.py) ---
 # Mantenemos esto idéntico para no romper la estructura de carpetas
@@ -80,15 +80,32 @@ class Logger:
     def __init__(self):
         self.monitoring_handler = None
         self.log_file_path = LOG_FILE_PATH
+        self._writing_to_file = False  # Prevent infinite recursion
 
-        # Configure context processor
-        _loguru_logger.configure(
-            patcher=lambda record: record.update(extra={"context": user_context.get() or ""})
+        # Setup context default for loguru
+        from loguru import logger as loguru_instance
+
+        loguru_instance.configure(
+            extra={"context": ""}, patcher=lambda record: record["extra"].setdefault("context", "")
         )
 
         # Configuración inicial
         self._setup_logger()
         sys.excepthook = self._handle_unhandled_exception
+
+    def _add_to_memory(self, level: str, message: str) -> None:
+        """
+        Internal method to add a log line to memory buffer.
+
+        Args:
+            level: Log level (INFO, WARNING, ERROR, etc.)
+            message: The message to log
+        """
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"[{timestamp}] | {level} | {message}"
+        self.LOG_LINES.append(log_entry)
+        if len(self.LOG_LINES) > self.LOG_MAX:
+            del self.LOG_LINES[0]
 
     def add_log_line(self, linea: str) -> None:
         """
@@ -97,13 +114,9 @@ class Logger:
         Args:
             linea: El mensaje a registrar.
         """
-        timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
-        log_entry = f"[{timestamp}] | {linea}"
-        self.LOG_LINES.append(log_entry)
-        if len(self.LOG_LINES) > self.LOG_MAX:
-            del self.LOG_LINES[0]
-        print(log_entry)
-        self.info(linea)
+        self._add_to_memory("INFO", linea)
+        print(linea)
+        self._write_to_file("INFO", linea)
 
     def get_log_lines(self, n_lines: int = 15) -> list[str]:
         """
@@ -141,7 +154,16 @@ class Logger:
     def _setup_logger(self):
         """Configura los handlers (Consola y Archivo)."""
         if not HAS_LOGURU:
-            return  # Ya está configurado el fallback arriba
+            # Setup fallback logger file handler
+            os.makedirs(LOGS_DIR, exist_ok=True)
+            file_handler = logging.FileHandler(LOG_FILE_PATH, encoding="utf-8")
+            file_handler.setFormatter(
+                logging.Formatter(
+                    "%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s"
+                )
+            )
+            _std_logger.addHandler(file_handler)
+            return
 
         _loguru_logger.remove()  # Limpiar handlers por defecto
 
@@ -151,7 +173,7 @@ class Logger:
             format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
             "<level>{level: <8}</level> | "
             "<cyan>{name}:{function}:{line}</cyan> | "
-            "{extra[context]}<level>{message}</level>",
+            "{extra[context]: <20}<level>{message}</level>",
             level="INFO",
             colorize=True,
         )
@@ -232,33 +254,73 @@ class Logger:
 
     # --- MÉTODOS GENÉRICOS ---
 
+    def _write_to_file(self, level: str, message: str, *args, **kwargs) -> None:
+        """
+        Internal method to write log message to file and console via loguru.
+
+        Args:
+            level: Log level (INFO, WARNING, ERROR, etc.)
+            message: The message to log
+        """
+        if not HAS_LOGURU:
+            # Fallback logger
+            log_method = getattr(_std_logger, level.lower(), _std_logger.info)
+            log_method(message)
+            return
+
+        # Get the appropriate loguru method
+        log_method = getattr(_loguru_logger, level.lower(), _loguru_logger.info)
+        log_method(message, *args, **kwargs)
+
     def info(self, message: str, *args, **kwargs):
-        _loguru_logger.info(message, *args, **kwargs)
+        """Log INFO level message to memory and file."""
+        self._add_to_memory("INFO", message)
+        self._write_to_file("INFO", message, *args, **kwargs)
 
     def warning(self, message: str, *args, **kwargs):
-        _loguru_logger.warning(message, *args, **kwargs)
+        """Log WARNING level message to memory and file."""
+        self._add_to_memory("WARNING", message)
+        self._write_to_file("WARNING", message, *args, **kwargs)
 
     def error(self, message: str | Exception, error: Exception | None = None, *args, **kwargs):
-        """Log de error inteligente. Acepta (mensaje) o (mensaje, excepcion) o (excepcion)."""
+        """Log ERROR level message to memory and file.
+
+        Accepts (message), (message, exception), or (exception).
+        """
         if isinstance(message, Exception) and error is None:
             error = message
             message = str(message)
 
+        full_message = message
         if error:
             tb_str = self._format_clean_traceback(error)
-            message = f"{message}\n  ╚══ 💥 Detalles:\n{tb_str}"
+            full_message = f"{message}\n  ╚══ 💥 Detalles:\n{tb_str}"
 
-        _loguru_logger.error(message, *args, **kwargs)
+        self._add_to_memory("ERROR", full_message)
+        self._write_to_file("ERROR", full_message, *args, **kwargs)
+
+    def debug(self, message: str, *args, **kwargs):
+        """Log DEBUG level message to memory and file."""
+        self._add_to_memory("DEBUG", message)
+        self._write_to_file("DEBUG", message, *args, **kwargs)
+
+    def critical(self, message: str, *args, **kwargs):
+        """Log CRITICAL level message to memory and file."""
+        self._add_to_memory("CRITICAL", message)
+        self._write_to_file("CRITICAL", message, *args, **kwargs)
 
     # --- MÉTODOS ESPECÍFICOS DEL BOT (Integrados del código nuevo) ---
 
     def log_bot_event(self, level: str, message: str, user_id: int | None = None, **kwargs):
         """Registra un evento específico del bot."""
-        log_method = getattr(_loguru_logger, level.lower(), _loguru_logger.info)
         extra_info = f"[User:{user_id}]" if user_id else ""
         full_msg = f"{extra_info} {message}".strip()
 
-        log_method(full_msg, **kwargs)
+        # Add to memory
+        self._add_to_memory(level, full_msg)
+
+        # Write to file
+        self._write_to_file(level, full_msg, **kwargs)
 
         if self.monitoring_handler:
             self.monitoring_handler.add_log(level.upper(), full_msg, user_id)

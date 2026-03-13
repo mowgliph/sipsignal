@@ -14,7 +14,7 @@ class TestLoggerContext:
         token = user_context.set("[Chat:123] [User:456] ")
         assert user_context.get() == "[Chat:123] [User:456] "
         user_context.reset(token)
-        assert user_context.get() is None
+        assert user_context.get() == ""
 
     def test_context_isolation(self):
         """Test que el contexto se aísla entre tareas."""
@@ -28,11 +28,11 @@ class TestLoggerContext:
         assert user_context.get() == "[Chat:111] "
 
         user_context.reset(token1)
-        assert user_context.get() is None
+        assert user_context.get() == ""
 
     def test_context_empty_by_default(self):
         """Test que el contexto está vacío por defecto."""
-        assert user_context.get() is None
+        assert user_context.get() == ""
 
 
 class TestLoggerClass:
@@ -118,3 +118,67 @@ class TestLoggerConfiguration:
         assert hasattr(unified_logger, "error")
         assert hasattr(unified_logger, "warning")
         assert hasattr(unified_logger, "debug")
+
+
+class TestLoggerMemorySync:
+    """Tests para sincronización de memoria y archivo."""
+
+    def test_info_adds_to_memory(self):
+        """Test que info() agrega a memoria."""
+        logger_instance = Logger()
+        initial_count = len(logger_instance.LOG_LINES)
+
+        logger_instance.info("Test info message")
+
+        assert len(logger_instance.LOG_LINES) == initial_count + 1
+        assert "INFO" in logger_instance.LOG_LINES[-1]
+        assert "Test info message" in logger_instance.LOG_LINES[-1]
+
+    def test_warning_adds_to_memory(self):
+        """Test que warning() agrega a memoria."""
+        logger_instance = Logger()
+        initial_count = len(logger_instance.LOG_LINES)
+
+        logger_instance.warning("Test warning message")
+
+        assert len(logger_instance.LOG_LINES) == initial_count + 1
+        assert "WARNING" in logger_instance.LOG_LINES[-1]
+
+    def test_error_adds_to_memory(self):
+        """Test que error() agrega a memoria."""
+        logger_instance = Logger()
+        initial_count = len(logger_instance.LOG_LINES)
+
+        logger_instance.error("Test error message")
+
+        assert len(logger_instance.LOG_LINES) == initial_count + 1
+        assert "ERROR" in logger_instance.LOG_LINES[-1]
+
+    def test_get_log_lines_formatted(self):
+        """Test que get_log_lines_formatted devuelve líneas con emojis."""
+        logger_instance = Logger()
+        logger_instance.info("Info test")
+        logger_instance.warning("Warning test")
+        logger_instance.error("Error test")
+
+        formatted = logger_instance.get_log_lines_formatted(3)
+
+        assert len(formatted) == 3
+        assert "🟢" in formatted[0]  # INFO
+        assert "🟡" in formatted[1]  # WARNING
+        assert "🔴" in formatted[2]  # ERROR
+
+    def test_memory_buffer_max(self):
+        """Test que el buffer de memoria respeta el máximo."""
+        logger_instance = Logger()
+        # Clear existing lines
+        logger_instance.LOG_LINES = []
+
+        # Add more than LOG_MAX lines
+        for i in range(Logger.LOG_MAX + 20):
+            logger_instance.info(f"Line {i}")
+
+        # Should have exactly LOG_MAX lines
+        assert len(logger_instance.LOG_LINES) == Logger.LOG_MAX
+        # Oldest lines should be removed (Line 20 should be first, not Line 0)
+        assert "Line 20" in logger_instance.LOG_LINES[0]
