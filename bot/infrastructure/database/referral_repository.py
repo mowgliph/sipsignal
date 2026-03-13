@@ -99,3 +99,11 @@ class PostgreSQLReferralRepository(ReferralRepository):
             referred_id,
         )
         return record["referrer_id"] if record else None
+
+    async def get_referrer_info(self, referrer_id: int) -> dict | None:
+        """Get referrer user info for display purposes."""
+        record = await database.fetchrow(
+            "SELECT user_id, username FROM users WHERE user_id = $1",
+            referrer_id,
+        )
+        return dict(record) if record else None

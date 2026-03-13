@@ -53,31 +53,64 @@ async def register_or_update_user(
     """
     Registra un nuevo usuario o actualiza last_seen si ya existe.
     Si hay código de referido válido, lo registra.
-    Retorna los datos del usuario.
+    Retorna los datos del usuario y información del referido si aplica.
+
+    Returns:
+        dict with user data and optional 'referral_applied' key if referral was processed
     """
     existing = await get_user(user_id)
+
+    # Process referral code if provided (for both new and existing users)
+    referrer_id = None
+    referral_applied = False
+
+    if referral_code:
+        from bot.infrastructure.database.referral_repository import PostgreSQLReferralRepository
+
+        repo = PostgreSQLReferralRepository()
+        referrer_id = await repo.get_by_code(referral_code)
+
+        # Prevent self-referral
+        if referrer_id == user_id:
+            referrer_id = None
+            logger.warning(f"User {user_id} attempted self-referral with code {referral_code}")
+        elif existing:
+            # Existing user - check if already referred
+            if existing.get("referred_by"):
+                logger.info(f"User {user_id} already has referral, ignoring code {referral_code}")
+                referrer_id = None
+            else:
+                # Valid referral for existing user
+                logger.info(
+                    f"Existing user {user_id} applied referral code {referral_code} from user {referrer_id}"
+                )
+                referral_applied = True
+
     if existing:
         await update_last_seen(user_id)
+
+        # Update referred_by for existing user if valid referral
+        if referrer_id and referral_applied:
+            try:
+                await execute(
+                    "UPDATE users SET referred_by = $1 WHERE user_id = $2",
+                    referrer_id,
+                    user_id,
+                )
+                await repo.record_referral(referrer_id, user_id)
+                logger.info(
+                    f"Recorded referral for existing user: {referrer_id} referred {user_id}"
+                )
+            except Exception as e:
+                logger.error(f"Error recording referral for existing user {user_id}: {e}")
+
         return await get_user(user_id)
     else:
-        # New user - check referral code
-        referrer_id = None
-        if referral_code:
-            from bot.infrastructure.database.referral_repository import PostgreSQLReferralRepository
-
-            repo = PostgreSQLReferralRepository()
-            referrer_id = await repo.get_by_code(referral_code)
-
-            # Prevent self-referral
-            if referrer_id == user_id:
-                referrer_id = None
-                logger.warning(f"User {user_id} attempted self-referral with code {referral_code}")
-
-        # Create user
+        # New user - create with referral
         user_data = await create_user(user_id, language, referrer_id)
 
         # Record referral if valid
-        if referrer_id and referrer_id != user_id:
+        if referrer_id:
             try:
                 await repo.record_referral(referrer_id, user_id)
                 logger.info(f"Recorded referral: user {referrer_id} referred user {user_id}")

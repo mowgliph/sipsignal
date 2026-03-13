@@ -18,6 +18,7 @@ class Settings:
     # --- Credenciales y IDs ---
     token_telegram: str
     admin_chat_ids: list[int]
+    telegram_bot_username: str = "sipsignalbot"
 
     # --- Claves de API ---
     binance_api_key: str = ""
@@ -44,6 +45,7 @@ class Settings:
         token_telegram = os.environ.get("TOKEN_TELEGRAM", "").strip()
         admin_chat_ids_raw = os.environ.get("ADMIN_CHAT_IDS", "").strip()
         database_url = os.environ.get("DATABASE_URL", "").strip()
+        telegram_bot_username = os.environ.get("TELEGRAM_BOT_USERNAME", "sipsignalbot").strip()
 
         # Validación de obligatorias
         missing = []
@@ -78,6 +80,7 @@ class Settings:
         return cls(
             token_telegram=token_telegram,
             admin_chat_ids=admin_chat_ids,
+            telegram_bot_username=telegram_bot_username,
             binance_api_key=os.environ.get("BINANCE_API_KEY", "").strip(),
             binance_api_secret=os.environ.get("BINANCE_API_SECRET", "").strip(),
             groq_api_key=os.environ.get("GROQ_API_KEY", "").strip(),
@@ -105,6 +108,7 @@ except ValueError as e:
 
 TOKEN_TELEGRAM = settings.token_telegram
 ADMIN_CHAT_IDS = settings.admin_chat_ids
+TELEGRAM_BOT_USERNAME = settings.telegram_bot_username
 GROQ_API_KEY = settings.groq_api_key
 GROQ_ENDPOINT = settings.groq_endpoint
 GROQ_MODEL = settings.groq_model

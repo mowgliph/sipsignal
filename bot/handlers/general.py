@@ -1,10 +1,14 @@
 # handlers/general.py
 
+import logging
+
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from bot.db.users import register_or_update_user
+
+logger = logging.getLogger(__name__)
 
 # Mensajes estáticos (sin internacionalización)
 HELP_MSG = {
@@ -44,13 +48,34 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         referral_code = context.args[0].strip()
 
     # Register user (pass referral code if exists)
-    await register_or_update_user(user_id, user_lang, referral_code)
+    result = await register_or_update_user(user_id, user_lang, referral_code)
 
     nombre_usuario = update.effective_user.first_name
+
+    # Build referral success message if applicable
+    referral_msg = ""
+    if referral_code and result.get("referral_applied"):
+        # Get referrer info for display
+        from bot.infrastructure.database.referral_repository import PostgreSQLReferralRepository
+
+        try:
+            repo = PostgreSQLReferralRepository()
+            referrer_id = result.get("referred_by")
+            if referrer_id:
+                referrer_data = await repo.get_referrer_info(referrer_id)
+                if referrer_data:
+                    referrer_username = referrer_data.get("username")
+                    if referrer_username:
+                        referral_msg = f"✅ Has sido referido por @{referrer_username}\n\n"
+                    else:
+                        referral_msg = "✅ ¡Código de referido aplicado con éxito!\n\n"
+        except Exception as e:
+            logger.warning(f"Error getting referrer info: {e}")
 
     mensaje = (
         "*⚡ SIPSIGNAL - Sistema de Señales BTC*\n"
         "─────────────\n\n"
+        f"{referral_msg}"
         f"Hola {nombre_usuario}! 👋 Bienvenido a SipSignal, tu asistente de trading automatizado para Bitcoin.\n\n"
         "*🎯 ¿Qué hace SipSignal?*\n\n"
         "SipSignal analiza el mercado de BTC/USDT 24/7 y te envía señales de trading cuando detecta oportunidades según tu estrategia. "

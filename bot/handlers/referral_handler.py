@@ -6,6 +6,7 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import CommandHandler, ContextTypes
 
+from bot.core.config import settings
 from bot.utils import role_required
 from bot.utils.logger import logger
 
@@ -68,7 +69,7 @@ async def ref_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"─────────────\n\n"
             f"Tu código: <code>{code}</code>\n\n"
             f"Enlace directo:\n"
-            f"t.me/sipsignal_bot?start={code}\n\n"
+            f"t.me/{settings.telegram_bot_username}?start={code}\n\n"
             f"Comparte este enlace para invitar amigos a SipSignal.\n\n"
             f"📊 <b>Estadísticas:</b>\n"
             f"• Referidos totales: {stats['count']}\n"

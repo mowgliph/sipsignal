@@ -56,4 +56,4 @@ async def test_ref_command_generates_code():
     update.message.reply_text.assert_called_once()
     call_args = update.message.reply_text.call_args[0][0]
     assert "TEST1234" in call_args
-    assert "t.me/sipsignal_bot?start=TEST1234" in call_args
+    assert "t.me/sipsignalbot?start=TEST1234" in call_args
